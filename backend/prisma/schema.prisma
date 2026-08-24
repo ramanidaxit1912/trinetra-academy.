@@ -1,0 +1,144 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id                    Int          @id @default(autoincrement())
+  name                  String
+  mobile                String       @unique
+  currentSessionId      String?      // Unique session token for Single Device Login
+  lastLoginAt           DateTime?    // Last login timestamp
+  masterAccessAllowed   Boolean      @default(false) // Teacher granted permission to login using Master PIN
+  masterAccessExpiresAt DateTime?    // Expiry for Master PIN permission (e.g. 1 hour or 24 hours)
+  createdAt             DateTime     @default(now())
+  submissions           Submission[]
+
+  @@map("students")
+}
+
+model Teacher {
+  id        Int    @id @default(autoincrement())
+  username  String @unique
+  password  String
+
+  @@map("teachers")
+}
+
+model Question {
+  id          Int      @id @default(autoincrement())
+  text        String
+  type        String   @default("mcq") // "mcq" | "descriptive"
+  subject     String?
+  chapter     String?
+  marks       Int      @default(1)
+  optionA     String?
+  optionB     String?
+  optionC     String?
+  optionD     String?
+  optionE     String?  // Option E for 5-Option exams (e.g. TAT-S, TAT-HS, GPSC - "ઉત્તર આપવા માંગતા નથી (Not Attempted)")
+  correctOpt  String?  // "A" | "B" | "C" | "D" | "E"
+  isActive    Boolean  @default(true)
+  orderIndex  Int      @default(0)
+  // Test grouping & scheduling
+  testCode    String?  // Unique test identifier e.g. "TET2-CH3-2024"
+  testName    String?  // Display name e.g. "ગણિત Ch.3 MCQ Test"
+  timeLimit   Int?     // Minutes e.g. 60
+  scheduledAt String?  // ISO date/time string for scheduled live test e.g. "2026-08-16T18:00"
+  imageUrl        String?  // Optional question image or base64 data
+  image           String?  // Alias for image data
+  optionA_img     String?  // Optional image for Option A
+  optionB_img     String?  // Optional image for Option B
+  optionC_img     String?  // Optional image for Option C
+  optionD_img     String?  // Optional image for Option D
+  optionE_img     String?  // Optional image for Option E
+  negativeMarking Float?   @default(0) // Negative marks for wrong answer e.g. 0, 0.25, 0.33, 0.5, 1.0
+  createdAt       DateTime @default(now())
+
+  @@map("questions")
+}
+
+model Submission {
+  id              Int      @id @default(autoincrement())
+  studentId       Int
+  student         Student  @relation(fields: [studentId], references: [id])
+  testCode        String?  // Test identifier e.g. "TEST-XYZ"
+  testName        String?  // Test Name e.g. "વિજ્ઞાન મોક ટેસ્ટ"
+  subject         String?  // Subject e.g. "વિજ્ઞાન"
+  totalMarks      Int?     // Total marks
+  answers         Json     // [{questionId, type, selectedOpt, answerText}]
+  photoUrl        String?
+  mcqScore        Float?
+  totalMCQ        Int?
+  correctCount    Int?     @default(0)
+  wrongCount      Int?     @default(0)
+  negativeMarks   Float?   @default(0)
+  teacherMarks    String?
+  remarks         String?
+  status          String   @default("COMPLETED") // "IN_PROGRESS" | "COMPLETED"
+  currentIndex    Int?     @default(0)
+  savedAnswers    Json?
+  startedAt       DateTime @default(now())
+  submittedAt     DateTime @default(now())
+
+  @@map("submissions")
+}
+
+model OTPSession {
+  id        Int      @id @default(autoincrement())
+  mobile    String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("otp_sessions")
+}
+
+model Material {
+  id          Int      @id @default(autoincrement())
+  title       String
+  subject     String?
+  description String?
+  fileUrl     String?  // PDF/File URL or local upload path
+  fileName    String?
+  fileSize    String?  // e.g. "2.4 MB"
+  fileType    String?  @default("PDF") // "PDF" | "Notes" | "Model Paper" | "Book"
+  tag         String?  @default("IMP") // "TET-2 Special" | "IMP" | "Ch. 1-5"
+  linkUrl     String?  // Optional external web/drive link
+  createdAt   DateTime @default(now())
+
+  @@map("materials")
+}
+
+model MarketingItem {
+  id          Int      @id @default(autoincrement())
+  category    String   @default("CAROUSEL") // "CAROUSEL" | "DHAMAKA_OFFER"
+  title       String
+  subtitle    String?
+  description String?
+  imageUrl    String?  // Image or Poster URL
+  price       String?  // e.g. "₹149"
+  oldPrice    String?  // e.g. "₹299"
+  badge       String?  // e.g. "50% OFF", "SUPER SAVER", "BEST SELLER"
+  tagColor    String?  @default("#f59e0b")
+  couponCode  String?  // e.g. "TRINETRA50", "TET2026", "SPECIAL99"
+  linkUrl     String?  // CTA link
+  buttonText  String?  @default("💬 WhatsApp કરો")
+  waMessage   String?  // Custom WhatsApp message
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  showInHome  Boolean  @default(true)
+  showInPdf   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("marketing_items")
+}
+
+
