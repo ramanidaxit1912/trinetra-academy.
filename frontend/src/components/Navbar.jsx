@@ -19,7 +19,7 @@ export default function Navbar() {
       {/* 🌟 CENTERED BOLD RGB RAINBOW NEON MOTIVATION BAR (NO PHONE NUMBER) 🌟 */}
       <div className="announcement-bar">
         <span className="rgb-rainbow-text" style={{ fontSize: 'clamp(0.84rem, 2.6vw, 1rem)', fontWeight: 900, letterSpacing: '0.4px' }}>
-          ✨ સફળતા એટલે વાર લાગવી પણ પરાજય નહીં! 🏆
+          ✨ સફળતા એટલે વાર લાગવી પણ પરાજય નહી! 🏆
         </span>
       </div>
 
