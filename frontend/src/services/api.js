@@ -88,6 +88,7 @@ export const resetStudentSession    = (id) => api.post(`/teacher/student/${id}/r
 export const grantMasterAccess      = (id, data) => api.post(`/teacher/student/${id}/grant-master-access`, data);
 export const grantMasterByMobile    = (data) => api.post('/teacher/grant-master-by-mobile', data);
 export const getLiveOTPs            = ()   => api.get('/teacher/live-otps');
+export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-whatsapp', data);
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
 
 // ─── Materials ────────────────────────────────────────────────

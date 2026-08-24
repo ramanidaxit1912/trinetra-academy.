@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, grantMasterAccess, grantMasterByMobile, getLiveOTPs, gradeSubmission, getSubmissionReview, reEvaluateSubmissions,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, grantMasterAccess, grantMasterByMobile, getLiveOTPs, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem
 } from '../services/api';
@@ -275,7 +275,33 @@ export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLiveTestCode, setSelectedLiveTestCode] = useState(null);
   const [pdfModalTest, setPdfModalTest] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toast, show: showToast } = useToast();
+
+  const handleAnimatedLogout = () => {
+    setIsLoggingOut(true);
+
+    // Play lock sound
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.2);
+    } catch (e) {}
+
+    setTimeout(() => {
+      logoutTeacher();
+      window.location.href = '/';
+    }, 1550);
+  };
 
   useEffect(() => {
     const handler = (e) => {
@@ -287,6 +313,47 @@ export default function TeacherDashboard() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }} className="dash-bg">
+
+      {/* 🔒 Cinematic Vault Lockdown & Homepage Transition Overlay */}
+      {isLoggingOut && typeof document !== 'undefined' && createPortal(
+        <div className="vault-logout-overlay">
+          <div className="vault-logout-logo-box" style={{ textAlign: 'center' }}>
+            <div
+              className="teacher-cyber-shield"
+              style={{
+                width: 90,
+                height: 90,
+                background: '#ffffff',
+                padding: 8,
+                borderRadius: 28,
+                boxShadow: '0 0 50px rgba(234,179,8,0.7), 0 0 90px rgba(56,189,248,0.4)',
+                border: '2.5px solid #eab308'
+              }}
+            >
+              <div className="teacher-shield-ring" />
+              <div className="teacher-shield-ring-reverse" />
+              <img
+                src="/trinetra-logo.png"
+                alt="Trinetra Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  borderRadius: 20
+                }}
+              />
+            </div>
+            
+            <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', marginTop: 16, letterSpacing: '-0.02em', textShadow: '0 0 20px rgba(255,255,255,0.4)' }}>
+              🔒 સુરક્ષિત લોગઆઉટ થઈ રહ્યું છે...
+            </h2>
+            <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 700, marginTop: 4 }}>
+              હોમ પેજ પર પુનઃદિશામાન (Redirecting to Home) ➔
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Premium Sidebar ── */}
       <aside className="dash-sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -325,7 +392,7 @@ export default function TeacherDashboard() {
 
         {/* Logout */}
         <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <button className="dash-nav-item" onClick={logoutTeacher} style={{ color: '#f87171', width: '100%' }}>
+          <button className="dash-nav-item" onClick={handleAnimatedLogout} style={{ color: '#f87171', width: '100%', cursor: 'pointer' }}>
             <LogOut size={16} /> Logout
           </button>
         </div>
@@ -341,14 +408,14 @@ export default function TeacherDashboard() {
               {TABS.find(t => t.id === activeTab)?.icon} {TABS.find(t => t.id === activeTab)?.label}
             </span>
           </div>
-          <button onClick={logoutTeacher} style={{ background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', padding: '8px 14px', borderRadius: 9, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
+          <button onClick={handleAnimatedLogout} style={{ background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', padding: '8px 14px', borderRadius: 9, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
             <LogOut size={14} /> Logout
           </button>
         </div>
 
         {/* Tab Content */}
         <div style={{ padding: 'clamp(14px,3vw,22px)' }}>
-          {activeTab === 'overview'  && <Overview showToast={showToast} setActiveTab={setActiveTab} teacherProfile={teacherProfile} saveTeacherProfile={saveTeacherProfile} logoutTeacher={logoutTeacher} />}
+          {activeTab === 'overview'  && <Overview showToast={showToast} setActiveTab={setActiveTab} teacherProfile={teacherProfile} saveTeacherProfile={saveTeacherProfile} logoutTeacher={handleAnimatedLogout} />}
           {activeTab === 'generate'  && <TestGenerate showToast={showToast} setActiveTab={setActiveTab} setSelectedLiveTestCode={setSelectedLiveTestCode} />}
           {activeTab === 'live'      && <LiveController showToast={showToast} selectedTestCode={selectedLiveTestCode} setSelectedTestCode={setSelectedLiveTestCode} />}
           {activeTab === 'materials' && <MaterialManager showToast={showToast} />}
@@ -6886,67 +6953,65 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div key={group.testCode} className="sa-test-group">
 
-                    {/* ── Sleek Responsive Test Group Header Card ── */}
+                    {/* ── Sleek Responsive Test Group Header Card (Single Line on Laptop) ── */}
                     <div
                       className="sa-test-group-header"
                       onClick={() => toggleTestGroup(group.testCode)}
                     >
-                      {/* Top Row: Test Info & Student Count + Expand Arrow */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10 }}>
-                        <div className="sa-tg-left" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                          <div className="sa-tg-icon">
-                            {testType === 'MCQ' ? '🔵' : testType === 'DESC' ? '📝' : '⚡'}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div className="sa-tg-name" style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {group.testName}
-                            </div>
-                            <div className="sa-tg-meta" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 2, flexWrap: 'wrap' }}>
-                              <span className="sa-tg-code">🏷️ {group.testCode}</span>
-                              {group.subject && group.subject !== '—' && (
-                                <span style={{ color: '#94a3b8' }}>• {group.subject}</span>
-                              )}
-                              <span style={{ background: typeBg, color: typeColor, fontSize: '0.68rem', fontWeight: 800, padding: '1px 7px', borderRadius: 10, border: `1px solid ${typeColor}44` }}>
-                                {typeLabel}
-                              </span>
-                            </div>
-                          </div>
+                      {/* Left Side: Test Icon, Name & Code Meta */}
+                      <div className="sa-tg-left" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 300px' }}>
+                        <div className="sa-tg-icon">
+                          {testType === 'MCQ' ? '🔵' : testType === 'DESC' ? '📝' : '⚡'}
                         </div>
-
-                        {/* Right: Student count + Expand trigger */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(56,189,248,0.3)', whiteSpace: 'nowrap' }}>
-                            👥 {group.subs.length}
-                          </span>
-                          <span style={{ background: isOpen ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)', color: isOpen ? '#38bdf8' : '#94a3b8', width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                            ▼
-                          </span>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="sa-tg-name" style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.96rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {group.testName}
+                          </div>
+                          <div className="sa-tg-meta" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 2, flexWrap: 'wrap' }}>
+                            <span className="sa-tg-code">🏷️ {group.testCode}</span>
+                            {group.subject && group.subject !== '—' && (
+                              <span style={{ color: '#94a3b8' }}>• {group.subject}</span>
+                            )}
+                            <span style={{ background: typeBg, color: typeColor, fontSize: '0.68rem', fontWeight: 800, padding: '1px 7px', borderRadius: 10, border: `1px solid ${typeColor}44` }}>
+                              {typeLabel}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Bottom Row: Stats & Action Buttons Strip */}
-                      <div className="sa-tg-bottom-strip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 8, flexWrap: 'wrap', paddingTop: 8, marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      {/* Right Side: Stats Badges, Student Count & Actions (Inline on Laptop) */}
+                      <div className="sa-tg-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
+                        {/* Student Count Badge & Dropdown Arrow */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(56,189,248,0.3)', whiteSpace: 'nowrap' }}>
+                            👥 {group.subs.length}
+                          </span>
+                          <span style={{ background: isOpen ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)', color: isOpen ? '#38bdf8' : '#94a3b8', width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                            ▼
+                          </span>
+                        </div>
+
                         {/* Stats Badges */}
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ background: 'rgba(234,179,8,0.15)', color: '#fde047', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.3)' }}>
+                        <div className="sa-tg-stats-pills" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                          <span style={{ background: 'rgba(234,179,8,0.15)', color: '#fde047', fontSize: '0.72rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.3)', whiteSpace: 'nowrap' }}>
                             🏆 {highestScore}/{maxPossibleMarks}
                           </span>
-                          <span style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)' }}>
+                          <span style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>
                             📊 {avgScore}m
                           </span>
                           {pendingInGroup > 0 ? (
-                            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)' }}>
+                            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)', whiteSpace: 'nowrap' }}>
                               ⏳ {pendingInGroup} બાકી
                             </span>
                           ) : (
-                            <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.35)' }}>
+                            <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.72rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.35)', whiteSpace: 'nowrap' }}>
                               ✅ પૂર્ણ
                             </span>
                           )}
                         </div>
 
                         {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <div className="sa-tg-actions-wrap" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                           <button
                             type="button"
                             onClick={(e) => openMasterTestModal(group, e)}
@@ -6954,21 +7019,21 @@ function StudentAnswers({ showToast }) {
                               background: 'linear-gradient(135deg,#7c3aed,#9333ea)',
                               color: 'white',
                               border: 'none',
-                              padding: '5px 10px',
-                              borderRadius: 7,
-                              fontSize: '0.72rem',
+                              padding: '6px 12px',
+                              borderRadius: 8,
+                              fontSize: '0.74rem',
                               fontWeight: 900,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 4,
+                              gap: 5,
                               fontFamily: 'Hind Vadodara, sans-serif',
                               boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
                               whiteSpace: 'nowrap'
                             }}
                             title="આ કસોટીના તમામ પ્રશ્નો અને Answer Key જુઓ/એડિટ કરો"
                           >
-                            <Edit3 size={11} /> 📝 Answer Key
+                            <Edit3 size={12} /> 📝 Answer Key
                           </button>
 
                           {group.hasMCQ && (
@@ -6983,22 +7048,22 @@ function StudentAnswers({ showToast }) {
                                 background: 'linear-gradient(135deg,#2563eb,#3b82f6)',
                                 color: 'white',
                                 border: 'none',
-                                padding: '5px 10px',
-                                borderRadius: 7,
-                                fontSize: '0.72rem',
+                                padding: '6px 12px',
+                                borderRadius: 8,
+                                fontSize: '0.74rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4,
+                                gap: 5,
                                 fontFamily: 'Hind Vadodara, sans-serif',
-                                boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                                boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
+                                opacity: reEvaluating[group.testCode] ? 0.6 : 1,
                                 whiteSpace: 'nowrap'
                               }}
-                              title="આ કસોટીના તમામ વિદ્યાર્થીઓના માર્ક્સ Answer Key મુજબ આપોઆપ ફરી ગણો"
+                              title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
                             >
-                              <RefreshCw size={11} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} />
-                              {reEvaluating[group.testCode] ? 'ગણતરી...' : '🔄 ફરી ગણો'}
+                              <RotateCw size={12} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
                             </button>
                           )}
                         </div>
@@ -9163,6 +9228,50 @@ function TestHistory({ showToast }) {
 
   const [broadcastingGroup, setBroadcastingGroup] = useState(null);
   const [broadcastIndex, setBroadcastIndex] = useState(0);
+  const [isSendingApiBroadcast, setIsSendingApiBroadcast] = useState(false);
+
+  // 1-Click Automated Cloud Broadcast to ALL students (No tabs opened!)
+  const handleApiBroadcastAll = async (group) => {
+    if (!group || !group.submissions || group.submissions.length === 0) {
+      showToast('આ કસોટીમાં કોઈ વિદ્યાર્થીઓ મળ્યા નથી.', 'error');
+      return;
+    }
+
+    const payloadMessages = group.submissions.map((sub, idx) => {
+      const msg = getWhatsAppResultMsg(sub, group, idx + 1);
+      return {
+        mobile: sub.student?.mobile || '',
+        studentName: sub.student?.name || 'Student',
+        message: msg
+      };
+    }).filter(item => item.mobile.length >= 10);
+
+    if (payloadMessages.length === 0) {
+      showToast('વિદ્યાર્થીઓના મોબાઈલ નંબર અમાન્ય છે.', 'error');
+      return;
+    }
+
+    setIsSendingApiBroadcast(true);
+    showToast(`⏳ તમામ ${payloadMessages.length} વિદ્યાર્થીઓને WhatsApp મોકલાઈ રહ્યું છે...`, 'info');
+
+    try {
+      const res = await broadcastWhatsApp({
+        testCode: group.testCode,
+        messages: payloadMessages
+      });
+
+      if (res.data?.success) {
+        showToast(`🎉 સફળતા! ${res.data.sentCount} વિદ્યાર્થીઓને ઓટોમેટિક WhatsApp મોકલાઈ ગયું!`, 'success');
+      } else {
+        showToast('WhatsApp બ્રોડકાસ્ટ પૂર્ણ થયું.', 'info');
+      }
+    } catch (err) {
+      console.error('API broadcast error:', err);
+      showToast('❌ બ્રોડકાસ્ટ કરવામાં ક્ષતિ આવી. કૃપા કરીને ફરી પ્રયાસ કરો.', 'error');
+    } finally {
+      setIsSendingApiBroadcast(false);
+    }
+  };
 
   // Helper to generate beautifully formatted Gujarati WhatsApp Result message
   const getWhatsAppResultMsg = (sub, group, rank) => {
@@ -9382,31 +9491,6 @@ ${statusText}
                   </button>
 
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {/* Send All Results on WhatsApp */}
-                    <button
-                      onClick={() => {
-                        setBroadcastingGroup(group);
-                        setBroadcastIndex(0);
-                      }}
-                      title="આ કસોટીના તમામ વિદ્યાર્થીઓને એક પછી એક WhatsApp પર પરિણામ મોકલો"
-                      style={{
-                        background: 'linear-gradient(135deg,#059669,#25d366)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        fontSize: '0.78rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontFamily: 'Hind Vadodara, sans-serif',
-                        boxShadow: '0 3px 12px rgba(37,211,102,0.3)'
-                      }}>
-                      📢 બધાને WhatsApp મોકલો ({group.studentsCount})
-                    </button>
-
                     <button onClick={() => exportTestExcel(group)}
                       style={{
                         background: 'linear-gradient(135deg,#047857,#10b981)',
@@ -9591,147 +9675,6 @@ ${statusText}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* ── BATCH WHATSAPP BROADCAST MODAL ── */}
-      {broadcastingGroup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: 540, background: '#0f172a', border: '1.5px solid #22c55e', padding: 22, borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-              <div>
-                <div style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1 }}>
-                  📢 WhatsApp પરિણામ બ્રોડકાસ્ટર
-                </div>
-                <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.1rem', margin: '3px 0 0 0' }}>
-                  {broadcastingGroup.testName}
-                </h3>
-              </div>
-              <button onClick={() => setBroadcastingGroup(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#94a3b8', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontWeight: 900 }}>✕</button>
-            </div>
-
-            {/* Progress Bar */}
-            <div style={{ background: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 10, marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 800, color: '#cbd5e1', marginBottom: 6 }}>
-                <span>પ્રગતિ (Progress):</span>
-                <span style={{ color: '#4ade80' }}>{broadcastIndex} / {broadcastingGroup.submissions.length} વિદ્યાર્થીઓ</span>
-              </div>
-              <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.round((broadcastIndex / broadcastingGroup.submissions.length) * 100)}%`, background: 'linear-gradient(90deg,#10b981,#22c55e)', transition: 'width 0.3s' }} />
-              </div>
-            </div>
-
-            {/* Current Selected Student Card */}
-            {broadcastingGroup.submissions[broadcastIndex] ? (
-              (() => {
-                const curSub = broadcastingGroup.submissions[broadcastIndex];
-                const curRank = broadcastIndex + 1;
-                const sc = curSub.mcqScore ?? curSub.score ?? 0;
-                const tm = curSub.totalMarks || curSub.totalMCQ || broadcastingGroup.totalMarks || 1;
-                const pct = tm > 0 ? Math.round((sc / tm) * 100) : 0;
-                const waUrl = `https://wa.me/91${curSub.student?.mobile}?text=${encodeURIComponent(getWhatsAppResultMsg(curSub, broadcastingGroup, curRank))}`;
-
-                return (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ background: 'rgba(234,179,8,0.2)', color: '#fef08a', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.8rem' }}>
-                          #{curRank} Rank
-                        </span>
-                        <span style={{ color: 'white', fontWeight: 900, fontSize: '1rem' }}>
-                          {curSub.student?.name}
-                        </span>
-                      </div>
-                      <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.95rem' }}>
-                        {sc}/{tm} ({pct}%)
-                      </span>
-                    </div>
-
-                    <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: 14 }}>
-                      📞 WhatsApp Mobile: <strong style={{ color: '#e2e8f0' }}>{curSub.student?.mobile}</strong>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <a
-                        href={waUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => {
-                          if (broadcastIndex + 1 < broadcastingGroup.submissions.length) {
-                            setBroadcastIndex(i => i + 1);
-                          }
-                        }}
-                        style={{
-                          flex: 1,
-                          background: 'linear-gradient(135deg,#059669,#25d366)',
-                          color: 'white',
-                          padding: '10px 16px',
-                          borderRadius: 8,
-                          textDecoration: 'none',
-                          fontWeight: 900,
-                          fontSize: '0.88rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          fontFamily: 'Hind Vadodara, sans-serif',
-                          boxShadow: '0 4px 14px rgba(37,211,102,0.4)'
-                        }}>
-                        💬 WhatsApp મોકલો & Next ➔
-                      </a>
-
-                      <button
-                        onClick={() => {
-                          if (broadcastIndex + 1 < broadcastingGroup.submissions.length) {
-                            setBroadcastIndex(i => i + 1);
-                          }
-                        }}
-                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '10px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>
-                        Skip ⏭️
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
-                <div style={{ color: 'white', fontWeight: 900, fontSize: '1.1rem' }}>બધા વિદ્યાર્થીઓને પરિણામ મોકલાઈ ગયું છે!</div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: 4 }}>આ કસોટીના તમામ {broadcastingGroup.submissions.length} વિદ્યાર્થીઓનું બ્રોડકાસ્ટ પૂરું થયું.</div>
-                <button onClick={() => setBroadcastingGroup(null)} style={{ marginTop: 14, background: '#3b82f6', color: 'white', border: 'none', padding: '9px 20px', borderRadius: 8, fontWeight: 800, cursor: 'pointer' }}>પૂર્ણ (Done)</button>
-              </div>
-            )}
-
-            {/* Quick List Overview */}
-            <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
-              {broadcastingGroup.submissions.map((s, idx) => (
-                <div
-                  key={s.id}
-                  onClick={() => setBroadcastIndex(idx)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    background: broadcastIndex === idx ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.02)',
-                    border: broadcastIndex === idx ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.04)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '0.78rem'
-                  }}>
-                  <span style={{ color: broadcastIndex === idx ? '#4ade80' : '#cbd5e1', fontWeight: 700 }}>
-                    #{idx+1} {s.student?.name} ({s.student?.mobile})
-                  </span>
-                  <span style={{ color: idx < broadcastIndex ? '#22c55e' : '#64748b', fontWeight: 800 }}>
-                    {idx < broadcastIndex ? '✓ Sent' : idx === broadcastIndex ? '▶ Current' : 'Pending'}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-          </div>
         </div>
       )}
     </div>

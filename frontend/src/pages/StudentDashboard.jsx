@@ -56,6 +56,7 @@ function validateStudentName(rawName) {
 }
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useStore } from '../store/useStore';
@@ -585,6 +586,35 @@ export default function StudentDashboard() {
   const [authError, setAuthError]     = useState('');
   const [isThorAnimating, setIsThorAnimating] = useState(false);
   const [isOtpSuccessAnimating, setIsOtpSuccessAnimating] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // 🔒 Cinematic Student Logout & Redirect
+  const handleAnimatedLogout = () => {
+    setIsLoggingOut(true);
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.2);
+      }
+    } catch (e) {}
+
+    setTimeout(() => {
+      logout();
+      window.location.href = '/';
+    }, 1550);
+  };
   // ─── 🔊 Web Audio API Procedural Sound Synthesizer (No external audio files needed!) ──
   const playCinematicSound = (type) => {
     try {
@@ -2377,6 +2407,48 @@ export default function StudentDashboard() {
   // ─────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      
+      {/* 🔒 Cinematic Student Vault Lockdown & Homepage Transition Overlay */}
+      {isLoggingOut && typeof document !== 'undefined' && createPortal(
+        <div className="vault-logout-overlay">
+          <div className="vault-logout-logo-box" style={{ textAlign: 'center' }}>
+            <div
+              className="teacher-cyber-shield"
+              style={{
+                width: 90,
+                height: 90,
+                background: '#ffffff',
+                padding: 8,
+                borderRadius: 28,
+                boxShadow: '0 0 50px rgba(234,179,8,0.7), 0 0 90px rgba(56,189,248,0.4)',
+                border: '2.5px solid #eab308'
+              }}
+            >
+              <div className="teacher-shield-ring" />
+              <div className="teacher-shield-ring-reverse" />
+              <img
+                src="/trinetra-logo.png"
+                alt="Trinetra Logo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  borderRadius: 20
+                }}
+              />
+            </div>
+            
+            <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', marginTop: 16, letterSpacing: '-0.02em', textShadow: '0 0 20px rgba(255,255,255,0.4)' }}>
+              🔒 સુરક્ષિત લોગઆઉટ થઈ રહ્યું છે...
+            </h2>
+            <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 700, marginTop: 4 }}>
+              હોમ પેજ પર પુનઃદિશામાન (Redirecting to Home) ➔
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Show Navbar on Desktop, Hide on Phone when student is logged in */}
       <div className="student-desktop-navbar">
         <Navbar />
@@ -2415,7 +2487,7 @@ export default function StudentDashboard() {
                 style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)' }}>
                 <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> રીફ્રેશ
               </button>
-              <button onClick={logout}
+              <button onClick={handleAnimatedLogout}
                 style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LogOut size={14} /> Logout
               </button>
@@ -2462,7 +2534,7 @@ export default function StudentDashboard() {
           <button onClick={handleRefresh} disabled={refreshing} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8', padding: '6px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
             🔄
           </button>
-          <button onClick={logout} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '6px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
+          <button onClick={handleAnimatedLogout} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '6px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
             Logout
           </button>
         </div>

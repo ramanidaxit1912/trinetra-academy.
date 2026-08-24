@@ -150,6 +150,70 @@ router.post('/student/:id/reset-session', authMiddleware, teacherOnly, async (re
   }
 });
 
+// ─── POST /api/teacher/broadcast-whatsapp ───────────────────
+// Automated 1-Click Background Cloud WhatsApp Broadcast to ALL students
+router.post('/broadcast-whatsapp', authMiddleware, teacherOnly, async (req, res) => {
+  const { testCode, messages } = req.body;
+  try {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'મોકલવા માટે કોઈ વિદ્યાર્થીઓની યાદી નથી.' });
+    }
+
+    const whatsappApiUrl = process.env.WHATSAPP_API_URL || null;
+    const whatsappApiKey = process.env.WHATSAPP_API_KEY || null;
+
+    let successCount = 0;
+    let failedCount = 0;
+    const results = [];
+
+    // Send messages in background (or log if in dev / pending API key)
+    for (const item of messages) {
+      const { mobile, message, studentName } = item;
+      try {
+        if (whatsappApiUrl && whatsappApiKey) {
+          // Cloud API Request (UltraMsg / Fast2SMS / AISensy / WATI / Meta Cloud API)
+          const response = await fetch(whatsappApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${whatsappApiKey}`
+            },
+            body: JSON.stringify({
+              to: mobile.startsWith('91') ? mobile : `91${mobile}`,
+              message: message,
+              phone: mobile
+            })
+          });
+          const data = await response.json();
+          results.push({ mobile, studentName, status: 'SENT', response: data });
+          successCount++;
+        } else {
+          // Simulation / Ready for Gateway: Log message
+          console.log(`[WHATSAPP 1-CLICK API] 📲 To: ${mobile} (${studentName})\n${message}\n---`);
+          results.push({ mobile, studentName, status: 'DELIVERED_DEV' });
+          successCount++;
+        }
+      } catch (err) {
+        console.error(`WhatsApp send error to ${mobile}:`, err.message);
+        results.push({ mobile, studentName, status: 'FAILED', error: err.message });
+        failedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      total: messages.length,
+      sentCount: successCount,
+      failedCount: failedCount,
+      hasLiveGateway: Boolean(whatsappApiUrl && whatsappApiKey),
+      message: `🎉 ${successCount} વિદ્યાર્થીઓને પરિણામ આપોઆપ WhatsApp પર મોકલાઈ ગયું છે!`
+    });
+  } catch (err) {
+    console.error('Broadcast error:', err);
+    res.status(500).json({ error: 'WhatsApp બ્રોડકાસ્ટ કરવામાં સર્વર ક્ષતિ.' });
+  }
+});
+
 // ─── GET /api/teacher/live-otps ──────────────────────────────
 // Get recent active OTPs for teacher reference (last 15 mins)
 router.get('/live-otps', authMiddleware, teacherOnly, async (req, res) => {
