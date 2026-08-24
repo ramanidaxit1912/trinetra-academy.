@@ -583,6 +583,88 @@ export default function StudentDashboard() {
   const [authLoading, setAuthLoading] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [authError, setAuthError]     = useState('');
+  const [isThorAnimating, setIsThorAnimating] = useState(false);
+  const [isOtpSuccessAnimating, setIsOtpSuccessAnimating] = useState(false);
+  // ─── 🔊 Web Audio API Procedural Sound Synthesizer (No external audio files needed!) ──
+  const playCinematicSound = (type) => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (type === 'sparkle') {
+        // ✨ Wwoosh & High Chime Sparkle Sound
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.35); // D6
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } else if (type === 'supernova') {
+        // 💥 Deep Cosmic Bass Boom + Victory Chimes (Forte)
+        const bass = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bass.type = 'triangle';
+        bass.frequency.setValueAtTime(150, ctx.currentTime);
+        bass.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.8);
+        bassGain.gain.setValueAtTime(0.35, ctx.currentTime);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+        bass.connect(bassGain);
+        bassGain.connect(ctx.destination);
+        bass.start();
+        bass.stop(ctx.currentTime + 0.9);
+
+        // Major Triad Arpeggio Chime (C - E - G - C)
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const chime = ctx.createOscillator();
+          const chimeGain = ctx.createGain();
+          chime.type = 'sine';
+          chime.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+          chimeGain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+          chimeGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.6);
+          chime.connect(chimeGain);
+          chimeGain.connect(ctx.destination);
+          chime.start(ctx.currentTime + i * 0.12);
+          chime.stop(ctx.currentTime + i * 0.12 + 0.6);
+        });
+      }
+    } catch (e) {
+      console.warn('Audio FX error:', e);
+    }
+  };
+
+  // 3D Tilt Card State
+  const [tiltStyle, setTiltStyle] = useState({ transform: 'rotateX(0deg) rotateY(0deg)' });
+  const handleCardMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const rotateX = -(y / (rect.height / 2)) * 6; // Max 6 deg tilt
+    const rotateY = (x / (rect.width / 2)) * 6;
+    setTiltStyle({ transform: `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)` });
+  };
+  const handleCardMouseLeave = () => {
+    setTiltStyle({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' });
+  };
+
+  // Cursor Star Particle Trail State
+  const [cursorDots, setCursorDots] = useState([]);
+  const handleGlobalMouseMove = (e) => {
+    if (Math.random() > 0.4) return; // Throttled for ultra smooth 60fps
+    const newDot = {
+      id: Date.now() + Math.random(),
+      x: e.clientX,
+      y: e.clientY,
+      size: Math.floor(Math.random() * 8) + 6,
+      color: ['#fbbf24', '#38bdf8', '#ffffff', '#f59e0b', '#34d399'][Math.floor(Math.random() * 5)]
+    };
+    setCursorDots(prev => [...prev.slice(-15), newDot]);
+  };
 
   // Dashboard state
   const [activeTab, setActiveTab]         = useState(() => searchParams.get('tab') || 'live');
@@ -764,8 +846,15 @@ export default function StudentDashboard() {
     try {
       const res = await sendOTP(valResult.cleaned, name);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
-      setAuthMode('otp');
-      setOtpCooldown(60);
+      
+      // ⚡ TRIGGER STAR FLOW ANIMATION & SPARKLE SOUND ⚡
+      playCinematicSound('sparkle');
+      setIsThorAnimating(true);
+      setTimeout(() => {
+        setAuthMode('otp');
+        setIsThorAnimating(false);
+        setOtpCooldown(60);
+      }, 1250);
     } catch (err) {
       setAuthError(err.response?.data?.error || 'OTP મોકલવામાં ભૂલ.');
     }
@@ -779,7 +868,14 @@ export default function StudentDashboard() {
     setAuthLoading(true);
     try {
       const res = await verifyOTP(mobile, name, otp);
-      loginStudent(res.data.student, res.data.token);
+      
+      // 💥 TRIGGER FULLSCREEN GRAND LOGO SHATTER, 3RD EYE BEAM, CONFETTI & SUPERNOVA BASS SOUND 💥
+      playCinematicSound('supernova');
+      setIsOtpSuccessAnimating(true);
+      setTimeout(() => {
+        loginStudent(res.data.student, res.data.token);
+        setIsOtpSuccessAnimating(false);
+      }, 1550);
     } catch (err) {
       setAuthError(err.response?.data?.error || 'OTP ખોટો છે.');
     }
@@ -1777,149 +1873,504 @@ export default function StudentDashboard() {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // RENDER: UNLOGGED STUDENT LOGIN SCREEN
+  // RENDER: UNLOGGED STUDENT LOGIN SCREEN (CONCEPT 3: MINIMAL SMART CARD)
   // ─────────────────────────────────────────────────────────────
   if (!user || (!user.mobile && !user.id)) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0b1329 0%, #0f172a 50%, #1e293b 100%)', display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <div style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
-          <div className="card animate-fade-in" style={{ maxWidth: 450, width: '100%', padding: '32px 24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', borderRadius: 18 }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: 26 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: 'linear-gradient(135deg,#1e3a8a,#3b82f6)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, boxShadow: '0 8px 20px rgba(37,99,235,0.3)' }}>
-                <GraduationCap size={32} color="white" />
-              </div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px 0' }}>
-                વિદ્યાર્થી પોર્ટલ (Student Dashboard)
-              </h2>
-              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                તમારા બધા પરિણામો, લાઈવ કસોટીઓ, સ્ટડી મટીરીયલ અને શિક્ષક સહાય માટે Login કરો
-              </p>
-            </div>
 
-            {authMode === 'login' ? (
-              <form onSubmit={handleSendOTP}>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#334155', display: 'block', marginBottom: 6 }}>
-                    તમારું નામ (Student Name) *
-                  </label>
-                  <input
-                    className="input-field"
-                    placeholder="દા.ત. રમેશ પટેલ..."
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
+        <div
+          className="student-login-container"
+          onMouseMove={handleGlobalMouseMove}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'clamp(20px, 4vw, 40px) 16px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {/* 🖱️ 3. INTERACTIVE CURSOR STAR GLOW TRAIL 🖱️ */}
+          {cursorDots.map((cd) => (
+            <div
+              key={cd.id}
+              className="cursor-star-dot"
+              style={{
+                left: cd.x,
+                top: cd.y,
+                width: cd.size,
+                height: cd.size,
+                background: cd.color,
+                boxShadow: `0 0 10px ${cd.color}`
+              }}
+            />
+          ))}
+
+          {/* 💥 FULLSCREEN GRAND LOGO SHATTER, 3RD EYE BEAM & CONFETTI OVERLAY 💥 */}
+          {isOtpSuccessAnimating && (
+            <>
+              {/* 🎉 2. GOLDEN VICTORY CONFETTI & FIREWORKS SHOWER 🎉 */}
+              {[
+                { left: '8%',  cfx: '-60px', w: 10, h: 18, color: '#fbbf24', delay: '0s' },
+                { left: '16%', cfx: '40px',  w: 12, h: 14, color: '#38bdf8', delay: '0.1s' },
+                { left: '25%', cfx: '-50px', w: 8,  h: 20, color: '#22c55e', delay: '0.05s' },
+                { left: '34%', cfx: '70px',  w: 14, h: 14, color: '#f59e0b', delay: '0.2s' },
+                { left: '42%', cfx: '-40px', w: 10, h: 16, color: '#ec4899', delay: '0.15s' },
+                { left: '50%', cfx: '60px',  w: 12, h: 18, color: '#ffffff', delay: '0s' },
+                { left: '58%', cfx: '-70px', w: 9,  h: 22, color: '#fbbf24', delay: '0.1s' },
+                { left: '67%', cfx: '50px',  w: 11, h: 15, color: '#38bdf8', delay: '0.25s' },
+                { left: '76%', cfx: '-60px', w: 13, h: 14, color: '#22c55e', delay: '0.08s' },
+                { left: '85%', cfx: '45px',  w: 10, h: 18, color: '#f59e0b', delay: '0.18s' },
+                { left: '92%', cfx: '-55px', w: 12, h: 16, color: '#a855f7', delay: '0.12s' },
+                { left: '12%', cfx: '65px',  w: 9,  h: 20, color: '#ffffff', delay: '0.22s' },
+                { left: '48%', cfx: '-35px', w: 14, h: 14, color: '#fbbf24', delay: '0.3s' },
+                { left: '80%', cfx: '55px',  w: 11, h: 19, color: '#38bdf8', delay: '0.05s' },
+              ].map((cf, idx) => (
+                <div
+                  key={`confetti-${idx}`}
+                  className="victory-confetti-item"
+                  style={{
+                    left: cf.left,
+                    width: cf.w,
+                    height: cf.h,
+                    background: cf.color,
+                    boxShadow: `0 0 10px ${cf.color}`,
+                    animationDelay: cf.delay,
+                    '--cfx': cf.cfx
+                  }}
+                />
+              ))}
+
+              <div className="fullscreen-shatter-overlay">
+                <div className="grand-blast-ring" />
+                
+                {/* 👁️ 4. TRINETRA 3RD EYE DIVINE LASER BEAM 👁️ */}
+                <div className="third-eye-laser-beam" />
+
+                {/* Massive 360° Star Shatter Pieces */}
+                {[
+                  { gx: '-180px', gy: '-160px', grot: '120deg', size: 28, bg: '#fbbf24' },
+                  { gx: '190px',  gy: '-150px', grot: '-140deg', size: 26, bg: '#f97316' },
+                  { gx: '-210px', gy: '140px',  grot: '180deg', size: 30, bg: '#ffffff' },
+                  { gx: '220px',  gy: '150px',  grot: '-200deg', size: 28, bg: '#fbbf24' },
+                  { gx: '0px',    gy: '-240px', grot: '90deg',  size: 32, bg: '#f59e0b' },
+                  { gx: '0px',    gy: '230px',  grot: '-90deg', size: 30, bg: '#38bdf8' },
+                  { gx: '-240px', gy: '0px',    grot: '150deg', size: 28, bg: '#ffffff' },
+                  { gx: '240px',  gy: '0px',    grot: '-150deg', size: 26, bg: '#f97316' },
+                  { gx: '-140px', gy: '-220px', grot: '60deg',  size: 24, bg: '#fbbf24' },
+                  { gx: '150px',  gy: '-210px', grot: '-75deg', size: 26, bg: '#f59e0b' },
+                  { gx: '-160px', gy: '210px',  grot: '135deg', size: 26, bg: '#38bdf8' },
+                  { gx: '160px',  gy: '220px',  grot: '-120deg', size: 28, bg: '#ffffff' },
+                  { gx: '-110px', gy: '-90px',  grot: '45deg',  size: 22, bg: '#fbbf24' },
+                  { gx: '110px',  gy: '-85px',  grot: '-45deg', size: 24, bg: '#f97316' },
+                  { gx: '-120px', gy: '80px',   grot: '90deg',  size: 22, bg: '#38bdf8' },
+                  { gx: '120px',  gy: '90px',   grot: '-90deg', size: 24, bg: '#ffffff' },
+                ].map((gp, idx) => (
+                  <div
+                    key={`grand-shard-${idx}`}
+                    className="grand-shatter-piece"
+                    style={{
+                      width: gp.size,
+                      height: gp.size,
+                      marginLeft: -(gp.size / 2),
+                      marginTop: -(gp.size / 2),
+                      background: `radial-gradient(circle, #ffffff 20%, ${gp.bg} 85%)`,
+                      '--gx': gp.gx,
+                      '--gy': gp.gy,
+                      '--grot': gp.grot
+                    }}
                   />
+                ))}
+
+                <div className="grand-logo-center">
+                  <img src="/images/logo.jpg" alt="Trinetra Academy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#334155', display: 'block', marginBottom: 6 }}>
-                    મોબાઈલ નંબર (10 Digits) *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      className="input-field"
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      placeholder="દા.ત. 9876543210"
-                      value={mobile}
-                      onChange={e => {
-                        const cleaned = e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10);
-                        setMobile(cleaned);
-                        if (authError) setAuthError('');
-                      }}
-                      style={{
-                        paddingRight: mobile.length === 10 ? 40 : 12,
-                        border: mobile.length === 10
-                          ? validateIndianMobile(mobile).isValid ? '2px solid #22c55e' : '2px solid #ef4444'
-                          : undefined,
-                        background: mobile.length === 10
-                          ? validateIndianMobile(mobile).isValid ? '#f0fdf4' : '#fef2f2'
-                          : undefined
-                      }}
-                      required
-                    />
-                    {mobile.length === 10 && validateIndianMobile(mobile).isValid && (
-                      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#16a34a', fontWeight: 900, fontSize: '1.1rem' }}>
-                        ✓
-                      </span>
-                    )}
-                  </div>
-                  {mobile.length > 0 && mobile.length === 10 && !validateIndianMobile(mobile).isValid && (
-                    <div style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: 4, fontWeight: 700 }}>
-                      ⚠️ {validateIndianMobile(mobile).message}
-                    </div>
-                  )}
+                <div style={{ marginTop: 24, fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24', textShadow: '0 0 20px rgba(251,191,36,0.8)', letterSpacing: '0.5px' }}>
+                  🎉 ત્રિનેત્ર એકેડેમીમાં આપનું સ્વાગત છે!
                 </div>
+              </div>
+            </>
+          )}
+          {/* Ambient Lighting Glows (Smooth 60FPS Floating) */}
+          <div className="ambient-orb-1" style={{ position: 'absolute', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.22) 0%, rgba(0,0,0,0) 70%)', top: '8%', left: '12%', pointerEvents: 'none' }} />
+          <div className="ambient-orb-2" style={{ position: 'absolute', width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.14) 0%, rgba(0,0,0,0) 70%)', bottom: '8%', right: '12%', pointerEvents: 'none' }} />
 
-                {authError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: 14, fontWeight: 700 }}>{authError}</p>}
+          {/* 🌌 DENSE FLOATING STARS & FAST GLOWING PARTICLES 🌌 */}
+          {[
+            { top: '95%', left: '5%', size: 4, delay: '0s', dur: '5s', color: '#38bdf8' },
+            { top: '90%', left: '12%', size: 3, delay: '1.2s', dur: '6s', color: '#ffffff' },
+            { top: '98%', left: '20%', size: 5, delay: '0.4s', dur: '4.5s', color: '#fbbf24' },
+            { top: '92%', left: '28%', size: 3, delay: '2.5s', dur: '7s', color: '#34d399' },
+            { top: '95%', left: '35%', size: 4, delay: '1.8s', dur: '5.5s', color: '#60a5fa' },
+            { top: '99%', left: '42%', size: 3, delay: '0.8s', dur: '6.5s', color: '#ffffff' },
+            { top: '94%', left: '50%', size: 5, delay: '2.2s', dur: '4.8s', color: '#a78bfa' },
+            { top: '97%', left: '58%', size: 3, delay: '3.1s', dur: '5.8s', color: '#38bdf8' },
+            { top: '91%', left: '65%', size: 4, delay: '1.5s', dur: '6.2s', color: '#fde68a' },
+            { top: '96%', left: '72%', size: 3, delay: '0.2s', dur: '5.2s', color: '#ffffff' },
+            { top: '93%', left: '80%', size: 5, delay: '2.7s', dur: '4.6s', color: '#34d399' },
+            { top: '98%', left: '88%', size: 4, delay: '1.1s', dur: '5.9s', color: '#60a5fa' },
+            { top: '90%', left: '94%', size: 3, delay: '3.5s', dur: '6.8s', color: '#f472b6' },
+            { top: '85%', left: '15%', size: 4, delay: '2.1s', dur: '5.4s', color: '#38bdf8' },
+            { top: '88%', left: '84%', size: 3, delay: '0.9s', dur: '4.9s', color: '#ffffff' },
+            { top: '92%', left: '48%', size: 4, delay: '3.8s', dur: '5.7s', color: '#fbbf24' },
+          ].map((p, idx) => (
+            <div
+              key={`particle-${idx}`}
+              className="particle-star"
+              style={{
+                width: p.size,
+                height: p.size,
+                top: p.top,
+                left: p.left,
+                animationDelay: p.delay,
+                animationDuration: p.dur,
+                background: `radial-gradient(circle, #ffffff 20%, ${p.color} 70%, transparent 100%)`,
+                boxShadow: `0 0 12px ${p.color}`
+              }}
+            />
+          ))}
 
-                <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem' }} disabled={authLoading}>
-                  {authLoading ? '⏳ મોકલી રહ્યું છે...' : '📱 OTP મેળવો અને પ્રવેશ કરો →'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOTP}>
-                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '10px 14px', marginBottom: 16, textAlign: 'center', color: '#15803d', fontSize: '0.88rem', fontWeight: 700 }}>
-                  📲 {mobile} પર 6-અંકનો OTP મોકલ્યો છે
-                </div>
+          {/* Twinkling Sparkling Stars */}
+          {[
+            { top: '15%', left: '10%', size: 3, delay: '0.2s' },
+            { top: '22%', left: '22%', size: 2, delay: '0.8s' },
+            { top: '30%', left: '8%', size: 3, delay: '1.4s' },
+            { top: '18%', left: '82%', size: 3, delay: '0.5s' },
+            { top: '28%', left: '92%', size: 2, delay: '1.1s' },
+            { top: '45%', left: '14%', size: 3, delay: '1.8s' },
+            { top: '55%', left: '86%', size: 3, delay: '0.7s' },
+            { top: '70%', left: '18%', size: 2, delay: '2.1s' },
+            { top: '82%', left: '11%', size: 3, delay: '1.3s' },
+            { top: '75%', left: '88%', size: 3, delay: '0.4s' },
+            { top: '88%', left: '76%', size: 2, delay: '1.9s' },
+            { top: '12%', left: '50%', size: 3, delay: '1.6s' },
+            { top: '65%', left: '4%', size: 2, delay: '0.9s' },
+            { top: '40%', left: '95%', size: 3, delay: '2.3s' },
+          ].map((s, idx) => (
+            <div
+              key={`twinkle-${idx}`}
+              className="twinkle-star"
+              style={{
+                width: s.size,
+                height: s.size,
+                top: s.top,
+                left: s.left,
+                animationDelay: s.delay,
+                boxShadow: '0 0 8px #ffffff'
+              }}
+            />
+          ))}
 
-                {devOtp && (
-                  <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: '0.88rem', color: '#92400e', fontWeight: 800, textAlign: 'center' }}>
-                    🔧 Dev Mode OTP: <strong>{devOtp}</strong>
-                  </div>
+          {/* 🪐 5. 3D GYROSCOPE TILT CARD PHYSICS 🪐 */}
+          <div
+            className="login-card-animated tilt-3d-card"
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
+            style={{
+              maxWidth: 455,
+              width: '100%',
+              position: 'relative',
+              zIndex: 1,
+              ...tiltStyle
+            }}
+          >
+
+            {/* 🌟 360° CYBER NEON RUNNING LASER LIGHT BORDER 🌟 */}
+            <div className="cyber-neon-card-wrapper">
+              <div style={{
+                position: 'relative',
+                zIndex: 1,
+                padding: 'clamp(24px, 4vw, 36px)',
+                borderRadius: 21,
+                background: '#ffffff'
+              }}>
+
+              {/* Logo & Header with Cosmic Shooting Star Stream & Flowing Transition */}
+              <div style={{ textAlign: 'center', marginBottom: 24, position: 'relative' }}>
+                
+                {/* 🌟 COSMIC SHOOTING STAR RIVER STREAM & FUSION SHOCKWAVE 🌟 */}
+                {isThorAnimating && (
+                  <>
+                    <div className="star-fusion-ring" />
+                    
+                    {/* Flowing Laser Tail Streaks */}
+                    {[
+                      { rot: '25deg' },
+                      { rot: '-45deg' },
+                      { rot: '110deg' },
+                      { rot: '-135deg' }
+                    ].map((tl, idx) => (
+                      <div key={`trail-${idx}`} className="star-trail-line" style={{ '--rot': tl.rot }} />
+                    ))}
+
+                    {/* 3-Point River Flowing Star Pieces */}
+                    {[
+                      { p1x: '-60px', p1y: '-40px', p2x: '90px',  p2y: '-20px', p3x: '30px',  p3y: '45px',  size: 14, bg: '#fbbf24' },
+                      { p1x: '65px',  p1y: '-50px', p2x: '-80px', p2y: '-10px', p3x: '-40px', p3y: '50px',  size: 16, bg: '#f97316' },
+                      { p1x: '-80px', p1y: '20px',  p2x: '60px',  p2y: '30px',  p3x: '15px',  p3y: '-55px', size: 13, bg: '#ffffff' },
+                      { p1x: '75px',  p1y: '35px',  p2x: '-70px', p2y: '40px',  p3x: '-35px', p3y: '-45px', size: 15, bg: '#fbbf24' },
+                      { p1x: '0px',   p1y: '-80px', p2x: '100px', p2y: '10px',  p3x: '-50px', p3y: '30px',  size: 17, bg: '#f59e0b' },
+                      { p1x: '0px',   p1y: '75px',  p2x: '-90px', p2y: '-30px', p3x: '45px',  p3y: '-25px', size: 14, bg: '#38bdf8' },
+                      { p1x: '-50px', p1y: '-70px', p2x: '70px',  p2y: '-50px', p3x: '20px',  p3y: '60px',  size: 15, bg: '#ffffff' },
+                      { p1x: '55px',  p1y: '-65px', p2x: '-60px', p2y: '55px',  p3x: '-25px', p3y: '-60px', size: 13, bg: '#f97316' },
+                      { p1x: '-65px', p1y: '60px',  p2x: '85px',  p2y: '-40px', p3x: '35px',  p3y: '20px',  size: 16, bg: '#fbbf24' },
+                      { p1x: '70px',  p1y: '65px',  p2x: '-75px', p2y: '-45px', p3x: '-45px', p3y: '15px',  size: 14, bg: '#f59e0b' },
+                      { p1x: '-90px', p1y: '0px',   p2x: '50px',  p2y: '70px',  p3x: '40px',  p3y: '-50px', size: 15, bg: '#ffffff' },
+                      { p1x: '90px',  p1y: '0px',   p2x: '-50px', p2y: '-70px', p3x: '-30px', p3y: '50px',  size: 14, bg: '#38bdf8' },
+                    ].map((sp, idx) => (
+                      <div
+                        key={`star-flow-${idx}`}
+                        className="star-stream-piece"
+                        style={{
+                          width: sp.size,
+                          height: sp.size,
+                          marginLeft: -(sp.size / 2),
+                          marginTop: -(sp.size / 2),
+                          background: `radial-gradient(circle, #ffffff 15%, ${sp.bg} 85%)`,
+                          '--p1x': sp.p1x,
+                          '--p1y': sp.p1y,
+                          '--p2x': sp.p2x,
+                          '--p2y': sp.p2y,
+                          '--p3x': sp.p3x,
+                          '--p3y': sp.p3y
+                        }}
+                      />
+                    ))}
+                  </>
                 )}
 
-                <div style={{ marginBottom: 20 }}>
-                  <input
-                    className="input-field"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="6-digit OTP"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                    style={{ textAlign: 'center', fontSize: '1.4rem', letterSpacing: '0.3em' }}
-                    required
-                  />
+                <div
+                  className={isThorAnimating ? 'cosmic-star-logo-animating' : ''}
+                  style={{
+                    width: 68, height: 68, borderRadius: 18,
+                    background: '#ffffff',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: 10,
+                    boxShadow: isThorAnimating ? '0 0 45px #fbbf24, 0 0 70px #f97316' : '0 8px 24px rgba(37,99,235,0.25)',
+                    border: isThorAnimating ? '2px solid #fbbf24' : '1.5px solid #e2e8f0',
+                    overflow: 'hidden', padding: 4,
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <img src="/images/logo.jpg" alt="Trinetra Online Academy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
+                
+                <h2 style={{ fontSize: '1.38rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0' }}>
+                  {authMode === 'login' ? 'વિદ્યાર્થી પ્રવેશ (Student Login)' : '🔐 સુરક્ષિત OTP ચકાસણી'}
+                </h2>
+                <p style={{ color: isThorAnimating ? '#ea580c' : '#64748b', fontSize: '0.84rem', margin: 0, fontWeight: 700, transition: 'color 0.2s' }}>
+                  {isThorAnimating
+                    ? '✨ તારાઓનો પ્રવાહ શરૂ... OTP મોકલાઈ રહ્યો છે!'
+                    : authMode === 'login'
+                    ? 'તમારા મોબાઈલ નંબર દ્વારા સુરક્ષિત પ્રવેશ કરો'
+                    : 'મોબાઈલ પર આવેલ ૬-અંકનો OTP દાખલ કરો'}
+                </p>
+              </div>
 
-                {authError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: 14, fontWeight: 700 }}>{authError}</p>}
+              {authMode === 'login' ? (
+                <form onSubmit={handleSendOTP}>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.86rem', color: '#1e293b', display: 'block', marginBottom: 6 }}>
+                      👤 તમારું પૂરું નામ (Full Name) *
+                    </label>
+                    <input
+                      className="input-field rgb-input-field"
+                      placeholder="દા.ત. મહેશ પટેલ..."
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      style={{ fontSize: '0.96rem', padding: '12px 14px', borderRadius: 10 }}
+                      required
+                    />
+                  </div>
 
-                <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem' }} disabled={authLoading}>
-                  {authLoading ? '⏳ ચકાસી રહ્યું છે...' : '✅ Verify & Dashboard ઓપન કરો'}
-                </button>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.86rem', color: '#1e293b', display: 'block', marginBottom: 6 }}>
+                      📱 મોબાઈલ નંબર (10 Digits Mobile) *
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+                      <div style={{ background: '#f1f5f9', border: '1.8px solid #cbd5e1', borderRadius: 10, padding: '11px 12px', fontWeight: 800, color: '#334155', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <span>🇮🇳</span> +91
+                      </div>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          className="input-field rgb-input-field"
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={mobile}
+                          onChange={e => {
+                            const cleaned = e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10);
+                            setMobile(cleaned);
+                            if (authError) setAuthError('');
+                          }}
+                          style={{
+                            fontSize: '1rem',
+                            letterSpacing: '1px',
+                            fontWeight: 700,
+                            padding: '12px 14px',
+                            paddingRight: mobile.length === 10 ? 38 : 12,
+                            borderRadius: 10,
+                            background: mobile.length === 10
+                              ? validateIndianMobile(mobile).isValid ? '#f0fdf4' : '#fef2f2'
+                              : '#ffffff',
+                            width: '100%',
+                            transition: 'all 0.25s',
+                            boxShadow: mobile.length === 10 && validateIndianMobile(mobile).isValid ? '0 0 14px rgba(34,197,94,0.4)' : 'none'
+                          }}
+                          required
+                        />
+                        {mobile.length === 10 && validateIndianMobile(mobile).isValid && (
+                          <span className="checkmark-pop" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#16a34a', fontWeight: 900, fontSize: '1.15rem' }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {mobile.length > 0 && mobile.length === 10 && !validateIndianMobile(mobile).isValid && (
+                      <div style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: 4, fontWeight: 700 }}>
+                        ⚠️ {validateIndianMobile(mobile).message}
+                      </div>
+                    )}
+                  </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, fontSize: '0.86rem' }}>
-                  <button type="button" onClick={() => setAuthMode('login')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: 700 }}>
-                    ← નંબર બદલો
+                  {authError && <p style={{ color: '#ef4444', fontSize: '0.86rem', marginBottom: 14, fontWeight: 700 }}>{authError}</p>}
+
+                  <button type="submit" className="btn-primary btn-shimmer-effect" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem', borderRadius: 10, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }} disabled={authLoading}>
+                    {authLoading ? '⏳ મોકલી રહ્યું છે...' : '📱 OTP મેળવો અને પ્રવેશ કરો →'}
                   </button>
-                  
-                  {otpCooldown > 0 ? (
-                    <span style={{ color: '#b45309', fontWeight: 800, background: '#fef3c7', padding: '3px 8px', borderRadius: 6, fontSize: '0.78rem' }}>
-                      ⏱️ {otpCooldown}s પછી Resend
-                    </span>
-                  ) : (
-                    <button type="button" onClick={handleSendOTP} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 800 }}>
-                      🔄 ફરીથી OTP મોકલો
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOTP}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '10px 14px', marginBottom: 16, textAlign: 'center', color: '#15803d', fontSize: '0.88rem', fontWeight: 700 }}>
+                    📲 +91 {mobile} પર 6-અંકનો OTP મોકલ્યો છે
+                  </div>
 
-            <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <Link to="/exam" style={{ color: '#64748b', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 600 }}>
-                સીધી પરીક્ષા આપવી છે? <span style={{ color: '#2563eb', fontWeight: 800 }}>અહીં ક્લિક કરો →</span>
-              </Link>
+                  {devOtp && (
+                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, padding: '8px 12px', marginBottom: 16, fontSize: '0.84rem', color: '#92400e', fontWeight: 800, textAlign: 'center' }}>
+                      🔧 Dev Mode OTP: <strong style={{ letterSpacing: '2px', fontSize: '1rem' }}>{devOtp}</strong>
+                    </div>
+                  )}
+
+                  {/* 🌟 MODERN 6-BOX SPLIT OTP INPUT WITH RGB BORDER 🌟 */}
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.84rem', color: '#334155', display: 'block', marginBottom: 8, textAlign: 'center' }}>
+                      ૬-અંકનો સુરક્ષિત OTP દાખલ કરો
+                    </label>
+                    <div className="otp-boxes-container" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <input
+                          key={index}
+                          id={`otp-box-${index}`}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={otp[index] || ''}
+                          className={`rgb-otp-box ${otp[index] ? 'rgb-otp-box-active' : ''}`}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            const newOtpArr = (otp || '').split('');
+                            newOtpArr[index] = val;
+                            const combined = newOtpArr.join('').slice(0, 6);
+                            setOtp(combined);
+                            if (val && index < 5) {
+                              document.getElementById(`otp-box-${index + 1}`)?.focus();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                              document.getElementById(`otp-box-${index - 1}`)?.focus();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            e.preventDefault();
+                            const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                            setOtp(pasteData);
+                            const nextFocus = Math.min(pasteData.length, 5);
+                            document.getElementById(`otp-box-${nextFocus}`)?.focus();
+                          }}
+                          style={{
+                            width: 44,
+                            height: 50,
+                            textAlign: 'center',
+                            fontSize: '1.4rem',
+                            fontWeight: 900,
+                            borderRadius: 10,
+                            background: otp[index] ? '#eff6ff' : '#f8fafc',
+                            color: '#1e3a8a',
+                            outline: 'none'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {authError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: 14, fontWeight: 700 }}>{authError}</p>}
+
+                  <button type="submit" className="btn-primary btn-shimmer-effect" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem', borderRadius: 10, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }} disabled={authLoading || (otp?.length !== 6)}>
+                    {authLoading ? '⏳ ચકાસી રહ્યું છે...' : '✅ Verify & Dashboard ખોલો'}
+                  </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, fontSize: '0.86rem' }}>
+                    <button type="button" onClick={() => setAuthMode('login')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: 700 }}>
+                      ← નંબર બદલો
+                    </button>
+                    
+                    {otpCooldown > 0 ? (
+                      <span style={{ color: '#b45309', fontWeight: 800, background: '#fef3c7', padding: '3px 8px', borderRadius: 6, fontSize: '0.78rem' }}>
+                        ⏱️ {otpCooldown}s પછી Resend
+                      </span>
+                    ) : (
+                      <button type="button" onClick={handleSendOTP} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 800 }}>
+                        🔄 ફરીથી OTP મોકલો
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+
+              {/* 📞 DIRECT WHATSAPP HELPLINE SUPPORT BUTTON 📞 */}
+              <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 8, fontWeight: 600 }}>
+                  કોઈ મુશ્કેલી કે પ્રશ્ન છે? સીધો સંપર્ક કરો:
+                </div>
+                <a
+                  href="https://wa.me/918200405300?text=નમસ્તે%20Trinetra%20Academy,%20મને%20Student%20Login%20કરવામાં%20સહાય%20જોઈએ%20છે."
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    background: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    color: '#15803d',
+                    padding: '8px 16px',
+                    borderRadius: 10,
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 8px rgba(34,197,94,0.15)'
+                  }}
+                >
+                  💬 WhatsApp Support: <strong style={{ color: '#16a34a' }}>8200405300</strong>
+                </a>
+              </div>
+
             </div>
           </div>
+
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ─────────────────────────────────────────────────────────────
   // RENDER: FULL LOGGED IN STUDENT DASHBOARD

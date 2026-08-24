@@ -429,34 +429,44 @@ export default function HomePage() {
 
       {/* ── About Us Section ── */}
       <section id="about" style={{ padding: 'clamp(36px,6vw,64px) 16px', background: '#0f172a' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Heading */}
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'inline-block', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', fontWeight: 800, fontSize: '0.8rem', padding: '5px 14px', borderRadius: 20, marginBottom: 10, border: '1px solid rgba(59,130,246,0.3)' }}>
-              📖 About Trinetra
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <div style={{ display: 'inline-block', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', fontWeight: 800, fontSize: '0.8rem', padding: '5px 16px', borderRadius: 20, marginBottom: 12, border: '1.5px solid rgba(59,130,246,0.35)', boxShadow: '0 4px 14px rgba(37,99,235,0.2)' }}>
+              🏛️ Trinetra Online Academy — શિક્ષક સજ્જતા મંચ
             </div>
-            <h2 style={{ fontSize: 'clamp(1.3rem,4vw,1.9rem)', fontWeight: 900, color: '#ffffff', marginBottom: 10 }}>
-              Trinetra Online Academy વિશે
+            <h2 style={{ fontSize: 'clamp(1.4rem,4vw,2.1rem)', fontWeight: 900, color: '#ffffff', marginBottom: 12, letterSpacing: '-0.2px' }}>
+              ત્રિનેત્ર ઓનલાઇન એકેડેમી વિશે
             </h2>
-            <p className="gu-text" style={{ color: '#94a3b8', fontSize: 'clamp(0.88rem,3vw,1rem)', maxWidth: 620, margin: '0 auto', lineHeight: 1.8 }}>
-              Trinetra Online Academy — ગુજરાતના TET-2 સ્પર્ધાત્મક પરીક્ષાર્થીઓ માટે<br />
-              વિશ્વસનીય Online Test Series, Study Material અને Exam Preparation Platform.
+            <p className="gu-text" style={{ color: '#93c5fd', fontSize: 'clamp(0.88rem,3vw,1.05rem)', maxWidth: 780, margin: '0 auto', lineHeight: 1.8 }}>
+              TET-1, TET-2, TAT (માધ્યમિક & ઉચ્ચતર) અને HMAT પરીક્ષાઓ માટે ગુજરાતનું સર્વશ્રેષ્ઠ અને વિશ્વસનીય સ્માર્ટ ઓનલાઇન મોક ટેસ્ટ & પ્રિપેરેશન પ્લેટફોર્મ.
             </p>
           </div>
 
           {/* Info Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16, marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 18, marginBottom: 32 }}>
             {[
-              { emoji: '🎯', title: 'અમારો ઉદ્દેશ', desc: 'TET-2 પરીક્ષામાં શ્રેષ્ઠ ગુણ મેળવવા માટે વિદ્યાર્થીઓને સચોટ તૈયારી કરાવવી.' },
-              { emoji: '📚', title: 'વિષયો & પાઠ્યપુસ્તક', desc: 'ગણિત, વિજ્ઞાન, સામાજિક, ગુજરાતી — ધોરણ ૬, ૭, ૮ ના Chapter-wise MCQ Tests.' },
-              { emoji: '👨‍🏫', title: 'સચોટ માર્ગદર્શન', desc: 'Experienced શિક્ષકો દ્વારા તૈયાર થયેલા પ્રશ્નો અને વિગતવાર સંદર્ભ મટીરીયલ.' },
-              { emoji: '📱', title: 'Computer & Mobile', desc: 'મોબાઇલ કે લેપટોપ — ગમે ત્યાંથી સરળતાથી ટેસ્ટ આપો. 24x7 ઉપલબ્ધ.' },
+              { emoji: '🎯', title: 'અમારું લક્ષ્ય (Our Mission)', desc: 'ગુજરાતના ભાવિ સરકારી શિક્ષકોને આધુનિક સ્માર્ટ ટેકનોલોજી દ્વારા પ્રથમ પ્રયાસે સફળ બનાવવા.' },
+              { emoji: '📚', title: 'GCERT / NCERT કવરેજ', desc: 'ધોરણ ૬ થી ૧૨ ના નવા પાઠ્યપુસ્તકો અને શૈક્ષણિક મનોવિજ્ઞાન આધારિત ચેપ્ટર-વાઇઝ MCQ ટેસ્ટ.' },
+              { emoji: '🧠', title: 'SEB પરીક્ષા પદ્ધતિ & Opt-E', desc: 'રાજ્ય પરીક્ષા બોર્ડ (SEB) ના નવા નેગેટિવ માર્કિંગ અને ૫-ઓપ્શન (Option E) મુજબ સચોટ પ્રેક્ટિસ.' },
+              { emoji: '📊', title: 'લાઈવ એનાલિટિક્સ & PDF', desc: 'ઓલ ગુજરાત લાઈવ રેન્ક, વિગતવાર પ્રશ્નવાર સોલ્યુશન અને સેકન્ડોમાં કલરફુલ PDF સ્કોરકાર્ડ.' },
             ].map((c, i) => (
-              <div key={i} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.08)', padding: '20px 18px', borderRadius: 14, textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', marginBottom: 10 }}>{c.emoji}</div>
-                <h3 className="gu-text" style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f8fafc', marginBottom: 7 }}>{c.title}</h3>
-                <p className="gu-text" style={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.7 }}>{c.desc}</p>
+              <div key={i} style={{
+                background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+                border: '1.5px solid rgba(255,255,255,0.09)',
+                padding: '24px 20px',
+                borderRadius: 16,
+                textAlign: 'center',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                transition: 'transform 0.2s, border-color 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; }}
+              >
+                <div style={{ fontSize: '2.2rem', marginBottom: 12 }}>{c.emoji}</div>
+                <h3 className="gu-text" style={{ fontWeight: 900, fontSize: '1rem', color: '#f8fafc', marginBottom: 8, lineHeight: 1.4 }}>{c.title}</h3>
+                <p className="gu-text" style={{ color: '#94a3b8', fontSize: '0.86rem', lineHeight: 1.7, margin: 0 }}>{c.desc}</p>
               </div>
             ))}
           </div>
@@ -465,7 +475,7 @@ export default function HomePage() {
 
       {/* ── Dynamic Dhamaka Offers Section ── */}
       <section id="offers" style={{ padding: 'clamp(36px,6vw,64px) 16px', background: '#0a0f1e' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{ display: 'inline-block', background: 'rgba(239,68,68,0.15)', color: '#f87171', fontWeight: 800, fontSize: '0.8rem', padding: '4px 14px', borderRadius: 20, marginBottom: 8, border: '1px solid rgba(239,68,68,0.3)' }}>
               🔥 ખાસ સમય મર્યાદિત ઑફર્સ
@@ -480,8 +490,8 @@ export default function HomePage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))',
-            gap: 20
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
+            gap: 24
           }}>
             {offersList.map((offer, i) => (
               <OfferCard key={offer.id || i} offer={offer} onZoom={(url) => setZoomPoster(url)} />
@@ -616,14 +626,17 @@ function OfferCard({ offer, onZoom }) {
         justifyContent: 'space-between',
         position: 'relative',
         boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-        transition: 'transform 0.2s, box-shadow 0.2s'
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        maxWidth: 520,
+        width: '100%',
+        margin: '0 auto'
       }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 16px 36px rgba(245,158,11,0.18)'; }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)'; }}
     >
       <div>
         {/* Badge & Poster Preview */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <span style={{
             background: tagColor || '#f59e0b',
             color: 'white',
@@ -637,27 +650,68 @@ function OfferCard({ offer, onZoom }) {
           </span>
 
           {imageUrl && (
-            <button
-              type="button"
-              onClick={() => onZoom?.(imageUrl)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#93c5fd',
-                borderRadius: 6,
-                padding: '3px 8px',
-                fontSize: '0.72rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4
-              }}
-              title="પોસ્ટર જુઓ"
-            >
-              <Maximize2 size={12} /> પોસ્ટર
-            </button>
+            <span style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+              🔍 ઝૂમ માટે ક્લિક કરો
+            </span>
           )}
         </div>
+
+        {/* 🌟 Direct Poster Image UI (Prominent Visual Showcase) 🌟 */}
+        {imageUrl && (
+          <div
+            onClick={() => onZoom?.(imageUrl)}
+            style={{
+              width: '100%',
+              height: 280,
+              borderRadius: 14,
+              overflow: 'hidden',
+              marginBottom: 16,
+              cursor: 'zoom-in',
+              background: 'radial-gradient(circle at center, #1e293b 0%, #0b0f19 100%)',
+              border: '1.5px solid rgba(255,255,255,0.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.4)'
+            }}
+            title="ક્લિક કરીને ફુલ સાઈઝ મોટું પોસ્ટર જુઓ (Zoom HD)"
+          >
+            <img
+              src={imageUrl}
+              alt={title || 'Course Poster'}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                display: 'block',
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              bottom: 10,
+              right: 10,
+              background: 'rgba(15,23,42,0.85)',
+              border: '1px solid rgba(56,189,248,0.4)',
+              color: '#38bdf8',
+              padding: '4px 10px',
+              borderRadius: 8,
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              backdropFilter: 'blur(6px)',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.5)'
+            }}>
+              <Maximize2 size={12} /> Zoom HD
+            </div>
+          </div>
+        )}
 
         {/* Title */}
         <h3 className="gu-text" style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', marginBottom: 6, lineHeight: 1.35 }}>
