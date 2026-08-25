@@ -89,6 +89,8 @@ export const deleteStudent          = (id) => api.delete(`/teacher/student/${id}
 export const grantMasterAccess      = (id, data) => api.post(`/teacher/student/${id}/grant-master-access`, data);
 export const grantMasterByMobile    = (data) => api.post('/teacher/grant-master-by-mobile', data);
 export const getLiveOTPs            = ()   => api.get('/teacher/live-otps');
+export const getWhatsAppBridgeStatus = ()  => api.get('/whatsapp/status');
+export const disconnectWhatsAppBridge = () => api.post('/whatsapp/disconnect');
 export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-whatsapp', data);
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
 export const cleanTestData          = (data) => api.post('/teacher/clean-test-data', data);

@@ -10,9 +10,13 @@ const uploadRoutes = require('./routes/upload');
 const teacherRoutes = require('./routes/teacher');
 const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
+const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp } = require('./services/whatsappService');
 
 const app = express();
 const PORT = process.env.PORT || 8085;
+
+// Initialize 100% Free Automated WhatsApp Bridge
+initWhatsApp();
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(cors({
@@ -34,11 +38,22 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/marketing', marketingRoutes);
 
+// ─── WhatsApp Status, Live QR Code & Disconnect/Switch API ────
+app.get('/api/whatsapp/status', (req, res) => {
+  res.json(getWhatsAppStatus());
+});
+
+app.post('/api/whatsapp/disconnect', async (req, res) => {
+  const result = await logoutWhatsApp();
+  res.json(result);
+});
+
 // ─── Health Check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: '🎓 Trinetra Online Academy API is running!',
+    whatsapp: getWhatsAppStatus().status,
     timestamp: new Date().toISOString()
   });
 });

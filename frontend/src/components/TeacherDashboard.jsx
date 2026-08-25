@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem
 } from '../services/api';
@@ -8352,6 +8352,23 @@ function StudentLogins({ showToast }) {
   const [quickName, setQuickName] = useState('');
   const [grantingQuick, setGrantingQuick] = useState(false);
 
+  // 🟢 Free WhatsApp Cloud Bridge State
+  const [waBridge, setWaBridge] = useState({ status: 'DISCONNECTED', qrCode: null, phone: null });
+  const [showWaModal, setShowWaModal] = useState(false);
+
+  const checkWaStatus = async () => {
+    try {
+      const res = await getWhatsAppBridgeStatus();
+      setWaBridge(res.data || { status: 'DISCONNECTED' });
+    } catch {}
+  };
+
+  useEffect(() => {
+    checkWaStatus();
+    const interval = setInterval(checkWaStatus, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchLiveOtps = async () => {
     try {
       const res = await getLiveOTPs();
@@ -8600,23 +8617,45 @@ function StudentLogins({ showToast }) {
           <div key={i} className={`stat-grad-card ${s.g}`}><div style={{ fontSize: '1.8rem', fontWeight: 900 }}><CountUp target={s.v} /></div><div style={{ fontSize: '0.75rem', opacity: 0.85 }}>{s.l}</div></div>
         ))}
 
-        {/* Master PIN & Live OTPs Quick Access Card */}
-        <div className="stat-grad-card" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '12px 16px' }}>
+        {/* 🟢 Free WhatsApp Cloud Bridge Connection Card */}
+        <div className="stat-grad-card" style={{ background: waBridge.status === 'CONNECTED' ? 'linear-gradient(135deg,#064e3b,#047857)' : 'linear-gradient(135deg,#1e293b,#0f172a)', border: waBridge.status === 'CONNECTED' ? '1.5px solid #10b981' : '1.5px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '12px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: '0.75rem', color: '#c7d2fe', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <ShieldCheck size={14} color="#818cf8" /> Master Override PIN:
+            <span style={{ fontSize: '0.78rem', color: '#6ee7b7', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
+              💬 WhatsApp Auto-OTP:
             </span>
-            <span style={{ background: 'rgba(234,179,8,0.25)', color: '#fef08a', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.85rem', letterSpacing: 1.5, border: '1px solid rgba(234,179,8,0.4)' }}>
-              820040
+            <span style={{
+              background: waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
+              color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.72rem'
+            }}>
+              {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.phone || 'Active'})` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR CODE' : '⚠️ DISCONNECTED'}
             </span>
           </div>
-          <div style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: 1.3 }}>
-            🔒 સુરક્ષા માટે: તમે જે નંબર પર **"🔑 Master Access આપો"** ક્લિક કરો માત્ર તે જ વિદ્યાર્થી આ PIN વાપરી શકશે.
+          <div style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: 1.3 }}>
+            {waBridge.status === 'CONNECTED' ? '🚀 ૧૦૦% સક્રિય: વિદ્યાર્થીઓને આપમેળે WhatsApp OTP જઈ રહ્યા છે!' : 'તમારો WhatsApp નંબર લિંક કરીને ફ્રી ઓટોમેટિક OTP ચાલુ કરો.'}
           </div>
-          <button onClick={fetchLiveOtps}
-            style={{ marginTop: 8, background: 'rgba(99,102,241,0.25)', border: '1px solid #6366f1', color: '#e0e7ff', padding: '6px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
-            <Key size={12} /> {showLiveOtps ? '🔄 તાજા Live OTPs જુઓ' : '🔑 તાજા Live OTPs જુઓ (15 min)'}
-          </button>
+          {waBridge.status !== 'CONNECTED' ? (
+            <button onClick={() => setShowWaModal(true)}
+              style={{ marginTop: 8, background: 'linear-gradient(135deg,#25d366,#128c7e)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
+              📱 QR Code સ્કેન કરો (Link WhatsApp)
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                if (window.confirm('શું તમે હાલનો WhatsApp નંબર ડિસ્કનેક્ટ કરીને બીજો નવો નંબર જોડવા માંગો છો?')) {
+                  try {
+                    await disconnectWhatsAppBridge();
+                    showToast('WhatsApp ડિસ્કનેક્ટ થયું. નવો નંબર લિંક કરો.', 'info');
+                    checkWaStatus();
+                    setShowWaModal(true);
+                  } catch {
+                    showToast('ડિસ્કનેક્ટ કરવામાં ભૂલ આવી.', 'error');
+                  }
+                }
+              }}
+              style={{ marginTop: 8, background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '5px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
+              🔄 બીજો WhatsApp નંબર બદલો (Switch Number)
+            </button>
+          )}
         </div>
       </div>
 
@@ -8632,6 +8671,43 @@ function StudentLogins({ showToast }) {
           {grantingQuick ? 'મંજૂર થાય છે...' : '⚡ Master Access આપો (1 કલાક)'}
         </button>
       </form>
+
+      {/* 📱 Free WhatsApp Link QR Code Modal */}
+      {showWaModal && typeof document !== 'undefined' && createPortal(
+        <div className="upload-modal-overlay" onClick={() => setShowWaModal(false)}>
+          <div className="glass-card animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, width: '100%', padding: 24, textAlign: 'center', background: '#0f172a', border: '2px solid #25d366', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                💬 WhatsApp Auto-Bridge
+              </div>
+              <button onClick={() => setShowWaModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 900 }}>✕</button>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.84rem', margin: '0 0 16px', lineHeight: 1.45 }}>
+              તમારા મોબાઈલમાં <strong>WhatsApp ➔ Linked Devices (લિંક કરેલ ડિવાઈસ)</strong> ખોલો અને નીચેનો QR Code સ્કેન કરો:
+            </p>
+
+            {waBridge.qrCode ? (
+              <div style={{ background: 'white', padding: 12, borderRadius: 14, display: 'inline-block', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', marginBottom: 14 }}>
+                <img src={waBridge.qrCode} alt="WhatsApp QR" style={{ width: 220, height: 220, display: 'block' }} />
+              </div>
+            ) : waBridge.status === 'CONNECTED' ? (
+              <div style={{ background: 'rgba(34,197,94,0.15)', border: '1.5px solid #22c55e', borderRadius: 12, padding: 18, color: '#4ade80', fontWeight: 800, margin: '14px 0' }}>
+                🎉 WhatsApp સફળતાપૂર્વક કનેક્ટ થઈ ગયું છે! (+{waBridge.phone})
+              </div>
+            ) : (
+              <div style={{ padding: 30, color: '#94a3b8', fontSize: '0.88rem' }}>
+                ⏳ QR Code લોડ થઈ રહ્યો છે... કૃપા કરીને 2 સેકન્ડ રાહ જુઓ.
+              </div>
+            )}
+
+            <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 10 }}>
+              🔒 ૧૦૦% સુરક્ષિત અને ફ્રી: સ્કેન થતાં જ વિદ્યાર્થીઓને તમારા એકેડેમી નંબર પરથી આપમેળે WhatsApp OTP જવા લાગશે!
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Live OTPs Drawer Modal / Box */}
       {showLiveOtps && (

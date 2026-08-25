@@ -109,15 +109,23 @@ router.post('/send-otp', async (req, res) => {
       data: { mobile, otp, expiresAt }
     });
 
-    // In DEV mode: log OTP to console
+    // 🟢 100% Automated Free WhatsApp OTP Delivery
+    let waResult = { success: false };
+    try {
+      const { sendWhatsAppOTP } = require('../services/whatsappService');
+      waResult = await sendWhatsAppOTP(mobile, otp, name || 'વિદ્યાર્થી');
+    } catch (waErr) {
+      console.warn('WhatsApp service trigger note:', waErr.message);
+    }
+
     if (process.env.OTP_MODE === 'dev') {
       console.log(`\n📱 OTP for ${mobile} (${name}): ${otp}\n`);
     }
-    // TODO: In production, send via MSG91/Twilio SMS API
 
     res.json({ 
       success: true, 
-      message: `OTP ${process.env.OTP_MODE === 'dev' ? otp : 'sent'} to ${mobile}`,
+      message: `OTP સફળતાપૂર્વક મોકલાયો છે.`,
+      whatsappSent: waResult?.success || false,
       devOtp: process.env.OTP_MODE === 'dev' ? otp : undefined
     });
   } catch (err) {
@@ -250,7 +258,7 @@ router.get('/check-session', require('../middleware/authMiddleware').authMiddlew
 
 // ─── Failed Attempts Tracker & Lockout ───────────────────────
 const failedAttemptsMap = new Map(); // username -> { count, lockUntil }
-const TEACHER_ADMIN_MOBILE = '8200405300';
+const TEACHER_ADMIN_MOBILE = process.env.TEACHER_ADMIN_MOBILE || '8200405300';
 
 // ─── POST /api/auth/teacher-request-otp (Step 1: Validate Credentials + PIN -> Send 2FA OTP) ──
 router.post('/teacher-request-otp', async (req, res) => {
@@ -314,6 +322,15 @@ router.post('/teacher-request-otp', async (req, res) => {
       data: { mobile: TEACHER_ADMIN_MOBILE, otp, expiresAt }
     });
 
+    // 🟢 100% Automated WhatsApp 2FA OTP Delivery to Director
+    let waResult = { success: false };
+    try {
+      const { sendWhatsAppOTP } = require('../services/whatsappService');
+      waResult = await sendWhatsAppOTP(TEACHER_ADMIN_MOBILE, otp, 'ડિરેક્ટર / એડમિન');
+    } catch (waErr) {
+      console.warn('Teacher WhatsApp 2FA note:', waErr.message);
+    }
+
     if (process.env.OTP_MODE === 'dev') {
       console.log(`\n👑 [ADMIN 2FA OTP] for Director ${TEACHER_ADMIN_MOBILE} (${username}): ${otp}\n`);
     }
@@ -322,6 +339,7 @@ router.post('/teacher-request-otp', async (req, res) => {
       success: true,
       message: `2FA Security OTP ડિરેક્ટર મોબાઈલ ${TEACHER_ADMIN_MOBILE} પર મોકલ્યો છે.`,
       adminMobile: TEACHER_ADMIN_MOBILE,
+      whatsappSent: waResult?.success || false,
       devOtp: process.env.OTP_MODE === 'dev' ? otp : undefined
     });
   } catch (err) {
