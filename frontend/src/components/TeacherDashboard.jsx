@@ -585,105 +585,121 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
           
           {/* Row 1: Teacher Profile & Live Clock in Mobile Wrap */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             
-            {/* Teacher Avatar & Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200, flex: 1 }}>
+            {/* Top row: Avatar + Name + Live Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
               <div style={{
-                width: 48, height: 48, borderRadius: 14,
-                background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+                width: 46, height: 46, borderRadius: 14,
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.5rem', fontWeight: 900, color: 'white',
-                boxShadow: '0 0 16px rgba(124,58,237,0.4)',
-                border: '1.5px solid rgba(255,255,255,0.2)',
+                fontSize: '1.4rem', fontWeight: 900, color: 'white',
+                boxShadow: '0 0 16px rgba(139,92,246,0.5)',
+                border: '2px solid rgba(255,255,255,0.25)',
                 flexShrink: 0
               }}>
                 {teacherProfile.name?.[0]?.toUpperCase() || 'T'}
               </div>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                   <span className="live-dot" style={{ width: 7, height: 7 }} />
-                  <span style={{ color: '#a5b4fc', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    શિક્ષક પોર્ટલ • Trinetra
+                  <span style={{ color: '#93c5fd', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    શિક્ષક પોર્ટલ • TRINETRA
                   </span>
                 </div>
                 <h1 style={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', margin: 0, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  નમસ્તે, {teacherProfile.name || 'શિક્ષક'} સાહેબ! 👋
+                  નમસ્તે, {teacherProfile.name || 'Teacher'} સાહેબ! 👋
                 </h1>
-                <div style={{ color: '#93c5fd', fontSize: '0.76rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  🎓 {teacherProfile.subject} • 🏫 {teacherProfile.academy}
+                <div style={{ color: '#cbd5e1', fontSize: '0.74rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                  🎓 {teacherProfile.subject || 'TET-2'} • 🏫 {teacherProfile.academy || 'Trinetra Online Academy'}
                 </div>
               </div>
             </div>
 
-            {/* Live Clock & Gujarati Date Badge */}
+            {/* Live Clock & Gujarati Date Banner (Full width centered on mobile) */}
             <div style={{
-              background: 'rgba(15,23,42,0.75)',
+              background: 'linear-gradient(145deg, rgba(15,23,42,0.85), rgba(30,58,138,0.4))',
               border: '1px solid rgba(245,158,11,0.35)',
-              borderRadius: 12,
-              padding: '8px 12px',
+              borderRadius: 14,
+              padding: '8px 14px',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'space-between',
               gap: 10,
-              flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35)'
             }}>
-              <span style={{ fontSize: '1.2rem' }}>📅</span>
-              <div>
-                <div style={{ color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.25rem' }}>📅</span>
+                <span style={{ color: '#fbbf24', fontSize: '0.78rem', fontWeight: 800 }}>
                   {dayName}, {dateNum} {monthName}
-                </div>
-                <div style={{ color: '#60a5fa', fontSize: '0.78rem', fontWeight: 800, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span>⏰ {timeFormatted}</span>
-                  <span style={{ fontSize: '0.65rem', background: 'rgba(37,99,235,0.3)', padding: '1px 5px', borderRadius: 4, color: '#93c5fd' }}>લાઈવ</span>
-                </div>
+                </span>
+              </div>
+              <div style={{ color: '#60a5fa', fontSize: '0.82rem', fontWeight: 800, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>⏰ {timeFormatted}</span>
+                <span style={{ fontSize: '0.65rem', background: 'rgba(37,99,235,0.4)', padding: '2px 6px', borderRadius: 6, color: '#93c5fd', fontWeight: 900, border: '1px solid rgba(56,189,248,0.3)' }}>લાઈવ</span>
               </div>
             </div>
 
           </div>
 
-          {/* Row 2: Quick Shortcut Buttons Grid (Mobile 2x2 Grid) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Row 2: Balanced 2-Column Shortcut Buttons Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            
+            {/* 1. New Test Button */}
             <button onClick={() => setActiveTab('generate')} style={{
-              background: 'linear-gradient(135deg,#2563eb,#38bdf8)', color: 'white', border: 'none',
-              padding: '9px 12px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              boxShadow: '0 3px 10px rgba(37,99,235,0.35)', width: '100%'
+              background: 'linear-gradient(135deg, #2563eb, #0284c7)',
+              color: 'white', border: '1px solid rgba(56,189,248,0.4)',
+              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(37,99,235,0.35)', minHeight: 44
             }}>
               ➕ નવી કસોટી
             </button>
+
+            {/* 2. Live Monitor Button */}
             <button onClick={() => setActiveTab('live')} style={{
-              background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)',
-              padding: '9px 12px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              width: '100%'
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(185,28,28,0.15))',
+              color: '#fca5a5', border: '1.5px solid rgba(239,68,68,0.45)',
+              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(239,68,68,0.15)', minHeight: 44
             }}>
               🔴 Live Monitor
             </button>
+
+            {/* 3. Posters & Offers Button */}
             <button onClick={() => setActiveTab('marketing')} style={{
-              background: 'rgba(245,158,11,0.18)', color: '#fde68a', border: '1px solid rgba(245,158,11,0.35)',
-              padding: '9px 12px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              width: '100%'
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(180,83,9,0.15))',
+              color: '#fde68a', border: '1.5px solid rgba(245,158,11,0.4)',
+              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(245,158,11,0.15)', minHeight: 44
             }}>
               🎨 પોસ્ટર્સ & ઑફર્સ
             </button>
+
+            {/* 4. Live Launch Data Clean Button */}
             <button onClick={() => setShowCleanModal(true)} style={{
-              background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', border: 'none',
-              padding: '9px 12px', borderRadius: 10, fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              boxShadow: '0 3px 10px rgba(220,38,38,0.4)', width: '100%'
+              background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+              color: 'white', border: '1px solid rgba(248,113,113,0.4)',
+              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 4px 12px rgba(220,38,38,0.4)', minHeight: 44
             }}>
-              🧹 લાઈવ લોન્ચ (ટેસ્ટ ડેટા સાફ કરો)
+              🧹 ડેટા સાફ કરો
             </button>
+
+            {/* 5. Profile Full Width Span 2 Button */}
             <button onClick={() => setEditProfile(!editProfile)} style={{
-              background: 'rgba(255,255,255,0.08)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)',
-              padding: '9px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              width: '100%'
+              gridColumn: 'span 2',
+              background: 'rgba(255,255,255,0.06)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)',
+              padding: '9px 12px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
             }}>
-              ✏️ Profile
+              ✏️ Profile વિગતો સુધારો
             </button>
+
           </div>
 
         </div>
@@ -807,54 +823,54 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
       {/* ── Active Live Test Quick Widget ── */}
       <div style={{
         background: primaryActiveTest
-          ? 'linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(15,23,42,0.9) 100%)'
+          ? 'linear-gradient(#0b1329, #0b1329) padding-box, linear-gradient(135deg, #22c55e 0%, #eab308 25%, #ef4444 50%, #a855f7 75%, #38bdf8 100%) border-box'
           : 'linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.8) 100%)',
-        border: primaryActiveTest ? '2px solid transparent' : '1px solid rgba(255,255,255,0.08)',
-        background: primaryActiveTest
-          ? 'linear-gradient(#0f172a, #0f172a) padding-box, linear-gradient(135deg, #22c55e 0%, #eab308 25%, #ef4444 50%, #a855f7 75%, #38bdf8 100%) border-box'
-          : 'linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.8) 100%)',
-        boxShadow: primaryActiveTest ? '0 0 24px rgba(239,68,68,0.35), 0 0 12px rgba(56,189,248,0.3)' : 'none',
-        borderRadius: 16,
-        padding: '16px 20px',
+        border: primaryActiveTest ? '2px solid transparent' : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: primaryActiveTest ? '0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(239,68,68,0.25)' : 'none',
+        borderRadius: 18,
+        padding: '16px',
         marginBottom: 20,
         display: 'flex',
-        flexWrap: 'wrap',
-        gap: 16,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: primaryActiveTest ? '0 10px 30px rgba(220,38,38,0.15)' : 'none'
+        flexDirection: 'column',
+        gap: 14,
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{
-            width: 48, height: 48, borderRadius: 14,
+            width: 44, height: 44, borderRadius: 14,
             background: primaryActiveTest ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
-            border: primaryActiveTest ? '1.5px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.1)',
+            border: primaryActiveTest ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.5rem'
+            fontSize: '1.4rem',
+            flexShrink: 0
           }}>
             {primaryActiveTest ? '🔴' : '⚪'}
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{
-                background: primaryActiveTest ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
-                color: primaryActiveTest ? '#f87171' : '#94a3b8',
-                fontWeight: 800, fontSize: '0.72rem', padding: '2px 8px', borderRadius: 6
+                background: primaryActiveTest ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.08)',
+                color: primaryActiveTest ? '#fca5a5' : '#94a3b8',
+                fontWeight: 900, fontSize: '0.68rem', padding: '2px 8px', borderRadius: 6,
+                border: primaryActiveTest ? '1px solid rgba(239,68,68,0.4)' : 'none'
               }}>
                 {primaryActiveTest ? '● LIVE TEST ACTIVE' : 'NO ACTIVE TEST'}
               </span>
               {primaryActiveTest && (
-                <span style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 700 }}>
-                  👨‍🎓 {activeTestSubsCount} વિદ્યાર્થીઓએ ટેસ્ટ સબમિટ કરી
+                <span style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800 }}>
+                  👨‍🎓 {activeTestSubsCount} સબમિશન
                 </span>
               )}
             </div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: '1.05rem' }}>
+            <div style={{ color: 'white', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {primaryActiveTest ? primaryActiveTest.testName : 'અત્યારે કોઈ કસોટી લાઈવ ચાલુ નથી'}
             </div>
             {primaryActiveTest && (
-              <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 2 }}>
-                📚 {primaryActiveTest.subject} &nbsp;|&nbsp; ⏱️ {primaryActiveTest.timeLimit} મિનિટ &nbsp;|&nbsp; 📋 {primaryActiveTest.questionsCount} પ્રશ્નો
+              <div style={{ color: '#94a3b8', fontSize: '0.76rem', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 8px' }}>
+                <span>📚 {primaryActiveTest.subject}</span>
+                <span>⏱️ {primaryActiveTest.timeLimit} મિનિટ</span>
+                <span>📋 {primaryActiveTest.questionsCount} પ્રશ્નો</span>
               </div>
             )}
           </div>
@@ -863,19 +879,21 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
         <button
           onClick={() => setActiveTab('live')}
           style={{
-            background: primaryActiveTest ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'rgba(255,255,255,0.08)',
+            background: primaryActiveTest ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(255,255,255,0.08)',
             color: 'white',
-            border: primaryActiveTest ? 'none' : '1px solid rgba(255,255,255,0.15)',
-            padding: '10px 20px',
-            borderRadius: 10,
-            fontWeight: 800,
+            border: primaryActiveTest ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.15)',
+            padding: '12px 16px',
+            borderRadius: 12,
+            fontWeight: 900,
             fontSize: '0.88rem',
             cursor: 'pointer',
             boxShadow: primaryActiveTest ? '0 4px 16px rgba(220,38,38,0.4)' : 'none',
             fontFamily: 'Hind Vadodara, sans-serif',
             display: 'flex',
             alignItems: 'center',
-            gap: 8
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%'
           }}
         >
           {primaryActiveTest ? '📊 લાઈવ મોનિટર ખોલો →' : '🚀 નવી ટેસ્ટ લાઈવ કરો →'}
@@ -1936,14 +1954,14 @@ function ManualTestCreator({ showToast, onDone }) {
           testName:        testInfo.testName,
           timeLimit:       finalTimeLimit,
           negativeMarking: Number(testInfo.negativeMarking) || 0,
-          isActive:        false, // NOT live immediately; teacher controls live via Tik Box
+          isActive:        false, // Teacher controls when to make it live!
         });
         ok++;
       } catch {}
     }
 
     setSaving(false);
-    showToast(`🎉 કસોટી '${testInfo.testName}' તૈયાર થઈ ગઈ! તમે જ્યારે ઇચ્છો ત્યારે 'Live' ટેબમાં જઈને Tik Box દ્વારા Live કરી શકો છો.`, 'success');
+    showToast(`🎉 કસોટી '${testInfo.testName}' તૈયાર થઈ ગઈ! તમે જ્યારે પણ ઇચ્છો ત્યારે '🔴 Live કસોટીઓ' ટેબમાં જઈને '▶️ Live કરો' બટન દબાવીને વિદ્યાર્થીઓ માટે Live કરી શકો છો.`, 'success');
     onDone(testInfo.testCode);
   };
 
@@ -2060,7 +2078,7 @@ function ManualTestCreator({ showToast, onDone }) {
             <label style={{ ...darkLbl, color: '#38bdf8', fontSize: '0.85rem', fontWeight: 800, marginBottom: 10 }}>
               🎯 પ્રશ્નોનું માળખું પસંદ કરો (QUESTION FORMAT) *
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            <div className="test-type-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
               {/* Option 1: MCQ ONLY */}
               <div
                 onClick={() => handleSelectTestType('mcq_only')}
@@ -2142,10 +2160,8 @@ function ManualTestCreator({ showToast, onDone }) {
                 )}
               </div>
             </div>
-          </div>
-
           {/* 3. BASIC TEST METADATA */}
-          <div className="test-meta-grid">
+          <div className="test-meta-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 18 }}>
 
             {/* Test Name */}
             <div style={{ gridColumn: 'span 2' }}>
@@ -2186,12 +2202,13 @@ function ManualTestCreator({ showToast, onDone }) {
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Timer Selection: 2 Clear Options (Per MCQ vs Whole Test + No Limit) */}
-            <div className="timer-mode-container">
-              <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.9rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>⏱️</span> કસોટીનો સમય કેવી રીતે સેટ કરવો છે? (Timer Options) *
-              </div>
+          {/* 4. Timer Selection: 2 Clear Options (Per MCQ vs Whole Test + No Limit) */}
+          <div className="timer-mode-container">
+            <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.9rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>⏱️</span> કસોટીનો સમય કેવી રીતે સેટ કરવો છે? (Timer Options) *
+            </div>
 
               <div className="timer-mode-grid">
                 {/* Option 1: Per Question (પ્રશ્ન દીઠ સમય) */}
@@ -2311,7 +2328,7 @@ function ManualTestCreator({ showToast, onDone }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div>
                       <label style={{ ...darkLbl, fontSize: '0.7rem' }}>સંખ્યા (Slots)</label>
-                      <input className="input-dark" type="number" min={1} max={100}
+              <input className="input-dark" type="number" min={1} max={100}
                         value={testInfo.mcqCount}
                         onChange={e => setTestInfo(t => ({ ...t, mcqCount: Math.max(1, parseInt(e.target.value) || 1) }))}
                         style={{ padding: '8px 10px', fontWeight: 800 }} />
@@ -2427,8 +2444,8 @@ function ManualTestCreator({ showToast, onDone }) {
               </div>
             </div>
 
-            {/* Interactive Question Pills (Click to jump to any question) */}
-            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+            {/* Question Quick Badges (Scrollable Carousel on Mobile) */}
+            <div className="q-badge-carousel" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {qList.map((q, idx) => {
                 const isFilled = q.text && q.text.trim().length > 0;
                 const isActive = activeIdx === idx && viewMode === 'tabs';
@@ -2542,7 +2559,7 @@ function ManualTestCreator({ showToast, onDone }) {
               {/* MCQ Options (ONLY IF MCQ) */}
               {curQ.type === 'mcq' && (
                 <div className="animate-fade-in">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 14 }}>
+                  <div className="mcq-options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 14 }}>
                     {(testInfo.examPattern === 'tat' ? ['A','B','C','D','E'] : ['A','B','C','D']).map(opt => (
                       <div key={opt} style={{ background: opt === 'E' ? 'rgba(147,51,234,0.08)' : undefined, padding: opt === 'E' ? 6 : 0, borderRadius: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
@@ -3631,13 +3648,14 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             testCode:        bulkTestCode,
             testName:        bulkTestName,
             timeLimit:       effectiveTime,
-            isActive:        false, // NOT live immediately; teacher controls live via Tik Box
+            isActive:        false, // Teacher controls when to make it live!
           });
           ok++;
         } catch { fail++; }
       }
+
       setUploading(false);
-      showToast(`✅ કસોટી '${bulkTestName}' તૈયાર થઈ ગઈ! Live ટેબમાં જઈને જ્યારે ઇચ્છો ત્યારે Tik Box દ્વારા Live કરી શકો છો.`, 'success');
+      showToast(`🎉 કસોટી '${bulkTestName}' તૈયાર થઈ ગઈ! તમે જ્યારે ઇચ્છો ત્યારે '🔴 Live કસોટીઓ' ટેબમાં જઈને '▶️ Live કરો' બટન દબાવીને Live કરી શકો છો.`, 'success');
       setMainChoice(null); setNewMode(null); setJsonText(''); setJsonPreview([]);
       if (setSelectedLiveTestCode) setSelectedLiveTestCode(bulkTestCode);
       if (setActiveTab) setActiveTab('live');
@@ -4987,225 +5005,159 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
   return (
     <div className="animate-fade-in">
 
-      {/* ── Active Live Test Running Banner ── */}
+      {/* ── Active Live Test Running Banner (Ultra-Compact Slim Mobile Design) ── */}
       {testActive && activeTestObj && (
-        <div className="glass-card animate-fade-in" style={{ padding: 24, border: '2px solid rgba(34,197,94,0.6)', marginBottom: 22, background: 'linear-gradient(135deg,rgba(15,23,42,0.95),rgba(5,46,22,0.9))', boxShadow: '0 0 30px rgba(34,197,94,0.25)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span className="live-dot" style={{ width: 14, height: 14, boxShadow: '0 0 16px #22c55e' }} />
-              <div>
-                <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span>🔴 LIVE TEST ચાલુ છે:</span>
-                  <span style={{ color: 'white' }}>{activeTestObj.testName}</span>
-                  {activeTestObj.isMulti && (
-                    <span style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', fontSize: '0.75rem', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(56,189,248,0.4)' }}>
-                      ⚡ {activeTestObj.testList?.length} કસોટીઓ એકસાથે સક્રિય
-                    </span>
-                  )}
-                </div>
-
-                {/* Active Test IDs Badges List with individual stop chips */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                  {activeTestObj.testList?.map(t => (
-                    <span key={t.testCode} style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 900, padding: '4px 10px', borderRadius: 8, border: '1.5px solid rgba(56,189,248,0.35)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <span>🏷️ {t.testName} (ID: {t.testCode})</span>
-                      <button onClick={() => handleToggleTestLive(t.testCode, 'stop')}
-                        title={`આ ${t.testName} કસોટી લાઈવ બંધ કરો`}
-                        style={{ background: 'rgba(239,68,68,0.3)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', borderRadius: 4, padding: '2px 7px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 800 }}>
-                        ✕ Stop
-                      </button>
-                    </span>
-                  ))}
-                  <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>
-                    • કુલ {activeTestObj.questions?.length} પ્રશ્નો ({activeTestObj.mcqCount} MCQ + {activeTestObj.descCount} Desc) • {activeTestObj.totalMarks} ગુણ
-                  </span>
-                </div>
-              </div>
+        <div className="glass-card animate-fade-in active-live-running-banner" style={{ padding: '14px 12px', border: '1.5px solid #22c55e', marginBottom: 14, background: 'linear-gradient(135deg,rgba(15,23,42,0.98),rgba(6,78,59,0.45))', boxShadow: '0 0 20px rgba(34,197,94,0.25)', borderRadius: 14 }}>
+          
+          {/* Header Row: Dot + Title + Stop Chip in 1 Line */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="live-dot" style={{ width: 9, height: 9, boxShadow: '0 0 10px #22c55e', flexShrink: 0 }} />
+              <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.86rem' }}>
+                🔴 LIVE TEST:
+              </span>
+              <span style={{ color: 'white', fontWeight: 900, fontSize: '0.95rem' }}>
+                {activeTestObj.testName}
+              </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={() => {
-                if (activeTestObj.testList?.length === 1) {
-                  exportTestPDF(activeTestObj.testList[0], teacherProfile);
-                } else {
-                  activeTestObj.testList?.forEach(t => exportTestPDF(t, teacherProfile));
-                }
-              }}
-                style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', padding: '9px 16px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
-                <Download size={15} /> PDF
-              </button>
-              <button onClick={handleStopAllLive}
-                style={{ background: 'linear-gradient(135deg,#7f1d1d,#ef4444)', color: 'white', border: 'none', padding: '10px 22px', borderRadius: 10, fontWeight: 900, cursor: 'pointer', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif', boxShadow: '0 4px 18px rgba(239,68,68,0.4)' }}>
-                <Square size={16} fill="white" /> ⏹️ તમામ Live બંધ કરો (Stop All)
-              </button>
+            {/* Test Code Badge */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {activeTestObj.testList?.map(t => (
+                <span key={t.testCode} style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8', fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 900, padding: '2px 6px', borderRadius: 6, border: '1px solid rgba(56,189,248,0.3)' }}>
+                  🏷️ {t.testCode}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Active Live Stopwatch & Manual Control Info */}
-          <div style={{ textAlign: 'center', margin: '18px 0', background: 'rgba(0,0,0,0.25)', padding: '16px', borderRadius: 14, border: '1px solid rgba(34,197,94,0.2)' }}>
-            <div style={{ fontSize: 'clamp(2.5rem,8vw,3.8rem)', fontWeight: 900, color: '#22c55e', fontVariantNumeric: 'tabular-nums', textShadow: '0 0 25px rgba(34,197,94,0.35)' }}>
+          {/* Quick Metrics Sub-line */}
+          <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginBottom: 10, paddingLeft: 15 }}>
+            {activeTestObj.questions?.length} પ્રશ્નો ({activeTestObj.mcqCount} MCQ) • {activeTestObj.totalMarks} ગુણ
+          </div>
+
+          {/* Master Stop Live Button (Compact 1-Line) */}
+          <button onClick={handleStopAllLive}
+            style={{ width: '100%', background: 'linear-gradient(135deg,#991b1b,#dc2626)', color: 'white', border: 'none', padding: '9px 12px', borderRadius: 8, fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif', boxShadow: '0 3px 12px rgba(220,38,38,0.35)', marginBottom: 10 }}>
+            <Square size={13} fill="white" /> ⏹️ તમામ Live બંધ કરો (Stop All)
+          </button>
+
+          {/* Active Live Stopwatch (Compact Strip) */}
+          <div style={{ textAlign: 'center', padding: '8px 10px', background: 'rgba(0,0,0,0.35)', borderRadius: 10, border: '1px solid rgba(34,197,94,0.2)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#22c55e', fontVariantNumeric: 'tabular-nums', textShadow: '0 0 15px rgba(34,197,94,0.4)', lineHeight: 1 }}>
               ⏱️ {elapsedStr}
             </div>
-            <div style={{ color: '#4ade80', fontSize: '0.9rem', fontWeight: 800, marginTop: 4 }}>
-              🟢 લાઈવ સેશન ચાલુ છે (LIVE ACTIVE DURATION)
-            </div>
-            <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: 6 }}>
-              💡 કસોટી સતત ચાલુ રહેશે જ્યાં સુધી શિક્ષક મેન્યુઅલી <strong>'⏹️ તમામ Live બંધ કરો'</strong> અથવા <strong>'✕ Stop'</strong> નહીં કરે.
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ color: '#4ade80', fontSize: '0.74rem', fontWeight: 800 }}>
+                🟢 લાઈવ સેશન ચાલુ છે
+              </div>
+              <div style={{ color: '#64748b', fontSize: '0.65rem' }}>
+                શિક્ષક બંધ ના કરે ત્યાં સુધી ચાલુ રહેશે
+              </div>
             </div>
           </div>
 
-          {/* Student Link Share */}
-          <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <div style={{ color: '#4ade80', fontSize: '0.78rem', fontWeight: 800 }}>📱 વિદ્યાર્થીઓ સાથે શેર કરવાની લિંક (Share Link):</div>
-              <div style={{ color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.9rem', marginTop: 4 }}>
-                {window.location.origin}/exam
-              </div>
+          {/* Student Link Share (Ultra-Slim Line) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, padding: '6px 8px' }}>
+            <span style={{ color: '#4ade80', fontSize: '0.7rem', fontWeight: 800, whiteSpace: 'nowrap' }}>📱 લિંક:</span>
+            <div style={{ flex: 1, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', background: '#0a1020', padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {window.location.origin}/exam
             </div>
             <button onClick={() => {
               navigator.clipboard?.writeText(`${window.location.origin}/exam`);
               showToast('📋 લિંક કોપી થઈ ગઈ!', 'success');
-            }} style={{ background: 'rgba(34,197,94,0.25)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', padding: '9px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-              📋 Copy Link
+            }} style={{ background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem', fontFamily: 'Hind Vadodara, sans-serif', whiteSpace: 'nowrap' }}>
+              📋 Copy
             </button>
           </div>
         </div>
       )}
 
-      {/* ── BATCH SELECTION ACTION BAR (Floating / Sticky Banner) ── */}
+      {/* ── BATCH SELECTION ACTION BAR (Compact Design) ── */}
       {testList.length > 0 && (
         <div className="glass-card animate-fade-in" style={{
-          padding: '14px 18px',
-          marginBottom: 16,
+          padding: '12px 14px',
+          marginBottom: 14,
           background: selectedTestCodes.length > 0
-            ? 'linear-gradient(135deg,rgba(30,58,138,0.7),rgba(6,78,59,0.7))'
+            ? 'linear-gradient(135deg,rgba(30,58,138,0.6),rgba(6,78,59,0.6))'
             : 'rgba(255,255,255,0.03)',
           border: selectedTestCodes.length > 0
-            ? '2px solid rgba(34,197,94,0.6)'
+            ? '1.5px solid rgba(34,197,94,0.6)'
             : '1px solid rgba(255,255,255,0.08)',
           borderRadius: 14,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: 12,
-          boxShadow: selectedTestCodes.length > 0 ? '0 8px 30px rgba(5,150,105,0.3)' : 'none',
-          transition: 'all 0.3s'
+          gap: 10
         }}>
-          {/* Left: Checkbox Selector & Count Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'white', fontWeight: 800, fontSize: '0.9rem' }}>
-              <input
-                type="checkbox"
-                checked={selectedTestCodes.length === filteredTestList.length && filteredTestList.length > 0}
-                onChange={handleSelectAll}
-                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#10b981' }}
-              />
-              <span>બધી કસોટીઓ પસંદ કરો (Select All)</span>
-            </label>
+          {/* Checkbox Selector */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'white', fontWeight: 800, fontSize: '0.86rem' }}>
+            <input
+              type="checkbox"
+              checked={selectedTestCodes.length === filteredTestList.length && filteredTestList.length > 0}
+              onChange={handleSelectAll}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#10b981', margin: 0 }}
+            />
+            <span>બધી કસોટીઓ પસંદ કરો ({selectedTestCodes.length > 0 ? `${selectedTestCodes.length} સિલેક્ટ` : 'Select All'})</span>
+          </label>
 
-            {selectedTestCodes.length > 0 ? (
-              <span style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399', fontSize: '0.8rem', fontWeight: 800, padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.4)' }}>
-                🎯 {selectedTestCodes.length} કસોટીઓ સિલેક્ટ થયેલ છે ({selectedTestCodes.join(', ')})
-              </span>
-            ) : (
-              <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-                (નીચેથી તમને જોઈતી કસોટીઓના Checkbox ટીક કરીને એકસાથે Live કરો)
-              </span>
-            )}
-          </div>
-
-          {/* Right: Master Batch Actions (Bulk Schedule & Bulk Live) */}
-          <div className="sa-marks-row" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Action Button: Batch Live */}
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
             {selectedTestCodes.length > 0 && (
               <button onClick={() => setSelectedTestCodes([])}
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1', padding: '9px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
-                ✕ Clear ({selectedTestCodes.length})
-              </button>
-            )}
-
-            {/* Bulk Schedule Button */}
-            {selectedTestCodes.length > 0 && (
-              <button
-                onClick={() => {
-                  const matched = testList.filter(t => selectedTestCodes.includes(t.testCode));
-                  setSchedulingTest({
-                    isBulk: true,
-                    testCodes: selectedTestCodes,
-                    testName: `${selectedTestCodes.length} કસોટીઓ શિડ્યુલ (${matched.map(t => t.testName).join(', ')})`,
-                    subject: matched.map(t => t.subject).filter((v,i,a)=>a.indexOf(v)===i).join(', '),
-                    questions: matched.flatMap(t => t.questions),
-                    scheduledAt: matched[0]?.scheduledAt || ''
-                  });
-                  setScheduleDateTime(matched[0]?.scheduledAt || '');
-                }}
-                style={{
-                  background: 'linear-gradient(135deg,#d97706,#f59e0b)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '11px 18px',
-                  borderRadius: 10,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontFamily: 'Hind Vadodara, sans-serif',
-                  boxShadow: '0 4px 16px rgba(245,158,11,0.35)'
-                }}>
-                <Clock size={15} /> ⏰ પસંદ કરેલી ({selectedTestCodes.length}) શિડ્યુલ કરો
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700 }}>
+                ✕ Clear
               </button>
             )}
 
             <button
               onClick={() => {
                 if (selectedTestCodes.length === 0) {
-                  // If none explicitly checked, activate all visible tests
                   handleStartBatchLive(filteredTestList.map(t => t.testCode));
                 } else {
                   handleStartBatchLive(selectedTestCodes);
                 }
               }}
               style={{
+                flex: 1,
                 background: 'linear-gradient(135deg,#059669,#10b981)',
                 color: 'white',
                 border: 'none',
-                padding: '11px 22px',
-                borderRadius: 10,
+                padding: '10px 14px',
+                borderRadius: 8,
                 fontWeight: 900,
                 cursor: 'pointer',
-                fontSize: '0.92rem',
+                fontSize: '0.86rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                justifyContent: 'center',
+                gap: 6,
                 fontFamily: 'Hind Vadodara, sans-serif',
-                boxShadow: '0 4px 20px rgba(16,185,129,0.4)'
+                boxShadow: '0 3px 14px rgba(16,185,129,0.35)'
               }}>
-              <Play size={16} fill="white" />
-              {selectedTestCodes.length > 1
-                ? `🚀 પસંદ કરેલી ${selectedTestCodes.length} કસોટીઓ એકસાથે Live કરો`
-                : selectedTestCodes.length === 1
-                  ? `🚀 પસંદ કરેલી ૧ કસોટી Live કરો`
-                  : `⚡ તમામ (${testList.length}) કસોટીઓ એકસાથે Live કરો`}
+              <Play size={14} fill="white" />
+              {selectedTestCodes.length > 0
+                ? `🚀 પસંદ કરેલી (${selectedTestCodes.length}) Live કરો`
+                : `⚡ તમામ (${testList.length}) કસોટીઓ Live કરો`}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── TESTS LIST (Preview & Live Launcher Cards) ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+      {/* ── TESTS LIST HEADER WITH REFRESH BUTTON (Single Row Aligned) ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 }}>
         <div>
-          <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.1rem', margin: 0 }}>
-            🎯 ઉપલબ્ધ કસોટીઓ (Available Tests for Live)
+          <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.96rem', margin: 0 }}>
+            🎯 ઉપલબ્ધ કસોટીઓ ({filteredTestList.length})
           </h3>
-          <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
-            ટેસ્ટ આઈડી (Test ID) વડે સર્ચ કરો, પ્રિવ્યૂ જુઓ, પ્રશ્નો સુધારો, કસોટી શિડ્યુલ કરો અથવા એકસાથે Live શરૂ કરો.
+          <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: 1 }}>
+            કસોટી પસંદ કરી Live કરો અથવા પ્રીવ્યુ જુઓ
           </div>
         </div>
         <button onClick={fetchData}
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <RefreshCw size={14} /> Refresh
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#93c5fd', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+          <RefreshCw size={13} /> Refresh
         </button>
       </div>
 
@@ -5274,7 +5226,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16 }}>
+            <div className="live-test-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16 }}>
               {filteredTestList.map(t => {
                 const isSelected = selectedTestCodes.includes(t.testCode);
                 const isCurrentLive = testActive && activeTestCodes.includes(t.testCode);
@@ -5286,9 +5238,9 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                     : `📝 Desc (${t.descCount})`;
 
                 return (
-                  <div key={t.testCode} className="glass-card animate-fade-in"
+                  <div key={t.testCode} className="glass-card animate-fade-in live-test-card-item"
                     style={{
-                      padding: isExpanded ? 22 : 18,
+                      padding: isExpanded ? 20 : 16,
                       borderRadius: 16,
                       gridColumn: isExpanded ? '1 / -1' : 'auto',
                       border: isCurrentLive
@@ -5312,161 +5264,180 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      gap: 14,
+                      gap: 12,
                       boxShadow: isCurrentLive ? '0 4px 25px rgba(34,197,94,0.25)' : isExpanded ? '0 8px 36px rgba(99,102,241,0.35)' : isSelected ? '0 4px 20px rgba(56,189,248,0.25)' : '0 4px 16px rgba(0,0,0,0.3)',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}>
 
                     <div>
-                      {/* ── DIRECT LIVE TIK BOX (આ કસોટી Live કરો) ── */}
+                      {/* ── TOP COMPACT HEADER: LIVE TIK TOGGLE & TEST ID ── */}
                       <div
                         onClick={() => handleToggleTestLive(t.testCode, isCurrentLive ? 'stop' : 'start')}
                         style={{
                           background: isCurrentLive
-                            ? 'linear-gradient(135deg,rgba(16,185,129,0.3),rgba(5,150,105,0.2))'
-                            : '#1e293b',
-                          border: isCurrentLive ? '1.5px solid #10b981' : '1.5px solid rgba(255,255,255,0.18)',
-                          borderRadius: 10,
-                          padding: '10px 14px',
+                            ? 'linear-gradient(135deg,rgba(16,185,129,0.25),rgba(5,150,105,0.15))'
+                            : 'rgba(30, 41, 59, 0.8)',
+                          border: isCurrentLive ? '1.5px solid #10b981' : '1.5px solid rgba(255,255,255,0.14)',
+                          borderRadius: 12,
+                          padding: '10px 12px',
                           marginBottom: 12,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
+                          gap: 8,
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           boxShadow: isCurrentLive ? '0 0 16px rgba(16,185,129,0.3)' : 'none'
                         }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                           <input
                             type="checkbox"
                             checked={isCurrentLive}
                             onChange={() => {}} // handled by parent click
                             style={{
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               cursor: 'pointer',
-                              accentColor: '#10b981'
+                              accentColor: '#10b981',
+                              margin: 0
                             }}
                           />
                           <span style={{
                             color: isCurrentLive ? '#4ade80' : '#ffffff',
                             fontWeight: 900,
-                            fontSize: '0.9rem',
+                            fontSize: '0.88rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 6
                           }}>
                             {isCurrentLive ? (
-                              <><span className="live-dot" style={{ width: 8, height: 8 }} /> 🔴 આ કસોટી Live છે (Tick કરેલ)</>
+                              <><span className="live-dot" style={{ width: 8, height: 8 }} /> 🔴 Live ચાલુ છે</>
                             ) : (
-                              <>⭕ આ કસોટી Live કરો (Tik Box)</>
+                              <>⭕ આ કસોટી Live કરો</>
                             )}
                           </span>
                         </div>
 
                         <span style={{
-                          fontSize: '0.74rem',
+                          fontSize: '0.72rem',
                           fontWeight: 800,
-                          color: isCurrentLive ? '#6ee7b7' : '#cbd5e1',
-                          background: isCurrentLive ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.1)',
-                          padding: '4px 10px',
+                          color: isCurrentLive ? '#6ee7b7' : '#94a3b8',
+                          background: isCurrentLive ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
+                          padding: '3px 8px',
                           borderRadius: 6,
-                          border: isCurrentLive ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.15)'
+                          border: isCurrentLive ? '1px solid rgba(16,185,129,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                          whiteSpace: 'nowrap'
                         }}>
-                          {isCurrentLive ? 'Stop કરવા Uncheck કરો' : 'Live કરવા Tik કરો ✓'}
+                          {isCurrentLive ? '✓ સક્રિય' : 'Tik કરો'}
                         </span>
                       </div>
 
-                      {/* Badges Bar */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                          {/* Batch Selection Checkbox */}
-                          <label style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            cursor: 'pointer',
-                            background: isSelected ? 'rgba(56,189,248,0.25)' : '#1e293b',
-                            padding: '4px 9px',
-                            borderRadius: 6,
-                            border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.15)',
-                            transition: 'all 0.2s'
-                          }} onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectTest(t.testCode)}
-                              style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#38bdf8' }}
-                            />
-                            <span style={{ color: isSelected ? '#38bdf8' : '#cbd5e1', fontSize: '0.72rem', fontWeight: 700 }}>
-                              બલ્ક સિલેક્ટ
-                            </span>
-                          </label>
+                      {/* ── UNIFIED BADGES STRIP (બલ્ક સિલેક્ટ, વિષય, MCQ & Test ID) ── */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                        {/* Batch Selection Checkbox */}
+                        <label style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          cursor: 'pointer',
+                          background: isSelected ? 'rgba(56,189,248,0.25)' : 'rgba(30, 41, 59, 0.9)',
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                          border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
+                          transition: 'all 0.2s',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: isSelected ? '#38bdf8' : '#cbd5e1'
+                        }} onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectTest(t.testCode)}
+                            style={{ width: 13, height: 13, cursor: 'pointer', accentColor: '#38bdf8', margin: 0 }}
+                          />
+                          <span>સિલેક્ટ</span>
+                        </label>
 
-                          <span style={{ background: 'rgba(59,130,246,0.25)', color: '#93c5fd', fontSize: '0.74rem', fontWeight: 800, padding: '3px 9px', borderRadius: 20, border: '1px solid rgba(59,130,246,0.4)' }}>
-                            📚 {t.subject}
-                          </span>
-                          <span style={{ background: 'rgba(168,85,247,0.25)', color: '#d8b4fe', fontSize: '0.72rem', fontWeight: 800, padding: '3px 9px', borderRadius: 20, border: '1px solid rgba(168,85,247,0.4)' }}>
-                            {typeText}
-                          </span>
-                        </div>
+                        <span style={{ background: 'rgba(59,130,246,0.2)', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)' }}>
+                          📚 {t.subject}
+                        </span>
 
-                        <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.74rem', padding: '3px 8px', borderRadius: 6, fontFamily: 'monospace', fontWeight: 900, border: '1px solid rgba(56,189,248,0.4)' }}>
-                          🏷️ ID: {t.testCode}
+                        <span style={{ background: 'rgba(168,85,247,0.2)', color: '#d8b4fe', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(168,85,247,0.3)' }}>
+                          {typeText}
+                        </span>
+
+                        <span style={{ marginLeft: 'auto', background: 'rgba(15, 23, 42, 0.9)', color: '#38bdf8', fontSize: '0.72rem', padding: '3px 8px', borderRadius: 6, fontFamily: 'monospace', fontWeight: 900, border: '1px solid rgba(56,189,248,0.3)' }}>
+                          🏷️ {t.testCode}
                         </span>
                       </div>
 
                       {/* Scheduled Badge if scheduled */}
                       {t.scheduledAt && (
-                        <div style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', padding: '6px 12px', borderRadius: 8, color: '#fde68a', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                        <div style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', padding: '6px 10px', borderRadius: 8, color: '#fde68a', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                           <Calendar size={13} />
                           <span>⏰ શિડ્યુલ: {new Date(t.scheduledAt).toLocaleString('gu-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                         </div>
                       )}
 
                       {/* Test Title */}
-                      <h4 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.1rem', margin: '6px 0 12px', lineHeight: 1.35 }}>
+                      <h4 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.1rem', margin: '4px 0 10px', lineHeight: 1.35 }}>
                         {t.testName}
                       </h4>
 
-                      {/* Metrics */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, background: '#1e293b', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 700 }}>પ્રશ્નો</div>
-                          <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.9rem' }}>
-                            {t.questions.length} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({t.mcqCount}M+{t.descCount}D)</span>
+                      {/* Metrics 3-Col Box (Sleek Compact Horizontal Stat Strip) */}
+                      <div className="live-metrics-grid" style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 1fr',
+                        gap: 4,
+                        background: 'rgba(30, 41, 59, 0.75)',
+                        borderRadius: 10,
+                        padding: '6px 4px',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        textAlign: 'center',
+                        alignItems: 'center'
+                      }}>
+                        {/* 1. Questions */}
+                        <div style={{ borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 2 }}>
+                          <div style={{ color: '#94a3b8', fontSize: '0.64rem', fontWeight: 700, lineHeight: 1 }}>પ્રશ્નો</div>
+                          <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', lineHeight: 1.2, marginTop: 2 }}>
+                            {t.questions.length} <span style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 600 }}>({t.mcqCount}M)</span>
                           </div>
                         </div>
-                        <div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 700 }}>કુલ ગુણ</div>
-                          <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.9rem' }}>{t.totalMarks}m</div>
+
+                        {/* 2. Total Marks */}
+                        <div style={{ borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: 2 }}>
+                          <div style={{ color: '#94a3b8', fontSize: '0.64rem', fontWeight: 700, lineHeight: 1 }}>કુલ ગુણ</div>
+                          <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.88rem', lineHeight: 1.2, marginTop: 2 }}>
+                            {t.totalMarks}m
+                          </div>
                         </div>
+
+                        {/* 3. Time */}
                         <div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 700 }}>સમય</div>
-                          <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '0.9rem' }}>
-                            {t.timeLimit === 0 ? '♾️ No Limit' : t.timeLimit <= 300 ? `⏱️ ${t.timeLimit}s/Q` : `⏳ ${Math.round(t.timeLimit / 60)}m`}
+                          <div style={{ color: '#94a3b8', fontSize: '0.64rem', fontWeight: 700, lineHeight: 1 }}>સમય</div>
+                          <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '0.86rem', lineHeight: 1.2, marginTop: 2 }}>
+                            {t.timeLimit === 0 ? '♾️ No Limit' : t.timeLimit <= 300 ? `${t.timeLimit}s/Q` : `${Math.round(t.timeLimit / 60)}m`}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Action Buttons: Preview/Edit, Schedule, PDF & Live */}
-                    <div style={{ display: 'flex', gap: 7, marginTop: 6, flexWrap: 'wrap' }}>
+                    {/* Action Buttons: Preview, Schedule & Full-Width Live */}
+                    <div className="live-action-buttons-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }}>
                       <button onClick={() => {
                         setExpandedTestCode(isExpanded ? null : t.testCode);
                         setEditingQId(null);
                         setShowAddInPreview(false);
                       }}
                         style={{
-                          flex: 1, minWidth: 95,
-                          background: isExpanded ? 'linear-gradient(135deg,#4338ca,#6366f1)' : 'rgba(99,102,241,0.25)',
+                          background: isExpanded ? 'linear-gradient(135deg,#4338ca,#6366f1)' : 'rgba(99,102,241,0.22)',
                           border: isExpanded ? '1.5px solid #a5b4fc' : '1.5px solid #818cf8',
                           color: '#ffffff',
-                          padding: '9px 10px',
-                          borderRadius: 8,
+                          padding: '10px 12px',
+                          borderRadius: 10,
                           fontWeight: 900,
                           cursor: 'pointer',
-                          fontSize: '0.82rem',
+                          fontSize: '0.85rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -5474,7 +5445,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                           fontFamily: 'Hind Vadodara, sans-serif',
                           boxShadow: isExpanded ? '0 0 14px rgba(99,102,241,0.4)' : 'none'
                         }}>
-                        <Eye size={14} /> {isExpanded ? '✕ પ્રીવ્યુ છુપાવો' : '👁️ Preview જુઓ'}
+                        <Eye size={15} /> {isExpanded ? '✕ પ્રીવ્યુ છુપાવો' : '👁️ Preview જુઓ'}
                       </button>
 
                       {/* Schedule Button */}
@@ -5482,62 +5453,70 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                         setSchedulingTest(t);
                         setScheduleDateTime(t.scheduledAt || '');
                       }}
-                        style={{ flex: 1, minWidth: 90, background: 'rgba(245,158,11,0.2)', border: '1.5px solid #f59e0b', color: '#fef3c7', padding: '9px 8px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
-                        <Clock size={14} /> {t.scheduledAt ? '⏰ Edit' : '⏰ Schedule'}
-                      </button>
-
-                      <button onClick={() => exportTestPDF(t, teacherProfile)}
-                        title="કસોટી PDF ડાઉનલોડ / પ્રિન્ટ કરો"
-                        style={{ background: 'rgba(59,130,246,0.22)', border: '1.5px solid #60a5fa', color: '#dbeafe', padding: '9px 11px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
-                        <Download size={14} /> PDF
+                        style={{
+                          background: 'rgba(245,158,11,0.2)',
+                          border: '1.5px solid #f59e0b',
+                          color: '#fef3c7',
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          fontFamily: 'Hind Vadodara, sans-serif'
+                        }}>
+                        <Clock size={15} /> {t.scheduledAt ? '⏰ Edit' : '⏰ Schedule'}
                       </button>
 
                       {!isCurrentLive ? (
                         <button onClick={() => handleToggleTestLive(t.testCode, 'start')}
                           style={{
-                            flex: 1.3,
-                            minWidth: 105,
+                            gridColumn: '1 / -1',
+                            width: '100%',
                             background: activeTestCodes.length > 0
                               ? 'linear-gradient(135deg,#0d9488,#14b8a6)'
                               : 'linear-gradient(135deg,#047857,#10b981)',
                             border: 'none',
                             color: 'white',
-                            padding: '9px 10px',
-                            borderRadius: 8,
+                            padding: '11px 14px',
+                            borderRadius: 10,
                             fontWeight: 900,
                             cursor: 'pointer',
-                            fontSize: '0.82rem',
+                            fontSize: '0.92rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 5,
+                            gap: 6,
                             fontFamily: 'Hind Vadodara, sans-serif',
                             boxShadow: '0 4px 14px rgba(5,150,105,0.35)'
                           }}>
-                          <Play size={13} fill="white" />
-                          {activeTestCodes.length > 0 ? '➕ આ પણ Live' : 'Live કરો'}
+                          <Play size={15} fill="white" />
+                          {activeTestCodes.length > 0 ? '➕ આ કસોટી પણ Live કરો' : '▶️ Live કરો'}
                         </button>
                       ) : (
                         <button onClick={() => handleToggleTestLive(t.testCode, 'stop')}
                           style={{
-                            flex: 1.2,
-                            minWidth: 95,
+                            gridColumn: '1 / -1',
+                            width: '100%',
                             background: 'linear-gradient(135deg,#7f1d1d,#ef4444)',
                             border: 'none',
                             color: 'white',
-                            padding: '9px 10px',
-                            borderRadius: 8,
+                            padding: '11px 14px',
+                            borderRadius: 10,
                             fontWeight: 900,
                             cursor: 'pointer',
-                            fontSize: '0.82rem',
+                            fontSize: '0.92rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 5,
+                            gap: 6,
                             fontFamily: 'Hind Vadodara, sans-serif',
                             boxShadow: '0 4px 14px rgba(239,68,68,0.35)'
                           }}>
-                          <Square size={13} fill="white" /> ⏹️ Stop Live
+                          <Square size={14} fill="white" /> ⏹️ Stop Live
                         </button>
                       )}
                     </div>
@@ -5660,8 +5639,8 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                           </div>
                         )}
 
-                        {/* Questions List (Multi-column responsive grid on Laptop) */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 12 }}>
+                        {/* Questions List (Multi-column responsive grid on Laptop, 1-column clean card on Phone) */}
+                        <div className="preview-questions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
                           {t.questions.map((q, i) => {
                             const isEditing = editingQId === q.id;
                             return (
@@ -7039,65 +7018,70 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div key={group.testCode} className="sa-test-group">
 
-                    {/* ── Sleek Responsive Test Group Header Card (Single Line on Laptop) ── */}
+                    {/* ── Test Group Header Card ── */}
                     <div
                       className="sa-test-group-header"
                       onClick={() => toggleTestGroup(group.testCode)}
+                      style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}
                     >
-                      {/* Left Side: Test Icon, Name & Code Meta */}
-                      <div className="sa-tg-left" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 300px' }}>
-                        <div className="sa-tg-icon">
-                          {testType === 'MCQ' ? '🔵' : testType === 'DESC' ? '📝' : '⚡'}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="sa-tg-name" style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.96rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {group.testName}
+                      {/* Top Row: Icon + Test Name + Subject + Badges + Student Count & Toggle Arrow */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 200, flex: 1 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                            {testType === 'MCQ' ? '🔵' : testType === 'DESC' ? '📝' : '⚡'}
                           </div>
-                          <div className="sa-tg-meta" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 2, flexWrap: 'wrap' }}>
-                            <span className="sa-tg-code">🏷️ {group.testCode}</span>
-                            {group.subject && group.subject !== '—' && (
-                              <span style={{ color: '#94a3b8' }}>• {group.subject}</span>
-                            )}
-                            <span style={{ background: typeBg, color: typeColor, fontSize: '0.68rem', fontWeight: 800, padding: '1px 7px', borderRadius: 10, border: `1px solid ${typeColor}44` }}>
-                              {typeLabel}
-                            </span>
+                          <div>
+                            <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.3 }}>
+                              {group.testName}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 2, flexWrap: 'wrap' }}>
+                              <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 6px', borderRadius: 4, border: '1px solid rgba(56,189,248,0.25)' }}>
+                                🏷️ {group.testCode}
+                              </span>
+                              {group.subject && group.subject !== '—' && (
+                                <span style={{ color: '#94a3b8' }}>• {group.subject}</span>
+                              )}
+                              <span style={{ background: typeBg, color: typeColor, fontSize: '0.68rem', fontWeight: 800, padding: '1px 7px', borderRadius: 10, border: `1px solid ${typeColor}44` }}>
+                                {typeLabel}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right Side: Stats Badges, Student Count & Actions (Inline on Laptop) */}
-                      <div className="sa-tg-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
-                        {/* Student Count Badge & Dropdown Arrow */}
+                        {/* Dropdown Toggle Badge */}
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(56,189,248,0.3)', whiteSpace: 'nowrap' }}>
-                            👥 {group.subs.length}
+                            👥 {group.subs.length} વિદ્યાર્થી
                           </span>
-                          <span style={{ background: isOpen ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)', color: isOpen ? '#38bdf8' : '#94a3b8', width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          <span style={{ background: isOpen ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)', color: isOpen ? '#38bdf8' : '#94a3b8', width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                             ▼
                           </span>
                         </div>
+                      </div>
 
-                        {/* Stats Badges */}
-                        <div className="sa-tg-stats-pills" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ background: 'rgba(234,179,8,0.15)', color: '#fde047', fontSize: '0.72rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.3)', whiteSpace: 'nowrap' }}>
+                      {/* Bottom Row: Score Badges + Action Buttons */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
+                        {/* Score & Status Badges */}
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ background: 'rgba(234,179,8,0.15)', color: '#fde047', fontSize: '0.74rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.3)', whiteSpace: 'nowrap' }}>
                             🏆 {highestScore}/{maxPossibleMarks}
                           </span>
-                          <span style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>
+                          <span style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', fontSize: '0.74rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>
                             📊 {avgScore}m
                           </span>
                           {pendingInGroup > 0 ? (
-                            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)', whiteSpace: 'nowrap' }}>
+                            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.74rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)', whiteSpace: 'nowrap' }}>
                               ⏳ {pendingInGroup} બાકી
                             </span>
                           ) : (
-                            <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.72rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.35)', whiteSpace: 'nowrap' }}>
+                            <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.74rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.35)', whiteSpace: 'nowrap' }}>
                               ✅ પૂર્ણ
                             </span>
                           )}
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="sa-tg-actions-wrap" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             onClick={(e) => openMasterTestModal(group, e)}
@@ -7105,9 +7089,9 @@ function StudentAnswers({ showToast }) {
                               background: 'linear-gradient(135deg,#7c3aed,#9333ea)',
                               color: 'white',
                               border: 'none',
-                              padding: '6px 12px',
+                              padding: '7px 14px',
                               borderRadius: 8,
-                              fontSize: '0.74rem',
+                              fontSize: '0.78rem',
                               fontWeight: 900,
                               cursor: 'pointer',
                               display: 'inline-flex',
@@ -7119,7 +7103,7 @@ function StudentAnswers({ showToast }) {
                             }}
                             title="આ કસોટીના તમામ પ્રશ્નો અને Answer Key જુઓ/એડિટ કરો"
                           >
-                            <Edit3 size={12} /> 📝 Answer Key
+                            <Edit3 size={13} /> 📝 Answer Key
                           </button>
 
                           {group.hasMCQ && (
@@ -7134,9 +7118,9 @@ function StudentAnswers({ showToast }) {
                                 background: 'linear-gradient(135deg,#2563eb,#3b82f6)',
                                 color: 'white',
                                 border: 'none',
-                                padding: '6px 12px',
+                                padding: '7px 14px',
                                 borderRadius: 8,
-                                fontSize: '0.74rem',
+                                fontSize: '0.78rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
@@ -7149,7 +7133,7 @@ function StudentAnswers({ showToast }) {
                               }}
                               title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
                             >
-                              <RotateCw size={12} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
+                              <RotateCw size={13} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
                             </button>
                           )}
                         </div>
@@ -10118,14 +10102,21 @@ function MaterialManager({ showToast }) {
   return (
     <div className="animate-fade-in">
 
-      {/* ── Top Bar: Title & Upload Button ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ color: 'white', fontWeight: 900, fontSize: 'clamp(1.2rem,3vw,1.5rem)', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* ── Top Bar: Title & Upload Button (Luxury Mobile & Desktop Responsive) ── */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 14,
+        flexWrap: 'wrap',
+        gap: 10
+      }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>📁</span> સ્ટડી મટીરીયલ અને સાહિત્ય મેનેજર
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '4px 0 0' }}>
-            વિદ્યાર્થીઓ માટે PDF પુસ્તકો, શોર્ટ નોટ્સ, મોડેલ પેપર્સ અપલોડ કરો અને લાઈવ શેર કરો.
+          <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '2px 0 0', lineHeight: 1.3 }}>
+            PDF પુસ્તકો, શોર્ટ નોટ્સ અને મોડેલ પેપર્સ અપલોડ કરો.
           </p>
         </div>
 
@@ -10136,54 +10127,23 @@ function MaterialManager({ showToast }) {
             background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
             color: 'white',
             border: 'none',
-            padding: '11px 22px',
-            borderRadius: 14,
+            padding: '9px 16px',
+            borderRadius: 10,
             fontWeight: 800,
-            fontSize: '0.92rem',
+            fontSize: '0.84rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            boxShadow: '0 6px 20px rgba(37,99,235,0.4)',
-            transition: 'all 0.2s',
-            fontFamily: 'Hind Vadodara, sans-serif'
+            gap: 6,
+            boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
+            fontFamily: 'Hind Vadodara, sans-serif',
+            whiteSpace: 'nowrap'
           }}>
-          <Plus size={18} /> + નવું મટીરીયલ અપલોડ કરો
+          <Plus size={16} /> + નવું મટીરીયલ
         </button>
       </div>
 
-      {/* ── 3 Quick Stats Mini Banners ── */}
-      <div className="material-stats-grid">
-        <div className="glass-card material-stat-card" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.2), rgba(15,23,42,0.8))', border: '1px solid rgba(59,130,246,0.3)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-            📁
-          </div>
-          <div>
-            <div style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: 700 }}>કુલ મટીરીયલ (Total)</div>
-            <div style={{ color: 'white', fontSize: '1.3rem', fontWeight: 900 }}>{materials.length} ફાઇલો</div>
-          </div>
-        </div>
 
-        <div className="glass-card material-stat-card" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(15,23,42,0.8))', border: '1px solid rgba(168,85,247,0.3)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(168,85,247,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-            📋
-          </div>
-          <div>
-            <div style={{ color: '#d8b4fe', fontSize: '0.75rem', fontWeight: 700 }}>મોડેલ પેપર્સ (Papers)</div>
-            <div style={{ color: 'white', fontSize: '1.3rem', fontWeight: 900 }}>{modelPapersCount} સેટ</div>
-          </div>
-        </div>
-
-        <div className="glass-card material-stat-card" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(15,23,42,0.8))', border: '1px solid rgba(245,158,11,0.3)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-            ⭐
-          </div>
-          <div>
-            <div style={{ color: '#fde68a', fontSize: '0.75rem', fontWeight: 700 }}>સ્પેશિયલ IMP નોટ્સ</div>
-            <div style={{ color: 'white', fontSize: '1.3rem', fontWeight: 900 }}>{specialTagCount} વિષયવાર</div>
-          </div>
-        </div>
-      </div>
 
       {/* ── Search & Horizontal Category Pills ── */}
       <div className="glass-card" style={{ padding: '14px 18px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -10272,128 +10232,130 @@ function MaterialManager({ showToast }) {
                   border: meta.border
                 }}>
                 <div>
-                  {/* Top Badges */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{
-                        background: meta.badgeBg,
-                        color: meta.badgeColor,
-                        border: `1px solid ${meta.badgeBorder}`,
-                        fontSize: '0.74rem',
-                        fontWeight: 900,
-                        padding: '3px 9px',
-                        borderRadius: 6
-                      }}>
-                        {meta.icon} {mat.fileType === 'PDF' ? 'PDF દસ્તાવેજ' : mat.fileType}
+                  {/* Top Badges Strip: Type + Tag + Size pushed right in 1 row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                    <span style={{
+                      background: meta.badgeBg,
+                      color: meta.badgeColor,
+                      border: `1px solid ${meta.badgeBorder}`,
+                      fontSize: '0.72rem',
+                      fontWeight: 900,
+                      padding: '3px 8px',
+                      borderRadius: 6
+                    }}>
+                      {meta.icon} {mat.fileType === 'PDF' ? 'PDF દસ્તાવેજ' : mat.fileType}
+                    </span>
+                    {mat.tag && (
+                      <span style={{ background: 'rgba(245,158,11,0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.4)' }}>
+                        🏷️ {mat.tag}
                       </span>
-                      {mat.tag && (
-                        <span style={{ background: 'rgba(245,158,11,0.25)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.4)' }}>
-                          🏷️ {mat.tag}
-                        </span>
-                      )}
-                    </div>
-
-                    <span style={{ color: '#cbd5e1', fontSize: '0.76rem', fontWeight: 700, background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 6 }}>
+                    )}
+                    <span style={{ marginLeft: 'auto', color: '#cbd5e1', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(0,0,0,0.4)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)' }}>
                       💾 {mat.fileSize || 'Online'}
                     </span>
                   </div>
 
                   {/* Title & Subject */}
-                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.08rem', margin: '0 0 8px', lineHeight: 1.4 }}>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', margin: '0 0 6px', lineHeight: 1.35 }}>
                     {mat.title}
                   </h3>
 
-                  <div style={{ color: meta.accentColor, fontSize: '0.82rem', fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ color: meta.accentColor, fontSize: '0.8rem', fontWeight: 800, marginBottom: mat.description ? 6 : 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>{meta.icon} વિષય:</span> {mat.subject || 'General'}
                   </div>
 
                   {mat.description && (
-                    <p style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5, margin: 0 }}>
+                    <p style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.45, margin: 0 }}>
                       {mat.description}
                     </p>
                   )}
                 </div>
 
-                {/* Bottom Actions */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {downloadUrl && (
-                      <a
-                        href={downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          background: 'rgba(37,99,235,0.25)',
-                          border: '1px solid rgba(37,99,235,0.5)',
-                          color: '#93c5fd',
-                          padding: '7px 14px',
-                          borderRadius: 8,
-                          fontSize: '0.8rem',
-                          fontWeight: 800,
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}>
-                        <Eye size={14} /> ઓપન
-                      </a>
-                    )}
-                    {downloadUrl && (
-                      <a
-                        href={downloadUrl}
-                        download
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          background: 'rgba(34,197,94,0.25)',
-                          border: '1px solid rgba(34,197,94,0.5)',
-                          color: '#4ade80',
-                          padding: '7px 14px',
-                          borderRadius: 8,
-                          fontSize: '0.8rem',
-                          fontWeight: 800,
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}>
-                        <Download size={14} /> ડાઉનલોડ
-                      </a>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      onClick={() => handleOpenEdit(mat)}
+                {/* Bottom Actions Row: Open, Download, Edit, Delete in 1 Balanced Bar */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10, marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {downloadUrl && (
+                    <a
+                      href={downloadUrl}
+                      target="_blank"
+                      rel="noreferrer"
                       style={{
-                        background: 'rgba(255,255,255,0.08)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#cbd5e1',
-                        padding: '7px 10px',
+                        flex: 1,
+                        background: 'linear-gradient(135deg,rgba(37,99,235,0.3),rgba(30,58,138,0.5))',
+                        border: '1px solid rgba(59,130,246,0.4)',
+                        color: '#93c5fd',
+                        padding: '8px 10px',
                         borderRadius: 8,
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                      title="સુધારો">
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(mat.id, mat.title)}
-                      style={{
-                        background: 'rgba(239,68,68,0.2)',
-                        border: '1px solid rgba(239,68,68,0.4)',
-                        color: '#fca5a5',
-                        padding: '7px 10px',
-                        borderRadius: 8,
-                        fontSize: '0.78rem',
+                        fontSize: '0.8rem',
                         fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                      title="ડીલીટ">
-                      🗑️
-                    </button>
-                  </div>
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5
+                      }}>
+                      <Eye size={14} /> ઓપન
+                    </a>
+                  )}
+                  {downloadUrl && (
+                    <a
+                      href={downloadUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        flex: 1,
+                        background: 'linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,78,59,0.5))',
+                        border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#4ade80',
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5
+                      }}>
+                      <Download size={14} /> ડાઉનલોડ
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleOpenEdit(mat)}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#cbd5e1',
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    title="સુધારો">
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(mat.id, mat.title)}
+                    style={{
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '1px solid rgba(239,68,68,0.4)',
+                      color: '#fca5a5',
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="ડીલીટ">
+                    🗑️
+                  </button>
                 </div>
               </div>
             );

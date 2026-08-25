@@ -122,9 +122,9 @@ router.get('/test/:testCode', authMiddleware, teacherOnly, async (req, res) => {
 // Add new question (teacher only)
 router.post('/', authMiddleware, teacherOnly, async (req, res) => {
   const {
-    text, type, optionA, optionB, optionC, optionD, correctOpt,
+    text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
-    image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img,
+    image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
     scheduledAt, negativeMarking
   } = req.body;
 
@@ -177,6 +177,8 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
       }
     });
 
+    invalidateQuestionsCache();
+
     res.status(201).json({ success: true, question });
   } catch (err) {
     console.error('Add Question Error:', err);
@@ -189,6 +191,8 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
 router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
   const { testCode, testCodes, deactivateAll, action, append } = req.body;
   try {
+    invalidateQuestionsCache();
+
     if (deactivateAll || action === 'stopAll') {
       await prisma.question.updateMany({
         data: { isActive: false, scheduledAt: null }
@@ -267,6 +271,7 @@ router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
 router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
   const { testCode, testCodes, scheduledAt } = req.body;
   try {
+    invalidateQuestionsCache();
     const targets = Array.isArray(testCodes) ? testCodes.filter(Boolean) : (testCode ? [testCode] : []);
     if (targets.length === 0) {
       return res.status(400).json({ error: 'Test code(s) required.' });
@@ -291,6 +296,7 @@ router.put('/test/:testCode/meta', authMiddleware, teacherOnly, async (req, res)
   const { testCode } = req.params;
   const { testName, subject, timeLimit } = req.body;
   try {
+    invalidateQuestionsCache();
     await prisma.question.updateMany({
       where: { testCode },
       data: {
@@ -311,13 +317,14 @@ router.put('/test/:testCode/meta', authMiddleware, teacherOnly, async (req, res)
 router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
   const id = parseInt(req.params.id);
   const {
-    text, type, optionA, optionB, optionC, optionD, correctOpt,
+    text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
-    image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img,
+    image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
     scheduledAt, negativeMarking
   } = req.body;
 
   try {
+    invalidateQuestionsCache();
     const finalImage = (image !== undefined ? (image || null) : (imageUrl !== undefined ? (imageUrl || null) : undefined));
 
     const question = await prisma.question.update({
@@ -361,6 +368,7 @@ router.delete('/:id', authMiddleware, teacherOnly, async (req, res) => {
   const id = parseInt(req.params.id);
 
   try {
+    invalidateQuestionsCache();
     await prisma.question.delete({ where: { id } });
     res.json({ success: true, message: 'પ્રશ્ન ડિલીટ થઈ ગયો.' });
   } catch (err) {
@@ -572,7 +580,7 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
   const finalTestName = (testName || finalTestCode).trim();
   const finalSubject  = (subject || questions[0]?.subject || 'સામાન્ય').trim();
   const finalTimeLimit = parseInt(timeLimit) || 60;
-  const finalIsActive  = isActive !== undefined ? isActive : true;
+  const finalIsActive  = isActive !== undefined ? isActive : false;
 
   try {
     const maxOrder = await prisma.question.findFirst({
@@ -608,6 +616,8 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
       });
       createdList.push(created);
     }
+
+    invalidateQuestionsCache();
 
     res.status(201).json({
       success: true,

@@ -100,6 +100,63 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
   }
 }
 
+/**
+ * Send Scorecard PDF document buffer directly to student WhatsApp from teacher's connected session
+ */
+async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, totalMarks, pdfBuffer) {
+  const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const jid = `91${cleanMobile}@s.whatsapp.net`;
+
+  const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
+  const isPass = pct >= 60;
+  const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ (Distinction)' : pct >= 60 ? '🟢 પાસ (Passed)' : '🔴 સુધારાની જરૂર';
+
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*
+━━━━━━━━━━━━━━━━━━━━━━
+નમસ્તે *${studentName}*,
+
+તમારી કસોટીનું અધિકૃત મૂલ્યાંકન સ્કોરકાર્ડ & ઉત્તરવહી તૈયાર છે!
+
+📊 *કસોટીનું નામ:* ${testName}
+🎯 *મેળવેલ ગુણ:* ${score} / ${totalMarks}
+📈 *ટકાવારી:* ${pct}%
+🏅 *પરિણામ:* ${resultStatus}
+
+📄 વિગતવાર ઉત્તરો, પ્રશ્નવાર સોલ્યુશન્સ અને સુનિલ સરની સહી સાથેની PDF ફાઇલ ઉપર જોડાયેલ છે.
+━━━━━━━━━━━━━━━━━━━━━━
+✨ *મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી!* 🏆
+🌐 પોર્ટલ: https://trinetraacademy.in
+📞 હેલ્પલાઇન: 8200405300`;
+
+  if (waSocket && connectionStatus === 'CONNECTED') {
+    try {
+      const safeTestName = String(testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const safeStudentName = String(studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const fileName = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+
+      await waSocket.sendMessage(jid, {
+        document: pdfBuffer,
+        mimetype: 'application/pdf',
+        fileName: fileName,
+        caption: caption
+      });
+
+      console.log(`✅ [WhatsApp PDF Sent] Document sent to +91${cleanMobile} (${studentName})`);
+      return { success: true, message: `PDF તમારા WhatsApp (+91${cleanMobile}) પર સફળતાપૂર્વક મોકલી દીધું છે!` };
+    } catch (err) {
+      console.error(`❌ [WhatsApp PDF Failed] to ${mobile}:`, err);
+      return { success: false, error: 'WhatsApp પર PDF મોકલવામાં તકલીફ પડી: ' + err.message };
+    }
+  } else {
+    console.log(`⚠️ [WhatsApp Offline] Teacher WhatsApp is disconnected. Status: ${connectionStatus}`);
+    return {
+      success: false,
+      isOffline: true,
+      error: 'ટીચરનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી પ્રયાસ કરો અથવા ટીચર ડેશબોર્ડમાં QR સ્કેન કરો.'
+    };
+  }
+}
+
 async function logoutWhatsApp() {
   try {
     if (waSocket) {
@@ -131,6 +188,7 @@ function getWhatsAppStatus() {
 module.exports = {
   initWhatsApp,
   sendWhatsAppOTP,
+  sendWhatsAppScorecardPDF,
   getWhatsAppStatus,
   logoutWhatsApp
 };

@@ -60,10 +60,12 @@ import { createPortal } from 'react-dom';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useStore } from '../store/useStore';
+import { downloadHtmlAsPdf } from '../utils/pdfDownloader';
 import { AchievementBadges, ConfettiCanvas } from '../components/ConfettiBadges';
 import {
   sendOTP, verifyOTP, getQuestions, getMySubmissions, getStudentHistoryByMobile,
-  getSubmissionReview, getLeaderboard, getTestWiseLeaderboard, getMaterials, getMarketingItems
+  getSubmissionReview, getLeaderboard, getTestWiseLeaderboard, getMaterials, getMarketingItems,
+  sendWhatsAppScorecard
 } from '../services/api';
 import { LeaderboardUI } from '../components/Leaderboard';
 import {
@@ -722,6 +724,12 @@ export default function StudentDashboard() {
   const [resultSearch, setResultSearch]               = useState('');
   const [resultSubjectFilter, setResultSubjectFilter] = useState('all');
   const [resultSortBy, setResultSortBy]               = useState('latest'); // 'latest' | 'score_high' | 'score_low'
+  const [downloadPopup, setDownloadPopup]             = useState(null); // { filename, type } or null
+  const [downloadingScorecardId, setDownloadingScorecardId] = useState(null);
+  const [sendingWaSubId, setSendingWaSubId]           = useState(null);
+  const [waModalSub, setWaModalSub]                   = useState(null);
+  const [waTargetMobile, setWaTargetMobile]           = useState('');
+  const [waSuccessModal, setWaSuccessModal]           = useState(null);
 
   // Extract unique subjects from student's submissions
   const uniqueSubjects = useMemo(() => {
@@ -976,471 +984,131 @@ export default function StudentDashboard() {
     setLoadingReview(false);
   };
 
-  // ─── Print / Download Detailed Scorecard with All Questions & Answers ──
-  const handlePrintScorecard = async (sub) => {
+  // ─── Direct PDF Download (Backend Attachment — 100% Zero Redirect, No New Tab) ───
+  const handlePrintScorecard = (sub) => {
+    if (!sub?.id || downloadingScorecardId) return;
+    setDownloadingScorecardId(sub.id);
     try {
-      showToast?.('⏳ વિદ્યાર્થી ઉત્તર & ગુણપત્રક PDF તૈયાર થઈ રહ્યું છે...', 'info');
-    } catch(e){}
+      showToast?.('⏳ PDF ડાઉનલોડ શરૂ થઈ રહ્યું છે...', 'info');
 
-    let reviewList = [];
-    let activeMarketing = [];
-    try {
-      const [res, mktRes] = await Promise.all([
-        getSubmissionReview(sub.id),
-        getMarketingItems().catch(() => ({ data: [] }))
-      ]);
-      reviewList = res.data?.review || [];
-      const list = Array.isArray(mktRes?.data?.data)
-        ? mktRes.data.data
-        : Array.isArray(mktRes?.data)
-          ? mktRes.data
-          : Array.isArray(mktRes?.items)
-            ? mktRes.items
-            : [];
-      activeMarketing = list.filter(x => x.isActive !== false && x.showInPdf !== false && (x.imageUrl || x.image));
-      if (activeMarketing.length === 0) {
-        activeMarketing = list.filter(x => x.isActive !== false && (x.imageUrl || x.image));
-      }
-    } catch (e) {
-      console.error('Print review error:', e);
-    }
+      const safeTestName = (sub.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const safeStudentName = (sub.student?.name || user?.name || '').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+      const downloadUrl = `/api/submissions/${sub.id}/pdf`;
 
-    const origin = window.location.origin;
-    const logoUrl = `${origin}/images/logo.jpg`;
-    const score = sub.score !== undefined ? sub.score : (sub.marksObtained || 0);
-    const totalMarks = sub.totalMarks || (sub.totalQuestions ? sub.totalQuestions * 1 : 100);
-    const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
-    const certNumber = `TRN-ANS-${Math.floor(100000 + Math.random() * 900000)}`;
+      // 1. Direct Anchor Download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
 
-    const isPass = pct >= 60;
-    const gradeColor = pct >= 75 ? '#15803d' : pct >= 60 ? '#b45309' : '#b91c1c';
-    const resultLabel = pct >= 75 ? 'ઉત્કૃષ્ટ (Distinction)' : pct >= 60 ? 'પાસ (Passed)' : 'સુધારાની જરૂર (Needs Practice)';
+      // 2. Invisible iFrame Fallback (Guaranteed download on mobile browsers without page unload)
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
 
-    const questionsHtml = reviewList.length > 0 ? reviewList.map((item, idx) => {
-      const qNum = idx + 1;
-      const q = (typeof item.question === 'object' && item.question !== null) ? item.question : item;
-      const isCorrect = item.isCorrect;
-      
-      const studentAns = (typeof item.studentAnswer === 'string' ? item.studentAnswer : '') || 
-                         (typeof item.userAnswer === 'string' ? item.userAnswer : '') || 
-                         (typeof item.selectedOption === 'string' ? item.selectedOption : '') || '';
+      setTimeout(() => {
+        try { document.body.removeChild(link); } catch(e) {}
+        try { document.body.removeChild(iframe); } catch(e) {}
+      }, 10000);
 
-      const correctOpt = (typeof q.correctOpt === 'string' ? q.correctOpt : '') || 
-                         (typeof q.correctAnswer === 'string' ? q.correctAnswer : '') || 
-                         (typeof item.correctAnswer === 'string' ? item.correctAnswer : '') || 
-                         (typeof item.correctOption === 'string' ? item.correctOption : '') || '';
-
-      const qText = (typeof q.text === 'string' ? q.text : '') || 
-                    (typeof q.questionText === 'string' ? q.questionText : '') || 
-                    (typeof item.questionText === 'string' ? item.questionText : '') || 
-                    (typeof item.text === 'string' ? item.text : '') || 
-                    (typeof item.question === 'string' ? item.question : '') || 
-                    `પ્રશ્ન ${qNum}`;
-
-      const rawQImg = q.image || q.imageUrl || q.questionImage || item.questionImage || item.image || item.imageUrl;
-      const qImg = isImg(rawQImg) ? extractImgSrc(rawQImg) : null;
-      const marks = item.marksAwarded !== undefined ? item.marksAwarded : (isCorrect ? (item.positiveMarks || q.marks || 1) : 0);
-
-      // Status Badge
-      let statusBadge = '';
-      if (isCorrect === true) {
-        statusBadge = `<span style="color: #166534; background: #dcfce7; border: 1px solid #86efac; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 800;">✓ સાચો (+${marks} ગુણ)</span>`;
-      } else if (isCorrect === false) {
-        statusBadge = '<span style="color: #991b1b; background: #fee2e2; border: 1px solid #fca5a5; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 800;">✕ ખોટો (0 ગુણ)</span>';
-      } else {
-        statusBadge = '<span style="color: #854d0e; background: #fef9c3; border: 1px solid #fde047; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 800;">⊘ છોડેલ (0 ગુણ)</span>';
-      }
-
-      // Format Options robustly (handling arrays, objects, and optionA/B/C/D)
-      const formattedOptions = [];
-      if (Array.isArray(q.options) && q.options.length > 0) {
-        q.options.forEach((opt, oIdx) => {
-          const optKey = String.fromCharCode(65 + oIdx);
-          let optText = '';
-          let optImg = null;
-          if (typeof opt === 'string') {
-            if (isImg(opt)) optImg = extractImgSrc(opt);
-            else optText = opt;
-          } else if (typeof opt === 'object' && opt !== null) {
-            optText = (typeof opt.text === 'string' ? opt.text : '') || (typeof opt.title === 'string' ? opt.title : '') || '';
-            const pImg = opt.image || opt.imageUrl || opt.img;
-            if (isImg(pImg)) optImg = extractImgSrc(pImg);
-          }
-          formattedOptions.push({ key: optKey, text: optText, img: optImg });
-        });
-      } else if (Array.isArray(item.options) && item.options.length > 0) {
-        item.options.forEach((opt, oIdx) => {
-          const optKey = String.fromCharCode(65 + oIdx);
-          let optText = '';
-          let optImg = null;
-          if (typeof opt === 'string') {
-            if (isImg(opt)) optImg = extractImgSrc(opt);
-            else optText = opt;
-          } else if (typeof opt === 'object' && opt !== null) {
-            optText = (typeof opt.text === 'string' ? opt.text : '') || (typeof opt.title === 'string' ? opt.title : '') || '';
-            const pImg = opt.image || opt.imageUrl || opt.img;
-            if (isImg(pImg)) optImg = extractImgSrc(pImg);
-          }
-          formattedOptions.push({ key: optKey, text: optText, img: optImg });
-        });
-      } else {
-        ['A', 'B', 'C', 'D', 'E'].forEach(k => {
-          const rawVal = q[`option${k}`] || q[`opt${k}`] || item[`option${k}`] || item[`opt${k}`];
-          const rawImgVal = q[`option${k}_img`] || q[`opt${k}_img`] || item[`option${k}_img`];
-          let optImg = rawImgVal ? extractImgSrc(rawImgVal) : (isImg(rawVal) ? extractImgSrc(rawVal) : null);
-          let optText = isImg(rawVal) ? '' : (typeof rawVal === 'string' ? rawVal : (rawVal ? String(rawVal) : ''));
-          if (k === 'E' && !optText && !optImg && ((sub.testName || '').toUpperCase().includes('TAT') || q.optionE)) {
-            optText = 'ઉત્તર આપવા માંગતા નથી (Not Attempted / Skip)';
-          }
-          if (optText || optImg) {
-            formattedOptions.push({ key: k, text: optText, img: optImg });
-          }
-        });
-      }
-
-      let correctDisplay = correctOpt;
-      const matchingCorrect = formattedOptions.find(o => o.key.toUpperCase() === correctOpt.toUpperCase());
-      if (matchingCorrect && matchingCorrect.text) {
-        correctDisplay = `${correctOpt}. ${formatMathText(matchingCorrect.text)}`;
-      }
-
-      return `
-        <div style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; page-break-inside: avoid; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
-          
-          <!-- Question Header -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px;">
-            <div style="display: flex; gap: 8px; flex: 1;">
-              <span style="background: #1e3a8a; color: #ffffff; font-weight: 900; font-size: 12px; padding: 2px 8px; border-radius: 6px; height: fit-content; flex-shrink: 0;">પ્રશ્ન ${qNum}</span>
-              <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; line-height: 1.4;">
-                ${formatMathText(qText)}
-              </div>
-            </div>
-            <div style="flex-shrink: 0;">
-              ${statusBadge}
-            </div>
-          </div>
-
-          <!-- Question Image if available -->
-          ${qImg ? `
-            <div style="text-align: center; margin: 8px 0;">
-              <img src="${qImg}" alt="Question ${qNum}" style="max-height: 160px; max-width: 100%; border-radius: 6px; border: 1px solid #cbd5e1; display: inline-block;" />
-            </div>
-          ` : ''}
-
-          <!-- Options Grid -->
-          ${formattedOptions.length > 0 ? `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin: 8px 0;">
-              ${formattedOptions.map(o => {
-                const isSelected = studentAns && (studentAns.toUpperCase() === o.key.toUpperCase() || studentAns.trim() === o.text.trim());
-                const isCorrectOpt = correctOpt && (correctOpt.toUpperCase() === o.key.toUpperCase() || correctOpt.trim() === o.text.trim());
-
-                let bg = '#f8fafc';
-                let bdr = '1px solid #e2e8f0';
-                let badgeHtml = '';
-                let optKeyColor = '#1e3a8a';
-
-                if (isCorrectOpt) {
-                  bg = '#f0fdf4';
-                  bdr = '1.5px solid #22c55e';
-                  optKeyColor = '#15803d';
-                  badgeHtml = `&nbsp;<strong style="font-size:10.5px; color:#15803d; background:#dcfce7; padding:1px 6px; border-radius:8px;">[✓ સાચો જવાબ]</strong>`;
-                }
-                if (isSelected && isCorrect === false) {
-                  bg = '#fef2f2';
-                  bdr = '1.5px solid #ef4444';
-                  optKeyColor = '#991b1b';
-                  badgeHtml = `&nbsp;<strong style="font-size:10.5px; color:#991b1b; background:#fecaca; padding:1px 6px; border-radius:8px;">[✕ તમે પસંદ કરેલ જવાબ]</strong>`;
-                }
-                if (isSelected && isCorrect === true) {
-                  badgeHtml = `&nbsp;<strong style="font-size:10.5px; color:#166534; background:#bbf7d0; padding:1px 6px; border-radius:8px;">[✓ તમારો સાચો જવાબ]</strong>`;
-                }
-
-                return `
-                  <div style="display:flex; flex-direction:column; padding: 6px 10px; border: ${bdr}; background: ${bg}; border-radius: 6px; font-size: 12.5px; color: #1e293b; gap: 3px;">
-                    <div style="display:flex; align-items:center; gap:6px;">
-                      <span style="font-weight: 900; font-size: 13px; color: ${optKeyColor}; min-width: 20px;">${o.key}.</span>
-                      <span style="flex:1;">${formatMathText(o.text)}</span>
-                      ${badgeHtml}
-                    </div>
-                    ${o.img ? `
-                      <div style="text-align: center; margin-top: 3px;">
-                        <img src="${o.img}" alt="Option ${o.key}" style="max-height: 65px; max-width: 100%; border-radius: 4px; border: 1px solid #cbd5e1; display: inline-block;" />
-                      </div>
-                    ` : ''}
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          ` : ''}
-
-          <!-- Summary bottom line -->
-          <div style="font-size: 11.5px; color: #475569; display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 2px; flex-wrap: wrap; gap: 4px;">
-            <span>📌 તમારો ઉત્તર:&nbsp;<strong style="color: ${isCorrect === true ? '#166534' : isCorrect === false ? '#991b1b' : '#64748b'};">${studentAns || 'અનુત્તર (Skipped)'}</strong></span>
-            ${item.timeSpent ? `<span style="background: #eff6ff; color: #1e40af; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10.5px;">⏱️ લીધેલ સમય: ${item.timeSpent}s</span>` : ''}
-            ${correctDisplay ? `<span>✅ સાચો ઉત્તર:&nbsp;<strong style="color: #166534;">${correctDisplay}</strong></span>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('') : '<div style="text-align: center; padding: 24px; color: #64748b; background: #f8fafc; border-radius: 8px;">પ્રશ્નો અને જવાબોની વિગત ઉપલબ્ધ નથી.</div>';
-
-    const html = `<!DOCTYPE html>
-    <html lang="gu">
-    <head>
-      <meta charset="UTF-8">
-      <title>Trinetra Academy - Official Academic Scorecard & Evaluation Sheet - ${sub.student?.name || user?.name}</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Vadodara:wght@400;500;600;700;800;900&display=swap');
-        @page { size: A4; margin: 8mm 10mm; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Hind Vadodara', sans-serif, system-ui; padding: 12px; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; }
-        
-        .no-print-bar { position: sticky; top: 0; z-index: 9999; background: #1e3a8a; color: white; padding: 10px 16px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .print-btn { background: #22c55e; color: white; border: none; padding: 7px 16px; border-radius: 7px; font-weight: 900; font-size: 13.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-        
-        /* 🎖️ GOLDEN CERTIFICATE ROYAL OUTER CONTAINER 🎖️ */
-        .certificate-wrapper {
-          border: 3.5px solid #1e3a8a;
-          outline: 2px solid #d97706;
-          outline-offset: 4px;
-          border-radius: 14px;
-          padding: 16px 20px;
-          background: #ffffff;
-          position: relative;
-        }
-
-        .corner-ornament {
-          position: absolute;
-          width: 22px;
-          height: 22px;
-          color: #d97706;
-          font-size: 18px;
-          font-weight: 900;
-          line-height: 1;
-        }
-        .corner-tl { top: 6px; left: 8px; }
-        .corner-tr { top: 6px; right: 8px; }
-        .corner-bl { bottom: 6px; left: 8px; }
-        .corner-br { bottom: 6px; right: 8px; }
-
-        .cert-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 2px solid #e2e8f0;
-          padding-bottom: 12px;
-          margin-bottom: 14px;
-          gap: 12px;
-        }
-
-        .gold-seal-badge {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%);
-          border: 2.5px dashed #b45309;
-          box-shadow: 0 4px 12px rgba(217,119,6,0.25);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          flex-shrink: 0;
-          padding: 4px;
-        }
-
-        .meta-strip {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 8px;
-          background: #f8fafc;
-          border: 1.5px solid #cbd5e1;
-          border-radius: 8px;
-          padding: 8px 12px;
-          margin-bottom: 14px;
-          font-size: 12px;
-        }
-
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 16px; }
-        .stat-card { background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 3.5px solid #1e3a8a; border-radius: 8px; padding: 9px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-        .stat-num { font-size: 20px; font-weight: 900; color: #1e3a8a; margin-top: 2px; }
-
-        @media (max-width: 680px) {
-          body { padding: 4px !important; }
-          .certificate-wrapper { padding: 10px 8px !important; border-width: 2.5px !important; outline-offset: 2px !important; }
-          .cert-header { flex-direction: column !important; text-align: center !important; gap: 8px !important; }
-          .gold-seal-badge { width: 68px !important; height: 68px !important; margin: 4px auto !important; }
-          .meta-strip { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; padding: 6px 8px !important; font-size: 11px !important; }
-          .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; margin: 8px 0 !important; }
-          .stat-card { padding: 6px !important; }
-          .stat-num { font-size: 17px !important; }
-          .no-print-bar { flex-direction: column !important; gap: 8px !important; text-align: center !important; padding: 8px 12px !important; }
-          .print-btn { width: 100% !important; justify-content: center !important; }
-        }
-
-        @media print {
-          .no-print-bar { display: none !important; }
-          body { padding: 0; max-width: 100%; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="watermark" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 46px; font-weight: 900; color: rgba(30, 58, 138, 0.035); white-space: nowrap; pointer-events: none; text-transform: uppercase;">🏛️ TRINETRA ACADEMY CERTIFIED</div>
-      
-      <!-- Top Action Bar for PDF & Print -->
-      <div class="no-print-bar">
-        <div style="font-weight: 800; font-size: 13.5px;">🎖️ ત્રિનેત્ર ઓનલાઇન એકેડેમી - વિદ્યાર્થી ઉત્તર & ગુણપત્રક (Official Answer Sheet)</div>
-        <button class="print-btn" onclick="window.print()">🖨️ PDF ડાઉનલોડ / પ્રિન્ટ કરો</button>
-      </div>
-
-      <!-- 🎖️ MAIN CERTIFICATE CONTAINER 🎖️ -->
-      <div class="certificate-wrapper">
-        <div class="corner-ornament corner-tl">❖</div>
-        <div class="corner-ornament corner-tr">❖</div>
-        <div class="corner-ornament corner-bl">❖</div>
-        <div class="corner-ornament corner-br">❖</div>
-
-        <!-- Official Certificate Header -->
-        <div class="cert-header">
-          <!-- Academy Logo with Golden Ring -->
-          <div style="width: 60px; height: 60px; border-radius: 50%; border: 2.5px solid #d97706; overflow: hidden; background: white; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(217,119,6,0.2);">
-            <img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name=TA&background=1e3a8a&color=fff'" alt="Logo" />
-          </div>
-
-          <!-- Academy Details in Center -->
-          <div style="text-align: center; flex: 1; padding: 0 10px;">
-            <div style="font-size: 11px; font-weight: 800; color: #d97706; letter-spacing: 1px; text-transform: uppercase;">★ OFFICIAL EVALUATION SCORECARD & ANSWER SHEET ★</div>
-            <h1 style="margin: 2px 0 0; color: #1e3a8a; font-size: 21px; font-weight: 900; letter-spacing: 0.2px;">
-              🏛️ ત્રિનેત્ર ઓનલાઇન એકેડેમી
-            </h1>
-            <div style="font-size: 11px; font-weight: 800; color: #15803d; margin-top: 1px;">
-              ✨ મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી! 🏆
-            </div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-              અધિકૃત વિદ્યાર્થી મૂલ્યાંકન પત્રક & વિગતવાર સોલ્યુશન્સ (Official Answer Key & Solutions)
-            </div>
-          </div>
-
-          <!-- Official Gold Certified Seal Badge -->
-          <div class="gold-seal-badge">
-            <div style="font-size: 18px; line-height: 1;">🎖️</div>
-            <div style="font-size: 8px; font-weight: 900; color: #92400e; letter-spacing: 0.5px; margin-top: 2px;">VERIFIED</div>
-            <div style="font-size: 7.5px; font-weight: 800; color: #1e3a8a;">TRINETRA</div>
-            <div style="font-size: 7px; color: #b45309; font-weight: 900;">CERTIFIED</div>
-          </div>
-        </div>
-
-        <!-- Student Metadata Strip (Exact 4 Columns in 1 Row on Laptop) -->
-        <div class="meta-strip">
-          <div><span style="color:#64748b;">વિદ્યાર્થી:</span> <strong style="color:#1e3a8a;">${sub.student?.name || user?.name}</strong></div>
-          <div><span style="color:#64748b;">મોબાઈલ:</span> <strong>${sub.student?.mobile || user?.mobile}</strong></div>
-          <div><span style="color:#64748b;">કસોટી ક્રમ:</span> <strong style="color:#d97706;">${sub.testCode || certNumber}</strong></div>
-          <div><span style="color:#64748b;">તારીખ:</span> <strong>${new Date(sub.submittedAt).toLocaleDateString('gu-IN')}</strong></div>
-        </div>
-
-        <!-- 4 Golden Key Performance Metric Cards -->
-        <div class="grid">
-          <div class="stat-card">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">કસોટીનું નામ & વિષય</div>
-            <div style="font-size:13.5px; font-weight:900; color:#1e3a8a; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub.testName || 'કસોટી'}</div>
-            <div style="font-size:10px; color:#64748b;">${sub.subject || 'સામાન્ય'}</div>
-          </div>
-          <div class="stat-card">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">મેળવેલ ગુણ / કુલ ગુણ</div>
-            <div class="stat-num" style="color:${gradeColor};">${score} / ${totalMarks}</div>
-            <div style="font-size:10px; color:#64748b;">કુલ પ્રશ્નો: ${reviewList.length}</div>
-          </div>
-          <div class="stat-card">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">ટકાવારી (Percentage)</div>
-            <div class="stat-num" style="color:${gradeColor};">${pct}%</div>
-            <div style="font-size:10px; color:#15803d; font-weight:700;">ચકાસાયેલ ગુણ</div>
-          </div>
-          <div class="stat-card">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">મૂલ્યાંકન પરિણામ</div>
-            <div style="font-size:14px; font-weight:900; color:${isPass ? '#15803d' : '#b91c1c'}; margin-top:4px;">
-              ${isPass ? '🟢 પાસ' : '🔴 સુધારાની જરૂર'}
-            </div>
-            <div style="font-size:9.5px; font-weight:700; color:#64748b;">${resultLabel}</div>
-          </div>
-        </div>
-
-        ${sub.remarks ? `
-          <div style="background: #fffbeb; border: 1.5px solid #fde68a; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; color: #92400e;">
-            <strong>👨‍🏫 શિક્ષકનો અભિપ્રાય (Teacher Remarks):</strong> ${sub.remarks}
-          </div>
-        ` : ''}
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">
-          <h3 style="color: #1e3a8a; margin: 0; font-size: 15px; font-weight: 900;">
-            📝 તમામ પ્રશ્નો અને ઉત્તરોની વિગતવાર ચકાસણી (Question-wise Solutions):
-          </h3>
-          <span style="font-size: 11.5px; color: #64748b; font-weight: 700;">કુલ પ્રશ્નો: ${reviewList.length}</span>
-        </div>
-
-        <!-- Questions List -->
-        ${questionsHtml}
-
-        <!-- 🎖️ OFFICIAL SIGNATURE & ACADEMY STAMP (SUNIL SIR & TRINETRA LOGO) 🎖️ -->
-        <div style="margin-top: 18px; border-top: 1.5px dashed #cbd5e1; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #475569; page-break-inside: avoid; flex-wrap: wrap; gap: 10px;">
-          <div>
-            <div style="font-weight: 900; color: #1e3a8a; font-size: 12px;">🏛️ ત્રિનેત્ર ઓનલાઇન એકેડેમી અધિકૃત મૂલ્યાંકન પત્રક</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">📞 હેલ્પલાઇન: <strong>8200405300</strong> • 🌐 <strong>trinetraacademy.in</strong></div>
-            <div style="font-size: 9.5px; color: #059669; font-weight: 800; margin-top: 2px;">✓ ડિજિટલ ચકાસાયેલ ઉત્તરવહી</div>
-          </div>
-
-          <div style="display: flex; align-items: center; justify-content: center;">
-            <div style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid #1e3a8a; outline: 1.5px dashed #d97706; outline-offset: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: #eff6ff; transform: rotate(-5deg);">
-              <img src="${origin}/images/logo.jpg" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://ui-avatars.com/api/?name=TA&background=1e3a8a&color=fff'" alt="Logo" />
-              <div style="font-size: 6px; font-weight: 900; color: #1e3a8a;">TRINETRA ACADEMY</div>
-              <div style="font-size: 5.5px; font-weight: 800; color: #d97706;">★ OFFICIAL SEAL ★</div>
-            </div>
-          </div>
-
-          <div style="text-align: center; min-width: 150px;">
-            <div style="font-family: 'Brush Script MT', 'Dancing Script', 'Segoe Script', cursive; font-size: 26px; font-weight: 700; color: #1e3a8a; transform: rotate(-3deg); line-height: 1;">
-              Sunil Sir
-            </div>
-            <div style="border-top: 1.5px solid #1e3a8a; margin-top: 4px; padding-top: 2px;">
-              <div style="font-weight: 900; font-size: 11px; color: #1e3a8a;">સુનિલ સર (Sunil Sir)</div>
-              <div style="font-size: 9px; color: #d97706; font-weight: 800;">સંસ્થાપક & ડિરેક્ટર (Founder & Director)</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Special Marketing Brochure Catalog on New Page -->
-      ${buildMarketingBrochureHtml(activeMarketing)}
-
-      <script>
-        setTimeout(function() {
-          try {
-            window.focus();
-            window.print();
-          } catch(e) {}
-        }, 500);
-      </script>
-    </body>
-    </html>`;
-
-    // Open via Blob URL for 100% reliable rendering on Mobile & Desktop
-    try {
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      const win = window.open(blobUrl, '_blank');
-      if (!win) {
-        window.location.href = blobUrl;
-      }
+      // 3. Show green success popup on the current page
+      setDownloadPopup({ filename, type: 'scorecard' });
+      setTimeout(() => setDownloadPopup(null), 5000);
+      showToast?.('✅ PDF ડાઉનલોડ શરૂ થઈ ગયું!', 'success');
     } catch (err) {
-      console.error('Blob URL open failed, fallback to direct window:', err);
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-      }
+      console.error('Scorecard PDF download error:', err);
+      showToast?.('PDF ડાઉનલોડ કરવામાં ભૂલ આવી. ફરી પ્રયાસ કરો.', 'error');
+    } finally {
+      setTimeout(() => setDownloadingScorecardId(null), 1200);
     }
   };
+
+  // ─── 📲 Direct WhatsApp PDF Send (From Teacher's Phone to Student's WhatsApp) ───
+  const handleInitiateWhatsAppSend = (sub) => {
+    const rawMobile = (user?.mobile && user.mobile !== '9999999999' && user.mobile.length === 10)
+      ? user.mobile
+      : ((sub.student?.mobile && sub.student.mobile !== '9999999999' && sub.student.mobile.length === 10) ? sub.student.mobile : '');
+
+    if (rawMobile && rawMobile.length === 10 && /^[6-9]/.test(rawMobile)) {
+      // Auto send directly if valid 10-digit number is known
+      handleExecuteWhatsAppSend(sub, rawMobile);
+    } else {
+      // Prompt modal if number is unknown or dummy
+      setWaTargetMobile(rawMobile || '');
+      setWaModalSub(sub);
+    }
+  };
+
+  const handleExecuteWhatsAppSend = async (sub, customMobile) => {
+    if (!sub?.id || sendingWaSubId) return;
+
+    const rawTarget = customMobile || waTargetMobile || sub.student?.mobile || user?.mobile || '';
+    const cleanMobile = String(rawTarget).replace(/\D/g, '').replace(/^(91|0)/, '');
+
+    if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
+      alert('⚠️ કૃપા કરીને માન્ય ૧૦-અંકનો WhatsApp મોબાઈલ નંબર દાખલ કરો.');
+      return;
+    }
+
+    setSendingWaSubId(sub.id);
+    try {
+      const targetName = user?.name || sub.student?.name || 'વિદ્યાર્થી';
+
+      const res = await sendWhatsAppScorecard(sub.id, {
+        mobile: cleanMobile,
+        studentName: targetName
+      });
+
+      if (res.data?.success) {
+        setWaModalSub(null);
+
+        // Sound effect
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.24);
+            osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.36);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.0);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 1.0);
+          }
+        } catch (e) {}
+
+        // Trigger Grand Popup
+        setWaSuccessModal({
+          testName: sub.testName || 'કસોટી',
+          mobile: cleanMobile,
+          studentName: targetName,
+          filename: `Trinetra_${(sub.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.pdf`
+        });
+      }
+    } catch (err) {
+      console.error('Send WhatsApp Scorecard Error:', err);
+      const isOffline = err.response?.data?.isOffline;
+      const errMsg = err.response?.data?.error || 'WhatsApp પર PDF મોકલવામાં ભૂલ આવી.';
+      if (isOffline) {
+        alert('⚠️ એકેડેમીનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી પ્રયાસ કરો.');
+      } else {
+        alert(`❌ ${errMsg}`);
+      }
+    } finally {
+      setSendingWaSubId(null);
+    }
+  };
+
 
   // ─── Student Overall Statistics (Strict 0% to 100% Range) ───────────────────────────
   const stats = useMemo(() => {
@@ -1532,6 +1200,33 @@ export default function StudentDashboard() {
 
   // ─── Print Full Academic Progress Report: Option 1 Gold Certificate & Seal ───
   const handlePrintProgressReport = async () => {
+    // Open print window synchronously on user click so mobile & desktop browsers NEVER block it!
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      try {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Trinetra Progress Report - PDF Loading...</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px; }
+              .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+              @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="spinner"></div>
+            <h2 style="margin: 0 0 8px; font-size: 1.25rem;">વિદ્યાર્થી પ્રગતિ રિપોર્ટ તૈયાર થઈ રહ્યો છે...</h2>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">કૃપા કરીને થોડી ક્ષણ રાહ જુઓ. PDF પ્રિન્ટ ડાયલોગ આપમેળે ખૂલશે.</p>
+          </body>
+          </html>
+        `);
+      } catch (e) {}
+    }
+
     // 1. Fetch exact marketing posters (same as Student Scorecard & Answer Sheet)
     let activeMarketing = [];
     try {
@@ -1871,33 +1566,41 @@ export default function StudentDashboard() {
     </body>
     </html>`;
 
-    // Open via Blob URL for 100% reliable rendering on Mobile & Desktop
+    // ── Write HTML to print window & trigger PDF print ──
     try {
+      const filename = `Trinetra_Progress_Report_${(user?.name || '').replace(/\s+/g, '_')}.pdf`;
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const blobUrl = URL.createObjectURL(blob);
-      const win = window.open(blobUrl, '_blank');
-      if (!win) {
-        window.location.href = blobUrl;
+
+      if (printWindow && !printWindow.closed) {
+        printWindow.location.href = blobUrl;
+      } else {
+        const win = window.open(blobUrl, '_blank');
+        if (win) win.location.href = blobUrl;
       }
+
+      // ✅ Show success download popup
+      setDownloadPopup({ filename, type: 'progress' });
+      setTimeout(() => setDownloadPopup(null), 5000);
     } catch (err) {
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
+      console.error('Progress report PDF print error:', err);
+      if (printWindow && !printWindow.closed) {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
       }
     }
   };
 
   // ─── Download Material handler ─────────────────────────────
-  const handleDownloadMaterial = (m) => {
+  const handleDownloadMaterial = async (m) => {
     const docHtml = `<!DOCTYPE html>
     <html lang="gu">
     <head>
       <meta charset="UTF-8">
       <title>${m.title} - Trinetra Online Academy</title>
       <style>
-        body { font-family: 'Hind Vadodara', sans-serif, system-ui; padding: 24px; color: #0f172a; max-width: 750px; margin: 0 auto; }
+        body { font-family: 'Hind Vadodara', sans-serif, system-ui; padding: 24px; color: #0f172a; max-width: 750px; margin: 0 auto; background: #ffffff; }
         .header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 14px; margin-bottom: 20px; }
         .box { background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 16px; border-radius: 12px; margin-bottom: 20px; }
         .content-item { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
@@ -1917,15 +1620,19 @@ export default function StudentDashboard() {
         <div class="content-item"><strong>મુખ્ય મુદ્દાઓ (Key Concepts):</strong><br>૧. પરીક્ષા પદ્ધતિ અને બ્લુપ્રિન્ટ મુજબ તૈયારી.<br>૨. સમય મર્યાદામાં સચોટ જવાબો આપવાની ટેકનિક.<br>૩. અગાઉના વર્ષોના પ્રશ્નપત્રોનું વિશ્લેષણ.</div>
         <div class="content-item"><strong>સુવર્ણ સલાહ:</strong> રોજેરોજ નિયમિત મોક ટેસ્ટ આપો અને ભૂલોનું રિવિઝન કરો.</div>
       </div>
-      <script>window.onload = function() { window.print(); };</script>
     </body>
     </html>`;
-    const blob = new Blob([docHtml], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${m.title.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.html`;
-    a.click();
+    try {
+      const filename = `${m.title.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.pdf`;
+      showToast?.('⏳ મટીરીયલ PDF ડાઉનલોડ થઈ રહ્યું છે...', 'info');
+      await downloadHtmlAsPdf(docHtml, filename);
+
+      setDownloadPopup({ filename, type: 'material' });
+      setTimeout(() => setDownloadPopup(null), 5000);
+    } catch (err) {
+      console.error('Material download error:', err);
+      showToast?.('મટીરીયલ ડાઉનલોડ કરવામાં ભૂલ આવી.', 'error');
+    }
   };
 
   // ─── Send WhatsApp Doubt to Teacher ───────────────────────
@@ -2950,66 +2657,249 @@ export default function StudentDashboard() {
         {activeTab === 'results' && (
           <div className="animate-fade-in">
 
-            {/* 👑 1. PREMIUM RESULTS SUMMARY TOP BANNER */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0b1329 0%, #0f172a 45%, #1e3a8a 100%)',
-              borderRadius: 18,
-              padding: '20px 22px',
-              color: 'white',
-              marginBottom: 16,
-              boxShadow: '0 8px 30px rgba(15, 23, 42, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ position: 'absolute', top: -30, right: -20, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(56,189,248,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            {/* 👑 1. ULTRA-LUXURY VIP RESULTS SUMMARY BANNER WITH 360° ANIMATED NEON RAINBOW BORDER */}
+            <div className="vip-result-neon-box">
+              <div className="vip-result-neon-inner">
+                {/* Background ambient light orbs */}
+                <div style={{ position: 'absolute', top: -40, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(56,189,248,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: -40, left: -30, width: 130, height: 130, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, position: 'relative', zIndex: 1 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: '1.2rem' }}>📜</span>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
-                      મારી કસોટીઓ & પરિણામ વિશ્લેષણ
-                    </h2>
-                  </div>
-                  <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: 0 }}>
-                    તમારી તમામ પરીક્ષાઓના ગુણ, વિગતવાર સોલ્યુશન અને પર્ફોર્મન્સ ટ્રેકિંગ.
-                  </p>
-                </div>
-
-                {/* Performance Pill */}
-                <div style={{
-                  background: stats.avgScore >= 80 ? 'rgba(16, 185, 129, 0.2)' : stats.avgScore >= 60 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                  border: `1px solid ${stats.avgScore >= 80 ? 'rgba(16, 185, 129, 0.4)' : stats.avgScore >= 60 ? 'rgba(59, 130, 246, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
-                  padding: '8px 16px',
-                  borderRadius: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  <span style={{ fontSize: '1.3rem' }}>{stats.avgScore >= 80 ? '👑' : stats.avgScore >= 60 ? '🌟' : '🎯'}</span>
+                {/* Title & Centered Performance Level */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, marginBottom: 14, position: 'relative', zIndex: 1 }}>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>પરફોર્મન્સ લેવલ</div>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 900, color: stats.avgScore >= 80 ? '#34d399' : stats.avgScore >= 60 ? '#60a5fa' : '#fbbf24' }}>
-                      {stats.avgScore >= 80 ? 'સુવર્ણ ટોપર (Topper)' : stats.avgScore >= 60 ? 'સ્ટાર પરફોર્મર (Pass)' : 'પ્રેક્ટિસ મોડ (Need Revision)'}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                      <span style={{ fontSize: '1.3rem' }}>📜</span>
+                      <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.01em' }}>
+                        મારી કસોટીઓ & પરિણામ
+                      </h2>
+                    </div>
+                    <p style={{ color: '#94a3b8', fontSize: '0.76rem', margin: '2px 0 0', fontWeight: 600 }}>
+                      પર્ફોર્મન્સ ટ્રેકિંગ અને વિગતવાર સોલ્યુશન
+                    </p>
+                  </div>
+
+                  {/* Centered Performance Pill */}
+                  <div style={{
+                    background: stats.avgScore >= 80 ? 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(5,150,105,0.15))' : stats.avgScore >= 60 ? 'linear-gradient(135deg, rgba(59,130,246,0.25), rgba(37,99,235,0.15))' : 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.15))',
+                    border: `1.5px solid ${stats.avgScore >= 80 ? '#10b981' : stats.avgScore >= 60 ? '#3b82f6' : '#f59e0b'}`,
+                    padding: '7px 18px',
+                    borderRadius: 20,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    boxShadow: `0 4px 16px ${stats.avgScore >= 80 ? 'rgba(16,185,129,0.3)' : stats.avgScore >= 60 ? 'rgba(59,130,246,0.3)' : 'rgba(245,158,11,0.3)'}`
+                  }}>
+                    <span style={{ fontSize: '1.3rem' }}>{stats.avgScore >= 80 ? '👑' : stats.avgScore >= 60 ? '🌟' : '🎯'}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.62rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>પરફોર્મન્સ લેવલ</div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 900, color: stats.avgScore >= 80 ? '#34d399' : stats.avgScore >= 60 ? '#60a5fa' : '#fbbf24' }}>
+                        {stats.avgScore >= 80 ? 'સુવર્ણ ટોપર (Topper)' : stats.avgScore >= 60 ? 'સ્ટાર પરફોર્મર (Star)' : 'પ્રેક્ટિસ મોડ (Need Revision)'}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 3 Summary Counters */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>🎯 સરેરાશ સ્કોર</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{stats.avgScore}%</div>
-                </div>
-                <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>🏆 સર્વોચ્ચ સ્કોર</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fbbf24' }}>{stats.highestScore}%</div>
-                </div>
-                <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>📝 કુલ આપેલી કસોટી</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>{submissions.length}</div>
+                {/* 4 VIP Glass Cards with Glowing Circular Rings in One Responsive Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, position: 'relative', zIndex: 1 }}>
+                  
+                  {/* 1. Average Score Card with Glowing Cyan Circular Radial Ring */}
+                  {(() => {
+                    const avgVal = Math.min(100, Math.max(0, stats.avgScore || 0));
+                    const r = 21;
+                    const circ = 2 * Math.PI * r;
+                    const offset = circ - (avgVal / 100) * circ;
+                    return (
+                      <div style={{
+                        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 58, 138, 0.4) 100%)',
+                        padding: '10px 4px',
+                        borderRadius: 14,
+                        border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                        textAlign: 'center',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.35), 0 0 10px rgba(56, 189, 248, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 0
+                      }}>
+                        <div style={{ fontSize: '0.62rem', color: '#93c5fd', fontWeight: 800, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          🎯 સરેરાશ
+                        </div>
+                        
+                        {/* Circular Ring */}
+                        <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="54" height="54" style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx="27" cy="27" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="4.5" fill="none" />
+                            <circle
+                              cx="27" cy="27" r={r}
+                              stroke="#38bdf8"
+                              strokeWidth="4.5"
+                              strokeDasharray={circ}
+                              strokeDashoffset={offset}
+                              strokeLinecap="round"
+                              fill="none"
+                              style={{ filter: 'drop-shadow(0 0 5px rgba(56, 189, 248, 0.8))', transition: 'stroke-dashoffset 1s ease' }}
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#38bdf8', lineHeight: 1 }}>{avgVal}%</span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.56rem', color: '#64748b', marginTop: 4, fontWeight: 700 }}>Avg Score</div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 2. Highest Score Card with Glowing Gold Circular Radial Ring */}
+                  {(() => {
+                    const highVal = Math.min(100, Math.max(0, stats.highestScore || 0));
+                    const r = 21;
+                    const circ = 2 * Math.PI * r;
+                    const offset = circ - (highVal / 100) * circ;
+                    return (
+                      <div style={{
+                        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(120, 53, 15, 0.4) 100%)',
+                        padding: '10px 4px',
+                        borderRadius: 14,
+                        border: '1.5px solid rgba(251, 191, 36, 0.35)',
+                        textAlign: 'center',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.35), 0 0 10px rgba(251, 191, 36, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 0
+                      }}>
+                        <div style={{ fontSize: '0.62rem', color: '#fde68a', fontWeight: 800, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          🏆 સર્વોચ્ચ
+                        </div>
+                        
+                        {/* Circular Ring */}
+                        <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="54" height="54" style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx="27" cy="27" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="4.5" fill="none" />
+                            <circle
+                              cx="27" cy="27" r={r}
+                              stroke="#fbbf24"
+                              strokeWidth="4.5"
+                              strokeDasharray={circ}
+                              strokeDashoffset={offset}
+                              strokeLinecap="round"
+                              fill="none"
+                              style={{ filter: 'drop-shadow(0 0 5px rgba(251, 191, 36, 0.8))', transition: 'stroke-dashoffset 1s ease' }}
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>{highVal}%</span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.56rem', color: '#64748b', marginTop: 4, fontWeight: 700 }}>Best Mark</div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 3. Accuracy & Precision Card with Glowing Purple Circular Radial Ring */}
+                  {(() => {
+                    const accVal = Math.min(100, Math.max(0, accuracyMetrics.accuracy || stats.avgScore || 0));
+                    const r = 21;
+                    const circ = 2 * Math.PI * r;
+                    const offset = circ - (accVal / 100) * circ;
+                    return (
+                      <div style={{
+                        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(109, 40, 217, 0.4) 100%)',
+                        padding: '10px 4px',
+                        borderRadius: 14,
+                        border: '1.5px solid rgba(192, 132, 252, 0.35)',
+                        textAlign: 'center',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.35), 0 0 10px rgba(192, 132, 252, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 0
+                      }}>
+                        <div style={{ fontSize: '0.62rem', color: '#e9d5ff', fontWeight: 800, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          🎯 ચોકસાઈ
+                        </div>
+                        
+                        {/* Circular Ring */}
+                        <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="54" height="54" style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx="27" cy="27" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="4.5" fill="none" />
+                            <circle
+                              cx="27" cy="27" r={r}
+                              stroke="#c084fc"
+                              strokeWidth="4.5"
+                              strokeDasharray={circ}
+                              strokeDashoffset={offset}
+                              strokeLinecap="round"
+                              fill="none"
+                              style={{ filter: 'drop-shadow(0 0 5px rgba(192, 132, 252, 0.8))', transition: 'stroke-dashoffset 1s ease' }}
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#c084fc', lineHeight: 1 }}>{accVal}%</span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.56rem', color: '#64748b', marginTop: 4, fontWeight: 700 }}>Accuracy</div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 4. Total Tests Card with Glowing Emerald Circular Radial Ring */}
+                  {(() => {
+                    const testsCount = submissions.length || 0;
+                    const targetTests = Math.max(10, testsCount);
+                    const r = 21;
+                    const circ = 2 * Math.PI * r;
+                    const offset = circ - Math.min(1, (testsCount / targetTests)) * circ;
+                    return (
+                      <div style={{
+                        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 78, 59, 0.4) 100%)',
+                        padding: '10px 4px',
+                        borderRadius: 14,
+                        border: '1.5px solid rgba(52, 211, 153, 0.35)',
+                        textAlign: 'center',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.35), 0 0 10px rgba(52, 211, 153, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 0
+                      }}>
+                        <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 800, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          📝 કસોટી
+                        </div>
+                        
+                        {/* Circular Ring */}
+                        <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="54" height="54" style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx="27" cy="27" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="4.5" fill="none" />
+                            <circle
+                              cx="27" cy="27" r={r}
+                              stroke="#34d399"
+                              strokeWidth="4.5"
+                              strokeDasharray={circ}
+                              strokeDashoffset={testsCount > 0 ? offset : circ}
+                              strokeLinecap="round"
+                              fill="none"
+                              style={{ filter: 'drop-shadow(0 0 5px rgba(52, 211, 153, 0.8))', transition: 'stroke-dashoffset 1s ease' }}
+                            />
+                          </svg>
+                          <div style={{ position: 'absolute', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>{testsCount}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.56rem', color: '#64748b', marginTop: 4, fontWeight: 700 }}>Finished</div>
+                      </div>
+                    );
+                  })()}
+
                 </div>
               </div>
             </div>
@@ -3281,25 +3171,34 @@ export default function StudentDashboard() {
                         </button>
 
                         <button 
-                          onClick={() => handlePrintScorecard(sub)}
+                          onClick={() => handleInitiateWhatsAppSend(sub)}
+                          disabled={sendingWaSubId === sub.id}
                           style={{
                             flex: 1,
-                            background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+                            background: sendingWaSubId === sub.id ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
                             color: '#ffffff',
                             border: 'none',
                             padding: '10px 12px',
                             borderRadius: 10,
                             fontWeight: 800,
-                            cursor: 'pointer',
+                            cursor: sendingWaSubId === sub.id ? 'not-allowed' : 'pointer',
                             fontSize: '0.82rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 6,
-                            boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                            boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
                             transition: 'all 0.15s ease'
                           }}>
-                          <Download size={15} /> PDF ડાઉનલોડ
+                          {sendingWaSubId === sub.id ? (
+                            <>
+                              <RefreshCw size={15} className="animate-spin" /> મોકલાઈ રહ્યું છે...
+                            </>
+                          ) : (
+                            <>
+                              <Smartphone size={15} /> WhatsApp PDF મેળવો
+                            </>
+                          )}
                         </button>
 
                         {hasPhoto && (
@@ -4144,8 +4043,66 @@ export default function StudentDashboard() {
                           )}
                         </div>
 
-                        {/* Actions: Full-Width Get in Official App Button */}
-                        <div style={{ display: 'flex', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                        {/* Actions: Download PDF + Get in App */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
+                          {/* ── Direct Download Button (auto-saves to device Downloads) ── */}
+                          {downloadUrl && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  showToast?.('⬇️ ડાઉનલોડ શરૂ થઈ રહ્યું છે...', 'info');
+                                  const response = await fetch(downloadUrl, { mode: 'cors' });
+                                  if (!response.ok) throw new Error('fetch failed');
+                                  const blob = await response.blob();
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = blobUrl;
+                                  const ext = downloadUrl.split('?')[0].split('.').pop().toLowerCase() || 'pdf';
+                                  const filename = `${(mat.title || 'material').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.${ext}`;
+                                  a.download = filename;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+                                  setDownloadPopup({ filename, type: 'material' });
+                                  setTimeout(() => setDownloadPopup(null), 5000);
+                                } catch {
+                                  // Fallback: direct anchor download (works for same-origin)
+                                  const ext = downloadUrl.split('?')[0].split('.').pop().toLowerCase() || 'pdf';
+                                  const filename = `${(mat.title || 'material').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.${ext}`;
+                                  const a = document.createElement('a');
+                                  a.href = downloadUrl;
+                                  a.download = filename;
+                                  a.target = '_self';
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  setDownloadPopup({ filename, type: 'material' });
+                                  setTimeout(() => setDownloadPopup(null), 5000);
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '11px 16px',
+                                fontSize: '0.92rem',
+                                fontWeight: 900,
+                                background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                                color: 'white',
+                                borderRadius: 10,
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+                                transition: 'all 0.15s ease',
+                                fontFamily: 'inherit'
+                              }}>
+                              <Download size={17} /> ⬇️ PDF ડાઉનલોડ કરો (Download)
+                            </button>
+                          )}
+                          {/* ── Get in App ── */}
                           <a
                             href={playAppUrl}
                             target="_blank"
@@ -4291,14 +4248,14 @@ export default function StudentDashboard() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          MODAL: DETAILED QUESTION SOLUTION REVIEW
+          MODAL: DETAILED QUESTION SOLUTION REVIEW (PORTALED)
       ───────────────────────────────────────────────────────────── */}
-      {reviewSubId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 750, maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, padding: 0, overflow: 'hidden' }}>
+      {reviewSubId && typeof document !== 'undefined' && createPortal(
+        <div className="student-modal-backdrop">
+          <div className="student-modal-box animate-fade-in">
             
             {/* Modal Header */}
-            <div style={{ padding: '16px 20px', background: '#1e3a8a', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="student-modal-header">
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900 }}>
                   🔍 વિગતવાર પ્રશ્નવાર સોલ્યુશન (Test Solutions)
@@ -4308,13 +4265,13 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <button onClick={() => setReviewSubId(null)}
-                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontWeight: 900 }}>
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: 34, height: 34, borderRadius: 8, cursor: 'pointer', fontWeight: 900, fontSize: '1.1rem' }}>
                 ✕
               </button>
             </div>
 
             {/* Modal Body: Question Review List */}
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+            <div className="student-modal-body">
               {loadingReview ? (
                 <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
                   ⏳ સોલ્યુશન લોડ થઈ રહ્યું છે...
@@ -4441,28 +4398,29 @@ export default function StudentDashboard() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', background: '#f8fafc' }}>
-              <button onClick={() => setReviewSubId(null)} className="btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem' }}>
+            <div className="student-modal-footer">
+              <button onClick={() => setReviewSubId(null)} className="btn-primary" style={{ padding: '9px 24px', fontSize: '0.9rem', fontWeight: 800 }}>
                 બંધ કરો (Close)
               </button>
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          MODAL: UPLOADED ANSWER PHOTO PREVIEW
+          MODAL: UPLOADED ANSWER PHOTO PREVIEW (PORTALED)
       ───────────────────────────────────────────────────────────── */}
-      {previewPhotoSub && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 650, background: 'white', borderRadius: 16, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', background: '#0f172a', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {previewPhotoSub && typeof document !== 'undefined' && createPortal(
+        <div className="student-modal-backdrop" style={{ zIndex: 10000005 }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 650, background: 'white', borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '14px 18px', background: '#0f172a', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>📸 અપલોડ કરેલ ઉત્તરવહી (Answer Sheet)</div>
               <button onClick={() => setPreviewPhotoSub(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
             </div>
-            <div style={{ padding: 16, textAlign: 'center' }}>
-              <img src={previewPhotoSub.photoUrl} alt="Uploaded Answer Sheet" style={{ maxHeight: '60vh', maxWidth: '100%', borderRadius: 8, objectFit: 'contain', border: '1px solid #cbd5e1' }} />
+            <div style={{ padding: 16, textAlign: 'center', overflowY: 'auto', flex: 1 }}>
+              <img src={previewPhotoSub.photoUrl} alt="Uploaded Answer Sheet" style={{ maxHeight: '55vh', maxWidth: '100%', borderRadius: 8, objectFit: 'contain', border: '1px solid #cbd5e1' }} />
               {previewPhotoSub.remarks && (
                 <div style={{ marginTop: 12, textAlign: 'left', background: '#fffbeb', border: '1px solid #fde68a', padding: '10px 14px', borderRadius: 8, fontSize: '0.88rem', color: '#92400e' }}>
                   <strong>👨‍🏫 શિક્ષકનો અભિપ્રાય:</strong> {previewPhotoSub.remarks}
@@ -4470,36 +4428,324 @@ export default function StudentDashboard() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* ── Fixed Phone Bottom Nav (Just like Teacher Dashboard) ── */}
-      <div className="student-mobile-nav">
-        {[
-          { id: 'live',            label: 'લાઈવ',      icon: '🔴' },
-          { id: 'results',         label: 'રિઝલ્ટ',    icon: '📜', hasBadge: true },
-          { id: 'analytics',       label: 'પ્રગતિ',    icon: '📊' },
-          { id: 'leaderboard',     label: 'લીડરબોર્ડ', icon: '🏆' },
-          { id: 'materials',       label: 'મટીરીયલ',   icon: '📁' },
-          { id: 'teacher_support', label: 'સહાય',      icon: '💭' },
-        ].map(tab => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button key={tab.id}
-              className={`student-mobile-nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab(tab.id);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}>
-              <span className="nav-icon">{tab.icon}</span>
-              <span className="nav-label">{tab.label}</span>
-              {tab.hasBadge && submissions.length > 0 && (
-                <span className="nav-badge">{submissions.length}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* ── 📱 Prompt Modal: Enter WhatsApp Mobile Number (If not known or want to send to another phone) ── */}
+      {waModalSub && typeof document !== 'undefined' && createPortal(
+        <div className="student-modal-backdrop" style={{ zIndex: 10000008, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
+          <div className="card animate-fade-in" style={{
+            width: '100%',
+            maxWidth: 440,
+            background: 'linear-gradient(135deg, #0b1329 0%, #0f172a 100%)',
+            border: '2px solid rgba(52,211,153,0.5)',
+            borderRadius: 22,
+            padding: '24px 20px',
+            color: 'white',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(16,185,129,0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.5rem' }}>📱</span>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
+                  WhatsApp પર PDF મેળવો
+                </h3>
+              </div>
+              <button onClick={() => setWaModalSub(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#94a3b8', width: 30, height: 30, borderRadius: 8, cursor: 'pointer', fontSize: '1rem', fontWeight: 900 }}>✕</button>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 700 }}>કસોટી:</div>
+              <div style={{ color: '#38bdf8', fontSize: '0.92rem', fontWeight: 800 }}>{waModalSub.testName || waModalSub.subject || 'Scorecard'}</div>
+            </div>
+
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.84rem', fontWeight: 800, marginBottom: 8 }}>
+                તમારો ૧૦-આંકડાનો WhatsApp નંબર દાખલ કરો:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ background: '#1e293b', border: '1.5px solid #475569', borderRadius: 10, padding: '10px 12px', fontWeight: 900, color: '#38bdf8', fontSize: '0.92rem' }}>
+                  🇮🇳 +91
+                </div>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  placeholder="9876543210"
+                  value={waTargetMobile}
+                  onChange={e => setWaTargetMobile(e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10))}
+                  style={{
+                    flex: 1,
+                    background: '#0f172a',
+                    border: '1.5px solid #3b82f6',
+                    borderRadius: 10,
+                    padding: '11px 14px',
+                    color: 'white',
+                    fontSize: '1.05rem',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                    outline: 'none'
+                  }}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setWaModalSub(null)}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#cbd5e1',
+                  padding: '12px',
+                  borderRadius: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontSize: '0.88rem'
+                }}>
+                રદ કરો
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExecuteWhatsAppSend(waModalSub, waTargetMobile)}
+                disabled={sendingWaSubId === waModalSub.id}
+                style={{
+                  flex: 2,
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '12px',
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  cursor: sendingWaSubId === waModalSub.id ? 'not-allowed' : 'pointer',
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.4)'
+                }}>
+                {sendingWaSubId === waModalSub.id ? (
+                  <>⏳ મોકલાઈ રહ્યું છે...</>
+                ) : (
+                  <>🚀 WhatsApp PDF મોકલો</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── 🎉 GRAND WHATSAPP SUCCESS MODAL POPUP: Send Successfully! ── */}
+      {waSuccessModal && typeof document !== 'undefined' && createPortal(
+        <div className="student-modal-backdrop" style={{ zIndex: 10000012, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
+          <div className="card animate-fade-in" style={{
+            width: '100%',
+            maxWidth: 480,
+            background: 'linear-gradient(135deg, #0b1329 0%, #064e3b 55%, #022c22 100%)',
+            border: '2.5px solid #34d399',
+            borderRadius: 24,
+            padding: '30px 22px',
+            color: 'white',
+            textAlign: 'center',
+            boxShadow: '0 25px 60px rgba(5,150,105,0.5), 0 0 50px rgba(52,211,153,0.4)',
+            position: 'relative'
+          }}>
+            {/* Big animated WhatsApp check badge */}
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #22c55e, #10b981)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.6rem',
+              margin: '0 auto 16px',
+              boxShadow: '0 0 35px rgba(34,197,94,0.7)',
+              border: '3px solid #86efac'
+            }}>
+              ✓
+            </div>
+
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+              🎉 Send Successfully!
+            </h2>
+            <div style={{ color: '#4ade80', fontSize: '1.02rem', fontWeight: 900, marginBottom: 16 }}>
+              ✨ WhatsApp પર PDF સફળતાપૂર્વક મોકલાઈ ગયું છે!
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.45)', borderRadius: 14, padding: '14px 16px', marginBottom: 18, border: '1px solid rgba(52,211,153,0.3)', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: '1.3rem' }}>📱</span>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700 }}>પ્રાપ્તકર્તા નંબર (Recipient Mobile):</div>
+                  <div style={{ color: '#38bdf8', fontSize: '1rem', fontWeight: 900, fontFamily: 'monospace' }}>
+                    +91 {waSuccessModal.mobile}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.3rem' }}>📄</span>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700 }}>કસોટીનું નામ:</div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 800 }}>
+                    {waSuccessModal.testName}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ color: '#d1fae5', fontSize: '0.84rem', lineHeight: 1.5, margin: '0 0 22px' }}>
+              ત્રિનેત્ર ઓનલાઇન એકેડેમીના અધિકૃત નંબર પરથી તમારા WhatsApp પર રંગીન સ્કોરકાર્ડ, સુનિલ સરની સહી, ક્યુઆર કોડ અને તમામ પ્રશ્નોના સોલ્યુશન સાથેની PDF ફાઇલ મોકલી દેવામાં આવી છે. 💬
+            </p>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <a
+                href={`https://wa.me/91${waSuccessModal.mobile}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  color: 'white',
+                  padding: '13px 16px',
+                  borderRadius: 12,
+                  fontWeight: 900,
+                  fontSize: '0.94rem',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 18px rgba(34,197,94,0.45)'
+                }}>
+                💬 WhatsApp ખોલો
+              </a>
+              <button
+                onClick={() => setWaSuccessModal(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  color: 'white',
+                  padding: '13px 22px',
+                  borderRadius: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: '0.94rem'
+                }}>
+                ✅ બરાબર (OK)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Download Success Popup — Portaled to document.body ── */}
+      {downloadPopup && typeof document !== 'undefined' && createPortal(
+        <div style={{
+          position: 'fixed',
+          bottom: 90,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999999,
+          background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
+          border: '1.5px solid #34d399',
+          borderRadius: 18,
+          padding: '14px 20px',
+          boxShadow: '0 8px 32px rgba(52,211,153,0.45), 0 2px 12px rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          minWidth: 280,
+          maxWidth: '90vw',
+          animation: 'fadeInUp 0.3s ease',
+        }}>
+          {/* Big green checkmark */}
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            flexShrink: 0,
+            boxShadow: '0 0 20px rgba(34,197,94,0.6)'
+          }}>✅</div>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.95rem', lineHeight: 1.3 }}>
+              {downloadPopup.type === 'whatsapp' ? '✨ WhatsApp પર PDF મોકલાઈ ગયું!' : '✨ ફાઇલ ડાઉનલોડ થઈ ગઈ!'}
+            </div>
+            <div style={{ color: '#6ee7b7', fontSize: '0.72rem', fontWeight: 700, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              📂 {downloadPopup.filename}
+            </div>
+            <div style={{ color: '#a7f3d0', fontSize: '0.7rem', marginTop: 2 }}>
+              {downloadPopup.type === 'whatsapp' ? 'તમારું WhatsApp ખોલીને PDF ચેક કરો 💬' : 'ફોન ના Downloads ફોલ્ડરમાં ચેક કરો 📱'}
+            </div>
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={() => setDownloadPopup(null)}
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#d1fae5',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>✕</button>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Fixed Phone Bottom Nav — Portaled to document.body to escape CSS transform ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <div className="student-mobile-nav">
+          {[
+            { id: 'live',            label: 'લાઈવ',      icon: '🔴' },
+            { id: 'results',         label: 'રિઝલ્ટ',    icon: '📜', hasBadge: true },
+            { id: 'analytics',       label: 'પ્રગતિ',    icon: '📊' },
+            { id: 'leaderboard',     label: 'લીડરબોર્ડ', icon: '🏆' },
+            { id: 'materials',       label: 'મટીરીયલ',   icon: '📁' },
+            { id: 'teacher_support', label: 'સહાય',      icon: '💭' },
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id}
+                className={`student-mobile-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}>
+                <span className="nav-icon">{tab.icon}</span>
+                <span className="nav-label">{tab.label}</span>
+                {tab.hasBadge && submissions.length > 0 && (
+                  <span className="nav-badge">{submissions.length}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>,
+        document.body
+      )}
 
     </div>
   );

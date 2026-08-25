@@ -1,6 +1,8 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
+const { generateScorecardPDF, generateScorecardPDFBuffer } = require('../services/pdfService');
+const { sendWhatsAppScorecardPDF } = require('../services/whatsappService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -464,6 +466,212 @@ router.get('/review/:id', async (req, res) => {
   } catch (err) {
     console.error('Review Error:', err);
     res.status(500).json({ error: 'Review fetch ભૂલ.' });
+  }
+});
+
+// ─── GET /api/submissions/:id/pdf ──────────────────────────
+// Direct binary PDF attachment download for student scorecard
+router.get('/:id/pdf', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id },
+      include: { student: true }
+    });
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission મળ્યું નથી.' });
+    }
+
+    const answersArr = Array.isArray(submission.answers) ? submission.answers : [];
+    const questionIds = answersArr.map(a => a.questionId).filter(Boolean);
+
+    let questions = [];
+    if (submission.testCode) {
+      questions = await prisma.question.findMany({
+        where: { testCode: submission.testCode },
+        orderBy: { orderIndex: 'asc' }
+      });
+    }
+    if (questions.length === 0 && questionIds.length > 0) {
+      const firstFoundQ = await prisma.question.findUnique({ where: { id: questionIds[0] } });
+      if (firstFoundQ?.testCode) {
+        questions = await prisma.question.findMany({
+          where: { testCode: firstFoundQ.testCode },
+          orderBy: { orderIndex: 'asc' }
+        });
+      } else {
+        questions = await prisma.question.findMany({
+          where: { id: { in: questionIds } },
+          orderBy: { orderIndex: 'asc' }
+        });
+      }
+    }
+
+    const detailedReview = questions.map((q, idx) => {
+      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
+      const selected = ans.selectedOpt || ans.text || '';
+      let isCorrect = null;
+      if (q.type === 'mcq') {
+        if (!selected) {
+          isCorrect = null;
+        } else if (selected === 'E') {
+          isCorrect = false;
+        } else {
+          isCorrect = (selected === q.correctOpt);
+        }
+      }
+      return {
+        question: q,
+        studentAnswer: selected,
+        isCorrect,
+        isSkipped: !selected || selected === 'E',
+        timeSpent: ans.timeSpent || 0,
+        studentUploadedPhoto: submission.photoUrl
+      };
+    });
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { 
+        isActive: true,
+        showInPdf: true
+      },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const pdfDoc = generateScorecardPDF({
+      submission,
+      review: detailedReview,
+      student: submission.student || {},
+      marketingItems
+    });
+
+    const safeTestName = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (err) {
+    console.error('PDF Generation Error:', err);
+    res.status(500).json({ error: 'PDF જનરેટ કરવામાં ભૂલ આવી.' });
+  }
+});
+
+// ─── POST /api/submissions/:id/send-whatsapp ────────────────
+// Direct Scorecard PDF send to student WhatsApp from teacher's WhatsApp number
+router.post('/:id/send-whatsapp', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id },
+      include: { student: true }
+    });
+    const cleanReqMobile = String(req.body.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanSubMobile = String(submission.student?.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
+    const studentMobile = (cleanReqMobile && cleanReqMobile !== '9999999999' && cleanReqMobile.length === 10)
+      ? cleanReqMobile
+      : (cleanSubMobile || cleanReqMobile);
+    const studentName = (req.body.studentName && req.body.studentName !== 'Teacher / Tester' && req.body.studentName !== 'admin@123')
+      ? req.body.studentName
+      : (submission.student?.name || req.body.studentName || 'વિદ્યાર્થી');
+
+    if (!studentMobile || studentMobile.length !== 10) {
+      return res.status(400).json({ error: 'માન્ય ૧૦-અંકનો મોબાઈલ નંબર મળ્યો નથી.' });
+    }
+
+    const answersArr = Array.isArray(submission.answers) ? submission.answers : [];
+    const questionIds = answersArr.map(a => a.questionId).filter(Boolean);
+
+    let questions = [];
+    if (submission.testCode) {
+      questions = await prisma.question.findMany({
+        where: { testCode: submission.testCode },
+        orderBy: { orderIndex: 'asc' }
+      });
+    }
+    if (questions.length === 0 && questionIds.length > 0) {
+      const firstFoundQ = await prisma.question.findUnique({ where: { id: questionIds[0] } });
+      if (firstFoundQ?.testCode) {
+        questions = await prisma.question.findMany({
+          where: { testCode: firstFoundQ.testCode },
+          orderBy: { orderIndex: 'asc' }
+        });
+      } else {
+        questions = await prisma.question.findMany({
+          where: { id: { in: questionIds } },
+          orderBy: { orderIndex: 'asc' }
+        });
+      }
+    }
+
+    const detailedReview = questions.map((q, idx) => {
+      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
+      const selected = ans.selectedOpt || ans.text || '';
+      let isCorrect = null;
+      if (q.type === 'mcq') {
+        if (!selected) {
+          isCorrect = null;
+        } else if (selected === 'E') {
+          isCorrect = false;
+        } else {
+          isCorrect = (selected === q.correctOpt);
+        }
+      }
+      return {
+        question: q,
+        studentAnswer: selected,
+        isCorrect,
+        isSkipped: !selected || selected === 'E',
+        timeSpent: ans.timeSpent || 0,
+        studentUploadedPhoto: submission.photoUrl
+      };
+    });
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { 
+        isActive: true,
+        showInPdf: true
+      },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const pdfBuffer = await generateScorecardPDFBuffer({
+      submission,
+      review: detailedReview,
+      student: submission.student || {},
+      marketingItems
+    });
+
+    const totalMarks = Number(submission.totalMarks) > 0 
+      ? Number(submission.totalMarks) 
+      : Number(submission.totalMCQ) > 0 
+        ? Number(submission.totalMCQ) 
+        : detailedReview.length;
+    const score = Number((submission.mcqScore || 0) + (submission.teacherMarks || 0)) || 0;
+
+    const result = await sendWhatsAppScorecardPDF(
+      studentMobile,
+      studentName,
+      submission.testName || 'કસોટી',
+      score,
+      totalMarks,
+      pdfBuffer
+    );
+
+    if (result.success) {
+      return res.json({ success: true, message: result.message });
+    } else {
+      return res.status(result.isOffline ? 503 : 500).json({
+        error: result.error || 'WhatsApp પર PDF મોકલવામાં ભૂલ આવી.',
+        isOffline: result.isOffline
+      });
+    }
+  } catch (err) {
+    console.error('Send WhatsApp Scorecard Error:', err);
+    res.status(500).json({ error: 'WhatsApp સેન્ડ કરવામાં સર્વર ભૂલ.' });
   }
 });
 

@@ -173,32 +173,36 @@ export function AchievementBadges({ score = 0, totalMarks = 1, avgTimePerQ = 0, 
   }
 
   return (
-    <div style={{ margin: '14px 0 20px' }}>
-      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ margin: '14px 0 18px' }}>
+      <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
         <span>🎖️</span> તમારા અચીવમેન્ટ બેજ (Earned Badges):
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
         {badges.map(b => (
           <div key={b.id} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', borderRadius: 12,
-            background: b.bg, border: `1.5px solid ${b.border}`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', borderRadius: 16,
+            background: 'linear-gradient(135deg, #ffffff 0%, ' + b.bg + ' 100%)',
+            border: `1.5px solid ${b.border}`,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 10,
+              width: 42, height: 42, borderRadius: 12,
               background: b.grad, color: 'white',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.25rem', flexShrink: 0,
-              boxShadow: '0 3px 10px rgba(0,0,0,0.15)'
+              fontSize: '1.35rem', flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.18)'
             }}>
               {b.icon}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: b.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: b.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {b.title}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.3, marginTop: 1 }}>
+              <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.3, marginTop: 2, fontWeight: 600 }}>
                 {b.desc}
               </div>
             </div>
