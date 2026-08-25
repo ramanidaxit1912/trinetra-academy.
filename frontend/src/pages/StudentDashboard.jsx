@@ -662,6 +662,19 @@ export default function StudentDashboard() {
           chime.start(ctx.currentTime + i * 0.12);
           chime.stop(ctx.currentTime + i * 0.12 + 0.6);
         });
+      } else if (type === 'slide_whoosh') {
+        // 📄 PowerPoint Smooth Paper Slide Whoosh Sound FX
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.28);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.28);
       }
     } catch (e) {
       console.warn('Audio FX error:', e);
@@ -772,11 +785,14 @@ export default function StudentDashboard() {
   const [doubtSubject, setDoubtSubject]   = useState('સામાન્ય શંકા (General)');
   const [doubtSent, setDoubtSent]         = useState(false);
 
-  // Study Materials State
+  // Study Materials State & PowerPoint 3D Slide Deck Viewer
   const [materialsList, setMaterialsList] = useState([]);
   const [marketingList, setMarketingList] = useState([]);
   const [materialSearch, setMaterialSearch] = useState('');
   const [materialSubjectFilter, setMaterialSubjectFilter] = useState('ALL');
+  const [pptModalItem, setPptModalItem] = useState(null);
+  const [pptSlideIndex, setPptSlideIndex] = useState(0);
+  const [pptSlideDirection, setPptSlideDirection] = useState('next'); // 'next' | 'prev'
 
   // Load dashboard data when student is logged in or tab changes
   useEffect(() => {
@@ -891,7 +907,10 @@ export default function StudentDashboard() {
     setAuthLoading(false);
   };
 
-  // ─── Step 2: Verify OTP ─────────────────────────────────────
+  // ─── Step 2: Verify OTP -> Trigger Shatter Vault Doors & Dimensional Warp ───
+  const [isVaultOpening, setIsVaultOpening] = useState(false);
+  const [showWarpDashboard, setShowWarpDashboard] = useState(false);
+
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -899,17 +918,34 @@ export default function StudentDashboard() {
     try {
       const res = await verifyOTP(mobile, name, otp);
       
-      // 💥 TRIGGER FULLSCREEN GRAND LOGO SHATTER, 3RD EYE BEAM, CONFETTI & SUPERNOVA BASS SOUND 💥
-      playCinematicSound('supernova');
-      setIsOtpSuccessAnimating(true);
+      // 🌟 Trigger Shatter Vault Doors & Dimensional Warp Sequence
+      setIsVaultOpening(true);
+
+      // Play high-tech audio effect via AudioContext
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.6);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.2);
+      } catch (err) {}
+
       setTimeout(() => {
         loginStudent(res.data.student, res.data.token);
-        setIsOtpSuccessAnimating(false);
-      }, 1550);
+        setIsVaultOpening(false);
+        setShowWarpDashboard(true);
+      }, 1250);
     } catch (err) {
       setAuthError(err.response?.data?.error || 'OTP ખોટો છે.');
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
   };
 
   // ─── Launch Exam Directly from Live Tab ────────────────────
@@ -2097,7 +2133,7 @@ export default function StudentDashboard() {
 
           {/* 🪐 5. 3D GYROSCOPE TILT CARD PHYSICS 🪐 */}
           <div
-            className="login-card-animated tilt-3d-card"
+            className={`login-card-animated tilt-3d-card ${isVaultOpening ? 'vault-door-left-anim' : ''}`}
             onMouseMove={handleCardMouseMove}
             onMouseLeave={handleCardMouseLeave}
             style={{
@@ -2105,7 +2141,10 @@ export default function StudentDashboard() {
               width: '100%',
               position: 'relative',
               zIndex: 1,
-              ...tiltStyle
+              boxShadow: isVaultOpening
+                ? '0 0 80px rgba(34, 197, 94, 0.8), 0 0 120px rgba(234, 179, 8, 0.5)'
+                : undefined,
+              ...(isVaultOpening ? {} : tiltStyle)
             }}
           >
 
@@ -2174,26 +2213,36 @@ export default function StudentDashboard() {
                 )}
 
                 <div
-                  className={isThorAnimating ? 'cosmic-star-logo-animating' : ''}
+                  className={`${isThorAnimating ? 'cosmic-star-logo-animating' : ''} ${isVaultOpening ? 'vault-logo-supernova-anim' : ''}`}
                   style={{
                     width: 68, height: 68, borderRadius: 18,
                     background: '#ffffff',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     marginBottom: 10,
-                    boxShadow: isThorAnimating ? '0 0 45px #fbbf24, 0 0 70px #f97316' : '0 8px 24px rgba(37,99,235,0.25)',
-                    border: isThorAnimating ? '2px solid #fbbf24' : '1.5px solid #e2e8f0',
+                    boxShadow: isVaultOpening
+                      ? '0 0 50px #22c55e, 0 0 80px #eab308'
+                      : isThorAnimating
+                      ? '0 0 45px #fbbf24, 0 0 70px #f97316'
+                      : '0 8px 24px rgba(37,99,235,0.25)',
+                    border: isVaultOpening
+                      ? '2.5px solid #22c55e'
+                      : isThorAnimating
+                      ? '2px solid #fbbf24'
+                      : '1.5px solid #e2e8f0',
                     overflow: 'hidden', padding: 4,
                     transition: 'all 0.3s'
                   }}
                 >
-                  <img src="/images/logo.jpg" alt="Trinetra Online Academy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img src="/trinetra-logo.png" alt="Trinetra Online Academy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 
                 <h2 style={{ fontSize: '1.38rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0' }}>
-                  {authMode === 'login' ? 'વિદ્યાર્થી પ્રવેશ (Student Login)' : '🔐 સુરક્ષિત OTP ચકાસણી'}
+                  {isVaultOpening ? '🔓 ACCESS GRANTED: વૉલ્ટ અનલોક થઈ રહ્યું છે...' : authMode === 'login' ? 'વિદ્યાર્થી પ્રવેશ (Student Login)' : '🔐 સુરક્ષિત OTP ચકાસણી'}
                 </h2>
-                <p style={{ color: isThorAnimating ? '#ea580c' : '#64748b', fontSize: '0.84rem', margin: 0, fontWeight: 700, transition: 'color 0.2s' }}>
-                  {isThorAnimating
+                <p style={{ color: isVaultOpening ? '#16a34a' : isThorAnimating ? '#ea580c' : '#64748b', fontSize: '0.84rem', margin: 0, fontWeight: 700, transition: 'color 0.2s' }}>
+                  {isVaultOpening
+                    ? '✨ BIOMETRIC VERIFIED: ડેશબોર્ડ ખૂલી રહ્યું છે...'
+                    : isThorAnimating
                     ? '✨ તારાઓનો પ્રવાહ શરૂ... OTP મોકલાઈ રહ્યો છે!'
                     : authMode === 'login'
                     ? 'તમારા મોબાઈલ નંબર દ્વારા સુરક્ષિત પ્રવેશ કરો'
@@ -2406,7 +2455,7 @@ export default function StudentDashboard() {
   // RENDER: FULL LOGGED IN STUDENT DASHBOARD
   // ─────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className={showWarpDashboard ? 'dimensional-warp-entry' : ''} style={{ minHeight: '100vh', background: '#f8fafc' }}>
       
       {/* 🔒 Cinematic Student Vault Lockdown & Homepage Transition Overlay */}
       {isLoggingOut && typeof document !== 'undefined' && createPortal(

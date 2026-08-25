@@ -73,7 +73,28 @@ export default function ExamEngine({ onFinish }) {
   const [lockedToast, setLockedToast] = useState('');
   const [securityWarning, setSecurityWarning] = useState('');
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
   const timerRef = useRef(null);
+
+  // ─── 🔊 Web Audio Procedural Slide Whoosh Sound ───────────
+  const playSlideWhoosh = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(340, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(130, ctx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.14, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } catch (e) {}
+  };
 
   // ─── Auto Scroll to Top on Question Change ───────────────
   useEffect(() => {
@@ -300,6 +321,8 @@ export default function ExamEngine({ onFinish }) {
       if (targetNext >= totalQ) {
         onFinish();
       } else {
+        playSlideWhoosh();
+        setSlideDirection('next');
         setCurrentIndex(targetNext);
       }
     }
@@ -307,6 +330,8 @@ export default function ExamEngine({ onFinish }) {
 
   const goPrev = useCallback(() => {
     if (prevAccessibleIndex !== -1) {
+      playSlideWhoosh();
+      setSlideDirection('prev');
       setCurrentIndex(prevAccessibleIndex);
     }
   }, [prevAccessibleIndex, setCurrentIndex]);
@@ -317,9 +342,11 @@ export default function ExamEngine({ onFinish }) {
       setTimeout(() => setLockedToast(''), 3500);
       return;
     }
+    playSlideWhoosh();
+    setSlideDirection(index > currentIndex ? 'next' : 'prev');
     setCurrentIndex(index);
     setShowPalette(false);
-  }, [isPerQuestionTimer, qTimeLeftMap, setCurrentIndex]);
+  }, [isPerQuestionTimer, qTimeLeftMap, setCurrentIndex, currentIndex]);
 
   const selectMCQ = (opt) => {
     const elapsed = Math.max(1, Math.round((Date.now() - questionStartTimeRef.current) / 1000));
@@ -428,15 +455,22 @@ export default function ExamEngine({ onFinish }) {
           background: 'rgba(255, 255, 255, 0.96)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
-          padding: '8px 14px',
-          borderRadius: 12,
+          padding: '10px 14px',
+          borderRadius: 14,
           border: '1.5px solid #e2e8f0',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
-          gap: 10
+          gap: 8
         }}>
-          <div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span>પ્રશ્ન <strong>{currentIndex + 1}</strong> / {totalQ} &nbsp;•&nbsp; ઉત્તર આપેલા: <strong style={{ color: '#059669' }}>{answeredCount}</strong></span>
+          {/* Left: Progress info & Auto-save pill */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+              <span>પ્રશ્ન <strong style={{ color: '#2563eb', fontSize: '0.94rem' }}>{currentIndex + 1}</strong> / {totalQ}</span>
+              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>•</span>
+              <span style={{ color: '#059669', fontSize: '0.78rem' }}>ઉત્તર આપેલ: <strong>{answeredCount}</strong></span>
+            </div>
+
+            {/* Badges Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span style={{
                 background: saveStatus === 'saving' ? '#fef3c7' : '#dcfce7',
                 color: saveStatus === 'saving' ? '#92400e' : '#166534',
@@ -451,6 +485,7 @@ export default function ExamEngine({ onFinish }) {
               }}>
                 {saveStatus === 'saving' ? '⏳ સેવિંગ...' : '🛡️ ઓટો-સેવ'}
               </span>
+
               {/* Anti-Cheat Shield Badge */}
               <span style={{
                 background: tabSwitchCount > 0 ? '#fee2e2' : '#f0fdf4',
@@ -464,11 +499,12 @@ export default function ExamEngine({ onFinish }) {
                 alignItems: 'center',
                 gap: 3
               }} title="Anti-Cheat Security Protection Active">
-                {tabSwitchCount > 0 ? `⚠️ ${tabSwitchCount} ચેતવણી` : '🔒 સુરક્ષિત કસોટી'}
+                {tabSwitchCount > 0 ? `⚠️ ${tabSwitchCount} ચેતવણી` : '🔒 સુરક્ષિત'}
               </span>
             </div>
+
             {/* Progress Bar */}
-            <div style={{ width: 140, height: 4, background: '#e2e8f0', borderRadius: 10, marginTop: 4, overflow: 'hidden' }}>
+            <div style={{ width: '100%', maxWidth: 160, height: 4.5, background: '#e2e8f0', borderRadius: 10, marginTop: 6, overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 background: 'linear-gradient(90deg,#2563eb,#10b981)',
@@ -478,31 +514,48 @@ export default function ExamEngine({ onFinish }) {
             </div>
           </div>
 
-          {/* ⏱️ Animated Circular SVG Timer Ring (Only if timer is set by teacher) */}
+          {/* Right: ⏱️ Compact Sleek Circular SVG Timer Ring */}
           {!isNoTimer && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ position: 'relative', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="42" height="42" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: isWarning ? '#fee2e2' : '#f8fafc',
+              border: `1.5px solid ${isWarning ? '#fca5a5' : '#cbd5e1'}`,
+              borderRadius: 12,
+              padding: '6px 10px',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ position: 'relative', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="34" height="34" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="#e2e8f0" strokeWidth="4" />
                   <circle
                     cx="22" cy="22" r="18" fill="none"
                     stroke={isWarning ? '#ef4444' : timerPct <= 30 ? '#f59e0b' : '#2563eb'}
-                    strokeWidth="3.5"
+                    strokeWidth="4"
                     strokeDasharray={113.1}
                     strokeDashoffset={113.1 - (113.1 * (timerPct / 100))}
                     strokeLinecap="round"
                     style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.3s ease' }}
                   />
                 </svg>
-                <span style={{ position: 'absolute', fontSize: '0.75rem', fontWeight: 900, color: isWarning ? '#ef4444' : '#0f172a' }}>
+                <span style={{ position: 'absolute', fontSize: '0.7rem', fontWeight: 900, color: isWarning ? '#ef4444' : '#0f172a' }}>
                   ⏱️
                 </span>
               </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div className={`timer-display ${isWarning ? 'timer-warning timer-pulse' : ''}`} style={{ padding: '2px 8px', fontSize: '1rem', fontWeight: 900, borderRadius: 8, border: '1px solid #cbd5e1', background: isWarning ? '#fee2e2' : '#f8fafc', color: isWarning ? '#dc2626' : '#0f172a' }}>
+                <div style={{
+                  fontSize: '0.98rem',
+                  fontWeight: 900,
+                  color: isWarning ? '#dc2626' : '#0f172a',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1.1
+                }}>
                   {timerStr}
                 </div>
-                <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 700, marginTop: 1 }}>
+                <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>
                   {timerLabel}
                 </div>
               </div>
@@ -510,8 +563,12 @@ export default function ExamEngine({ onFinish }) {
           )}
         </div>
 
-        {/* Question Card */}
-        <div className="card animate-fade-in" style={{ padding: '18px 16px', marginBottom: 12 }} key={currentIndex}>
+        {/* Question Card with 3D PowerPoint Slide Transition */}
+        <div
+          className={`card ppt-slide-page-box ${slideDirection === 'next' ? 'ppt-slide-next-anim' : 'ppt-slide-prev-anim'}`}
+          style={{ padding: '20px 18px', marginBottom: 14 }}
+          key={currentIndex}
+        >
 
           {/* Type & Negative Marking Badges */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
