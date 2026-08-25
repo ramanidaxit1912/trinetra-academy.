@@ -150,6 +150,30 @@ router.post('/student/:id/reset-session', authMiddleware, teacherOnly, async (re
   }
 });
 
+// ─── DELETE /api/teacher/student/:id ─────────────────────────
+// Delete student and their submissions
+router.delete('/student/:id', authMiddleware, teacherOnly, async (req, res) => {
+  const studentId = parseInt(req.params.id);
+  try {
+    // Delete associated submissions first
+    await prisma.submission.deleteMany({
+      where: { studentId }
+    });
+
+    const deleted = await prisma.student.delete({
+      where: { id: studentId }
+    });
+
+    res.json({
+      success: true,
+      message: `🗑️ વિદ્યાર્થી (${deleted.name}) અને તેનો ડેટા સફળતાપૂર્વક ડિલીટ થઈ ગયો!`
+    });
+  } catch (err) {
+    console.error('Delete Student Error:', err);
+    res.status(500).json({ error: 'વિદ્યાર્થી ડિલીટ કરવામાં ક્ષતિ આવી.' });
+  }
+});
+
 // ─── POST /api/teacher/broadcast-whatsapp ───────────────────
 // Automated 1-Click Background Cloud WhatsApp Broadcast to ALL students
 router.post('/broadcast-whatsapp', authMiddleware, teacherOnly, async (req, res) => {
@@ -228,6 +252,48 @@ router.get('/live-otps', authMiddleware, teacherOnly, async (req, res) => {
     res.json(otps);
   } catch (err) {
     res.status(500).json({ error: 'Live OTPs fetch ભૂલ.' });
+  }
+});
+
+// ─── POST /api/teacher/clean-test-data ────────────────────────
+// 🧹 Secure Production Launch: 1-Click Wipe of Testing Submissions & Dummy Data
+router.post('/clean-test-data', authMiddleware, teacherOnly, async (req, res) => {
+  const { wipeSubmissions = true, wipeStudents = false, wipeOtps = true, wipeQuestions = false } = req.body;
+  try {
+    const results = {};
+
+    // 1. Delete testing submissions
+    if (wipeSubmissions) {
+      const deletedSubs = await prisma.submission.deleteMany({});
+      results.deletedSubmissions = deletedSubs.count;
+    }
+
+    // 2. Delete OTP Sessions
+    if (wipeOtps) {
+      const deletedOtps = await prisma.oTPSession.deleteMany({});
+      results.deletedOtps = deletedOtps.count;
+    }
+
+    // 3. Delete Dummy Students (optional)
+    if (wipeStudents) {
+      const deletedStudents = await prisma.student.deleteMany({});
+      results.deletedStudents = deletedStudents.count;
+    }
+
+    // 4. Delete Questions (optional)
+    if (wipeQuestions) {
+      const deletedQs = await prisma.question.deleteMany({});
+      results.deletedQuestions = deletedQs.count;
+    }
+
+    res.json({
+      success: true,
+      message: '✅ ટેસ્ટિંગ ડેટા સફળતાપૂર્વક સાફ થઈ ગયો છે! પ્લેટફોર્મ હવે લાઈવ પ્રોડક્શન માટે ૧૦૦% તૈયાર છે.',
+      stats: results
+    });
+  } catch (err) {
+    console.error('Clean test data error:', err);
+    res.status(500).json({ error: 'ડેટા સાફ કરવામાં ક્ષતિ આવી.' });
   }
 });
 

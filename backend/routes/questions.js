@@ -49,10 +49,26 @@ async function autoActivateScheduledTests() {
   }
 }
 
+// ─── ⚡ Ultra-Fast In-Memory Cache for Live Questions (0% Database Load) ───
+let questionsCache = null;
+let questionsCacheTime = 0;
+const CACHE_TTL_MS = 15 * 1000; // 15 seconds cache
+
+function invalidateQuestionsCache() {
+  questionsCache = null;
+  questionsCacheTime = 0;
+}
+
 // ─── GET /api/questions ───────────────────────────────────────
-// Get all active questions (for students) with scheduled test auto-activation
+// Get all active questions (for students) with RAM Caching & scheduled test auto-activation
 router.get('/', async (req, res) => {
   try {
+    const now = Date.now();
+    // Return instantly from RAM if cache is fresh
+    if (questionsCache && (now - questionsCacheTime < CACHE_TTL_MS)) {
+      return res.json(questionsCache);
+    }
+
     await autoActivateScheduledTests();
 
     const questions = await prisma.question.findMany({
@@ -61,6 +77,10 @@ router.get('/', async (req, res) => {
       },
       orderBy: { orderIndex: 'asc' }
     });
+
+    questionsCache = questions;
+    questionsCacheTime = now;
+
     res.json(questions);
   } catch (err) {
     console.error('Get Questions Error:', err);

@@ -195,7 +195,7 @@ export default function ExamEngine({ onFinish }) {
       console.warn('LocalStorage save failed:', e);
     }
 
-    // Debounced Backend Sync
+    // Throttled / Debounced Backend Sync (Saves to server smoothly every 3.5s without hammering DB)
     const timer = setTimeout(() => {
       if (user) {
         saveTestProgress({
@@ -214,7 +214,7 @@ export default function ExamEngine({ onFinish }) {
         }).then(() => setSaveStatus('saved'))
           .catch(err => console.warn('Progress API save error:', err?.message));
       }
-    }, 1000);
+    }, 3500);
 
     return () => clearTimeout(timer);
   }, [currentIndex, answers, questions, activeTestCode, activeTestName, activeSubject, user]);

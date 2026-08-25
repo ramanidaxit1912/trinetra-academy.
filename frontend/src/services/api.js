@@ -85,11 +85,13 @@ export const uploadPhoto = (formData) =>
 export const getTeacherStats        = ()   => api.get('/teacher/stats');
 export const getStudents            = ()   => api.get('/teacher/students');
 export const resetStudentSession    = (id) => api.post(`/teacher/student/${id}/reset-session`);
+export const deleteStudent          = (id) => api.delete(`/teacher/student/${id}`);
 export const grantMasterAccess      = (id, data) => api.post(`/teacher/student/${id}/grant-master-access`, data);
 export const grantMasterByMobile    = (data) => api.post('/teacher/grant-master-by-mobile', data);
 export const getLiveOTPs            = ()   => api.get('/teacher/live-otps');
 export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-whatsapp', data);
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
+export const cleanTestData          = (data) => api.post('/teacher/clean-test-data', data);
 
 // ─── Materials ────────────────────────────────────────────────
 export const getMaterials    = (params) => api.get('/materials', { params });

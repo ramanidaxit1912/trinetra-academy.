@@ -483,10 +483,22 @@ router.get('/', authMiddleware, teacherOnly, async (req, res) => {
   }
 });
 
+// ─── ⚡ Ultra-Fast In-Memory Cache for Leaderboard (0% Database Load) ───
+let leaderboardCache = null;
+let leaderboardCacheTime = 0;
+let testWiseLeaderboardCache = null;
+let testWiseLeaderboardCacheTime = 0;
+const LB_CACHE_TTL = 10 * 1000; // 10 seconds cache
+
 // ─── GET /api/submissions/leaderboard ────────────────────────
-// Top students by MCQ score (public) - overall
+// Top students by MCQ score (public) - overall with RAM Caching
 router.get('/leaderboard', async (req, res) => {
   try {
+    const now = Date.now();
+    if (leaderboardCache && (now - leaderboardCacheTime < LB_CACHE_TTL)) {
+      return res.json(leaderboardCache);
+    }
+
     const topSubmissions = await prisma.submission.findMany({
       where: { mcqScore: { not: null }, status: { not: 'IN_PROGRESS' } },
       orderBy: [{ mcqScore: 'desc' }, { submittedAt: 'asc' }],
@@ -508,6 +520,9 @@ router.get('/leaderboard', async (req, res) => {
       submittedAt: sub.submittedAt
     }));
 
+    leaderboardCache = leaderboard;
+    leaderboardCacheTime = now;
+
     res.json(leaderboard);
   } catch (err) {
     res.status(500).json({ error: 'Leaderboard fetch ભૂલ.' });
@@ -515,9 +530,13 @@ router.get('/leaderboard', async (req, res) => {
 });
 
 // ─── GET /api/submissions/leaderboard/by-test ─────────────────
-// Test-wise leaderboard — grouped by testCode/testName
+// Test-wise leaderboard — grouped by testCode/testName with RAM Caching
 router.get('/leaderboard/by-test', async (req, res) => {
   try {
+    const now = Date.now();
+    if (testWiseLeaderboardCache && (now - testWiseLeaderboardCacheTime < LB_CACHE_TTL)) {
+      return res.json(testWiseLeaderboardCache);
+    }
     const allSubs = await prisma.submission.findMany({
       where: {
         mcqScore: { not: null },

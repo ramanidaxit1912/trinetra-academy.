@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, grantMasterAccess, grantMasterByMobile, getLiveOTPs, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem
 } from '../services/api';
@@ -458,6 +458,8 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
   const [stats, setStats]     = useState({});
   const [editProfile, setEditProfile] = useState(false);
   const [profileForm, setProfileForm] = useState(teacherProfile);
+  const [showCleanModal, setShowCleanModal] = useState(false);
+  const [cleaningLoading, setCleaningLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -666,6 +668,14 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
             }}>
               🎨 પોસ્ટર્સ & ઑફર્સ
             </button>
+            <button onClick={() => setShowCleanModal(true)} style={{
+              background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', border: 'none',
+              padding: '9px 12px', borderRadius: 10, fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem',
+              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              boxShadow: '0 3px 10px rgba(220,38,38,0.4)', width: '100%'
+            }}>
+              🧹 લાઈવ લોન્ચ (ટેસ્ટ ડેટા સાફ કરો)
+            </button>
             <button onClick={() => setEditProfile(!editProfile)} style={{
               background: 'rgba(255,255,255,0.08)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)',
               padding: '9px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
@@ -678,6 +688,82 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
 
         </div>
       </div>
+
+      {/* ── 🧹 Production Launch Clean Testing Data Modal ── */}
+      {showCleanModal && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.85)', zIndex: 9999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 540, background: '#0f172a', border: '1.5px solid rgba(239,68,68,0.5)', borderRadius: 20, padding: 24, boxShadow: '0 25px 70px rgba(0,0,0,0.9)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.4rem' }}>🧹</span>
+                <h3 style={{ margin: 0, color: '#f87171', fontWeight: 900, fontSize: '1.15rem' }}>
+                  લાઈવ લોન્ચિંગ: ટેસ્ટિંગ ડેટા સાફ કરો
+                </h3>
+              </div>
+              <button onClick={() => setShowCleanModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#cbd5e1', width: 32, height: 32, borderRadius: '50%', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: 16 }}>
+              પ્લેટફોર્મને વાસ્તવિક વિદ્યાર્થીઓ માટે લાઈવ કરતી વખતે અગાઉના તમામ <strong>ટેસ્ટિંગ સબમિશન્સ, ડમી સ્કોર્સ અને જૂના OTP</strong> માત્ર ૧-ક્લિકમાં સાફ થઈ જશે. તમારા બનાવેલા પ્રશ્નો અને મટીરીયલ સુરક્ષિત રહેશે.
+            </p>
+
+            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: 14, marginBottom: 20 }}>
+              <div style={{ color: '#fca5a5', fontWeight: 800, fontSize: '0.84rem', marginBottom: 6 }}>
+                ⚠️ શું સાફ થશે:
+              </div>
+              <div style={{ color: '#e2e8f0', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                • તમામ વિદ્યાર્થીઓના જૂના ટેસ્ટ પરિણામો (Submissions & Scores)<br />
+                • અગાઉના તમામ એક્ટિવ અને લોગ કરેલા OTP સેશન્સ<br />
+                • લીડરબોર્ડ રેન્કિંગ્સ ફ્રેશ 0 થી શરૂ થશે
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowCleanModal(false)}
+                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}
+              >
+                રદ કરો (Cancel)
+              </button>
+              <button
+                type="button"
+                disabled={cleaningLoading}
+                onClick={async () => {
+                  setCleaningLoading(true);
+                  try {
+                    const res = await cleanTestData({ wipeSubmissions: true, wipeOtps: true });
+                    showToast(res.data?.message || 'ટેસ્ટિંગ ડેટા સફળતાપૂર્વક સાફ થઈ ગયો!', 'success');
+                    setShowCleanModal(false);
+                    // Reload overview
+                    setSubs([]);
+                    setStats(prev => ({ ...prev, tests: 0, today: 0, avg: 0, pending: 0 }));
+                  } catch (err) {
+                    showToast('ડેટા સાફ કરવામાં ક્ષતિ આવી.', 'error');
+                  }
+                  setCleaningLoading(false);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  cursor: cleaningLoading ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(220,38,38,0.4)'
+                }}
+              >
+                {cleaningLoading ? '⏳ સાફ થઈ રહ્યું છે...' : '🧹 હા, બધો ટેસ્ટ ડેટા સાફ કરો'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Edit Profile Modal/Box ── */}
       {editProfile && (
@@ -8329,6 +8415,17 @@ function StudentLogins({ showToast }) {
     }
   };
 
+  const handleDeleteStudent = async (student) => {
+    if (!window.confirm(`⚠️ શું તમે ખરેખર વિદ્યાર્થી "${student.name}" (${student.mobile}) ને ડિલીટ કરવા માંગો છો?\nઆ વિદ્યાર્થીના તમામ ટેસ્ટ સબમિશન્સ પણ ડિલીટ થઈ જશે.`)) return;
+    try {
+      const res = await deleteStudent(student.id);
+      showToast(res.data?.message || '🗑️ વિદ્યાર્થી ડિલીટ થઈ ગયો!', 'success');
+      setStudents(prev => prev.filter(x => x.id !== student.id));
+    } catch {
+      showToast('વિદ્યાર્થી ડિલીટ કરવામાં ભૂલ આવી.', 'error');
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try { const r = await getStudents(); setStudents(r.data); } catch { showToast('Load failed', 'error'); }
@@ -8659,6 +8756,27 @@ function StudentLogins({ showToast }) {
                   <a href={`https://wa.me/91${s.mobile}?text=${encodeURIComponent(`નમસ્તે ${s.name}, ત્રિનેત્ર એકેડેમી પોર્ટલમાં તમારો Master Login PIN 820040 છે.`)}`} target="_blank" rel="noreferrer" title="WhatsApp પર OTP / PIN મોકલો" style={{ background: '#25d366', color: 'white', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                     💬 WhatsApp
                   </a>
+
+                  {/* Delete Student Button */}
+                  <button
+                    onClick={() => handleDeleteStudent(s)}
+                    title="આ વિદ્યાર્થીને કાયમ માટે ડિલીટ કરો"
+                    style={{
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '1px solid rgba(239,68,68,0.4)',
+                      color: '#f87171',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: 'Hind Vadodara, sans-serif'
+                    }}>
+                    <Trash2 size={13} /> 🗑️ ડિલીટ
+                  </button>
                 </div>
               </div>
             );
