@@ -77,24 +77,51 @@ export default function ExamEngine({ onFinish }) {
   const timerRef = useRef(null);
 
   // ─── 🔊 Web Audio Procedural Slide Whoosh Sound ───────────
-  const playSlideWhoosh = () => {
+  // 📄 3D Origami Exam Paper Flip Audio Synthesizer (Realistic Page Turn)
+  const playPaperFlip = () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
+      
+      // Multi-layer page rustle simulation
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(340, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(130, ctx.currentTime + 0.25);
-      gain.gain.setValueAtTime(0.14, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(260, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.28);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.28);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.25);
+      osc.stop(ctx.currentTime + 0.28);
     } catch (e) {}
   };
+
+  // 🔘 Realistic OMR Bubble Darkening / Pencil Scratch Sound Effect
+  const playOmrPencilFill = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      // Tactile Pencil Ink shading frequency tick
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(820, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(460, ctx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    } catch (e) {}
+  };
+
+  const playSlideWhoosh = playPaperFlip;
 
   // ─── Auto Scroll to Top on Question Change ───────────────
   useEffect(() => {
@@ -349,6 +376,7 @@ export default function ExamEngine({ onFinish }) {
   }, [isPerQuestionTimer, qTimeLeftMap, setCurrentIndex, currentIndex]);
 
   const selectMCQ = (opt) => {
+    playOmrPencilFill();
     const elapsed = Math.max(1, Math.round((Date.now() - questionStartTimeRef.current) / 1000));
     const previousTime = currentAns.timeSpent || 0;
     recordAnswer(currentQ.id, {
@@ -563,9 +591,9 @@ export default function ExamEngine({ onFinish }) {
           )}
         </div>
 
-        {/* Question Card with 3D PowerPoint Slide Transition */}
+        {/* Question Card with 3D Origami Exam Paper Flip Transition */}
         <div
-          className={`card ppt-slide-page-box ${slideDirection === 'next' ? 'ppt-slide-next-anim' : 'ppt-slide-prev-anim'}`}
+          className={`card ppt-slide-page-box ${slideDirection === 'next' ? 'paper-flip-next-anim' : 'paper-flip-prev-anim'}`}
           style={{ padding: '20px 18px', marginBottom: 14 }}
           key={currentIndex}
         >
@@ -635,7 +663,7 @@ export default function ExamEngine({ onFinish }) {
             );
           })()}
 
-          {/* MCQ Options with Interactive Touch & Vibrant Glow (Supports 4 or 5 Options) */}
+          {/* MCQ Options with Realistic OMR Bubble Darkening FX (Supports 4 or 5 Options) */}
           {currentQ?.type === 'mcq' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {['A','B','C','D','E'].map((opt, optIndex) => {
@@ -643,9 +671,6 @@ export default function ExamEngine({ onFinish }) {
                 const rawImg = currentQ[`option${opt}_img`] || currentQ[`opt${opt}_img`];
                 const optImg = rawImg || (isImg(rawOpt) ? extractImgSrc(rawOpt) : '');
                 
-                // Option E is ONLY shown if:
-                // 1. Teacher explicitly provided Option E text/image
-                // 2. OR Test name / subject / testCode is specifically for TAT-S / TAT-HS
                 const testMetaStr = `${activeTestName || ''} ${activeSubject || ''} ${activeTestCode || ''} ${currentQ?.subject || ''} ${currentQ?.testName || ''} ${currentQ?.testCode || ''}`.toUpperCase();
                 const isTatExam = testMetaStr.includes('TAT-S') || testMetaStr.includes('TAT-HS') || testMetaStr.includes('TAT S') || testMetaStr.includes('TAT HS') || testMetaStr.includes('TATS') || testMetaStr.includes('TATHS');
 
@@ -661,7 +686,7 @@ export default function ExamEngine({ onFinish }) {
                 return (
                   <button
                     key={opt}
-                    className={`mcq-option ${isSelected ? 'selected' : ''}`}
+                    className={`mcq-option ${isSelected ? (isOptionE ? 'selected' : 'omr-option-row-active') : ''}`}
                     onClick={() => selectMCQ(opt)}
                     style={{
                       position: 'relative',
@@ -678,12 +703,24 @@ export default function ExamEngine({ onFinish }) {
                       transition: 'all 0.18s ease'
                     }}
                   >
-                    <span className="option-label" style={{
-                      background: isSelected ? (isOptionE ? '#64748b' : '#2563eb') : '#f1f5f9',
-                      color: isSelected ? '#ffffff' : (isOptionE ? '#475569' : '#1e293b'),
-                      border: isSelected ? (isOptionE ? '1.5px solid #475569' : '1.5px solid #1e40af') : '1.5px solid #cbd5e1',
-                      boxShadow: isSelected ? '0 2px 6px rgba(37,99,235,0.4)' : 'none'
-                    }}>
+                    {/* OMR Round Ink Bubble */}
+                    <span
+                      className={`option-label ${isSelected ? 'omr-bubble-selected' : ''}`}
+                      style={{
+                        borderRadius: '50%',
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.92rem',
+                        fontWeight: 900,
+                        flexShrink: 0,
+                        background: isSelected ? undefined : '#f1f5f9',
+                        color: isSelected ? undefined : (isOptionE ? '#475569' : '#1e293b'),
+                        border: isSelected ? undefined : '1.5px solid #cbd5e1'
+                      }}
+                    >
                       {opt}
                     </span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
@@ -728,8 +765,7 @@ export default function ExamEngine({ onFinish }) {
                         fontSize: '12px',
                         fontWeight: 900,
                         flexShrink: 0,
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                        animation: 'fadeIn 0.2s ease'
+                        boxShadow: '0 2px 6px rgba(37,99,235,0.4)'
                       }}>
                         ✓
                       </span>

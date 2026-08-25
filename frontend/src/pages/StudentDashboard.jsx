@@ -2100,36 +2100,110 @@ export default function StudentDashboard() {
             />
           ))}
 
-          {/* Twinkling Sparkling Stars */}
-          {[
-            { top: '15%', left: '10%', size: 3, delay: '0.2s' },
-            { top: '22%', left: '22%', size: 2, delay: '0.8s' },
-            { top: '30%', left: '8%', size: 3, delay: '1.4s' },
-            { top: '18%', left: '82%', size: 3, delay: '0.5s' },
-            { top: '28%', left: '92%', size: 2, delay: '1.1s' },
-            { top: '45%', left: '14%', size: 3, delay: '1.8s' },
-            { top: '55%', left: '86%', size: 3, delay: '0.7s' },
-            { top: '70%', left: '18%', size: 2, delay: '2.1s' },
-            { top: '82%', left: '11%', size: 3, delay: '1.3s' },
-            { top: '75%', left: '88%', size: 3, delay: '0.4s' },
-            { top: '88%', left: '76%', size: 2, delay: '1.9s' },
-            { top: '12%', left: '50%', size: 3, delay: '1.6s' },
-            { top: '65%', left: '4%', size: 2, delay: '0.9s' },
-            { top: '40%', left: '95%', size: 3, delay: '2.3s' },
-          ].map((s, idx) => (
-            <div
-              key={`twinkle-${idx}`}
-              className="twinkle-star"
-              style={{
-                width: s.size,
-                height: s.size,
-                top: s.top,
-                left: s.left,
-                animationDelay: s.delay,
-                boxShadow: '0 0 8px #ffffff'
-              }}
-            />
-          ))}
+          {/* 🎓🔬📐 6. FLOATING ACADEMIC EXAM, SCIENCE & MATH BACKGROUND MOTIONS 📐🔬🎓 */}
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+            
+            {/* 1. Exam: GPSC / TET-2 Gujarati Grammar Sandhi */}
+            <div className="floating-equation-item" style={{ top: '8%', left: '5%', color: 'rgba(56, 189, 248, 0.55)', fontSize: 'clamp(0.9rem, 1.8vw, 1.3rem)', animation: 'floatFormulaDrift1 19s ease-in-out infinite' }}>
+              📚 સંધિ: સત્ + જન = સજ્જન  •  નિઃ + રસ = નીરસ
+            </div>
+
+            {/* 2. Math: LCM / HCF Rule */}
+            <div className="floating-equation-item" style={{ top: '15%', right: '7%', color: 'rgba(250, 204, 21, 0.55)', fontSize: 'clamp(0.95rem, 1.9vw, 1.35rem)', animation: 'floatFormulaDrift2 21s ease-in-out infinite' }}>
+              📐 ગુ.સા.અ. × લ.સા.અ. = સંખ્યાઓનો ગુણાકાર
+            </div>
+
+            {/* 3. Competitive Exam: Constitution Article */}
+            <div className="floating-equation-item" style={{ bottom: '15%', left: '5%', color: 'rgba(52, 211, 153, 0.55)', fontSize: 'clamp(0.9rem, 1.8vw, 1.3rem)', animation: 'floatFormulaDrift3 23s ease-in-out infinite' }}>
+              🏛️ બંધારણ: અનુચ્છેદ ૫૧(A) - મૂળભૂત ફરજો
+            </div>
+
+            {/* 4. Science: Photosynthesis & Oxygen */}
+            <div className="floating-equation-item" style={{ bottom: '12%', right: '6%', color: 'rgba(167, 139, 250, 0.55)', fontSize: 'clamp(0.9rem, 1.7vw, 1.3rem)', animation: 'floatFormulaDrift4 25s ease-in-out infinite' }}>
+              🧪 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ (પ્રકાશસંશ્લેષણ)
+            </div>
+
+            {/* 5. Math: Profit & Loss Percentage */}
+            <div className="floating-equation-item" style={{ top: '42%', left: '3%', color: 'rgba(96, 165, 250, 0.48)', fontSize: 'clamp(0.9rem, 1.7vw, 1.3rem)', animation: 'floatFormulaDrift5 20s ease-in-out infinite' }}>
+              💰 નફો % = (નફો × ૧૦૦) / મૂળકિંમત
+            </div>
+
+            {/* 6. Science: Einstein Mass-Energy & Newton */}
+            <div className="floating-equation-item" style={{ top: '48%', right: '4%', color: 'rgba(244, 114, 182, 0.52)', fontSize: 'clamp(0.95rem, 1.8vw, 1.35rem)', animation: 'floatFormulaDrift1 22s ease-in-out infinite' }}>
+              ⚡ E = mc²  •  ⚛️ F = ma  |  V = I × R
+            </div>
+
+            {/* 7. Exam: Chhand Matra */}
+            <div className="floating-equation-item" style={{ top: '4%', left: '42%', transform: 'translateX(-50%)', color: 'rgba(125, 211, 252, 0.45)', fontSize: 'clamp(0.85rem, 1.5vw, 1.15rem)', animation: 'floatFormulaDrift2 24s ease-in-out infinite' }}>
+              📖 છંદ: મંદાક્રાન્તા (૧૭ અક્ષર: મ ભ ન ત ત ગા ગા)
+            </div>
+
+            {/* 8. Math: Simple Interest Formula */}
+            <div className="floating-equation-item" style={{ bottom: '4%', left: '48%', transform: 'translateX(-50%)', color: 'rgba(253, 224, 71, 0.5)', fontSize: 'clamp(0.85rem, 1.5vw, 1.2rem)', animation: 'floatFormulaDrift3 22s ease-in-out infinite' }}>
+              🎯 સાદું વ્યાજ: I = (P × R × N) / 100
+            </div>
+
+            {/* 9. Physics: Kinetic Energy & Speed */}
+            <div className="floating-equation-item" style={{ top: '26%', left: '10%', color: 'rgba(74, 222, 128, 0.5)', fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)', animation: 'floatFormulaDrift4 21s ease-in-out infinite' }}>
+              🚀 ગતિઊર્જા: KE = ½mv²  •  v = u + at
+            </div>
+
+            {/* 10. Motivational Floating Gold Tag */}
+            <div className="floating-equation-item" style={{ top: '32%', right: '9%', color: 'rgba(253, 224, 71, 0.55)', fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)', animation: 'floatFormulaDrift5 23s ease-in-out infinite' }}>
+              🏆 તમારી મહેનત + અમારું માર્ગદર્શન = ૧૦૦% સફળતા 🎯
+            </div>
+
+            {/* 11. Math: Pythagoras & Trig */}
+            <div className="floating-equation-item" style={{ bottom: '24%', left: '9%', color: 'rgba(251, 146, 60, 0.48)', fontSize: 'clamp(0.85rem, 1.5vw, 1.2rem)', animation: 'floatFormulaDrift1 26s ease-in-out infinite' }}>
+              🔺 કર્ણ² = પાયો² + વેધ²  |  sin²θ + cos²θ = 1
+            </div>
+
+            {/* 12. Biology: DNA & Respiration */}
+            <div className="floating-equation-item" style={{ bottom: '30%', right: '8%', color: 'rgba(56, 189, 248, 0.5)', fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)', animation: 'floatFormulaDrift2 20s ease-in-out infinite' }}>
+              🧬 DNA: A=T, G≡C  •  C₆H₁₂O₆ + 6O₂ → 38 ATP
+            </div>
+
+            {/* 13. Visual Mini Bar Chart & Growth Vector */}
+            <div className="floating-visual-graph" style={{ top: '22%', left: '18%', animation: 'floatFormulaDrift1 25s ease-in-out infinite' }}>
+              <svg width="105" height="70" viewBox="0 0 110 75" fill="none" style={{ filter: 'drop-shadow(0 0 12px rgba(56,189,248,0.4))' }}>
+                <line x1="10" y1="65" x2="100" y2="65" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                <rect x="18" y="38" width="12" height="27" rx="3" fill="rgba(56,189,248,0.4)" />
+                <rect x="36" y="24" width="12" height="41" rx="3" fill="rgba(99,102,241,0.5)" />
+                <rect x="54" y="44" width="12" height="21" rx="3" fill="rgba(234,179,8,0.4)" />
+                <rect x="72" y="15" width="12" height="50" rx="3" fill="rgba(34,197,94,0.5)" />
+                <path d="M 24 38 L 42 24 L 60 44 L 78 15 L 96 10" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3 2" fill="none" />
+                <circle cx="78" cy="15" r="3.5" fill="#4ade80" />
+              </svg>
+            </div>
+
+            {/* 14. Visual Rotating Bohr Atomic Orbit */}
+            <div className="floating-visual-graph" style={{ top: '7%', right: '18%', animation: 'floatFormulaDrift2 24s ease-in-out infinite' }}>
+              <div style={{ position: 'relative', width: 65, height: 65, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'radial-gradient(circle, #facc15 0%, #ca8a04 100%)', boxShadow: '0 0 14px #eab308' }} />
+                <div style={{ position: 'absolute', width: 60, height: 24, borderRadius: '50%', border: '1.5px solid rgba(56,189,248,0.6)', animation: 'spinOrbitSlow 8s linear infinite' }} />
+                <div style={{ position: 'absolute', width: 60, height: 24, borderRadius: '50%', border: '1.5px solid rgba(244,114,182,0.55)', transform: 'rotate(60deg)', animation: 'spinOrbitSlow 10s linear infinite reverse' }} />
+                <div style={{ position: 'absolute', width: 60, height: 24, borderRadius: '50%', border: '1.5px solid rgba(74,222,128,0.55)', transform: 'rotate(120deg)', animation: 'spinOrbitSlow 12s linear infinite' }} />
+              </div>
+            </div>
+
+            {/* 15. Normal Distribution Bell Curve Diagram */}
+            <div className="floating-visual-graph" style={{ bottom: '8%', left: '15%', animation: 'floatFormulaDrift5 26s ease-in-out infinite' }}>
+              <svg width="115" height="60" viewBox="0 0 120 65" fill="none" style={{ filter: 'drop-shadow(0 0 12px rgba(34,197,94,0.4))' }}>
+                <line x1="5" y1="58" x2="115" y2="58" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                <path d="M 10 58 C 35 58, 42 12, 60 12 C 78 12, 85 58, 110 58" stroke="rgba(74,222,128,0.7)" strokeWidth="2.5" fill="rgba(34,197,94,0.08)" />
+                <text x="80" y="50" fill="rgba(74,222,128,0.7)" fontSize="8">Top Rankers Curve</text>
+              </svg>
+            </div>
+
+            {/* 16. DNA Double Helix */}
+            <div className="floating-visual-graph" style={{ top: '2%', left: '15%', animation: 'floatFormulaDrift3 22s ease-in-out infinite' }}>
+              <svg width="85" height="30" viewBox="0 0 90 35" fill="none" style={{ filter: 'drop-shadow(0 0 10px rgba(52,211,153,0.45))' }}>
+                <path d="M 5 8 Q 25 28 45 8 T 85 8" stroke="#34d399" strokeWidth="2" fill="none" />
+                <path d="M 5 28 Q 25 8 45 28 T 85 28" stroke="#38bdf8" strokeWidth="2" fill="none" />
+              </svg>
+            </div>
+
+          </div>
 
           {/* 🪐 5. 3D GYROSCOPE TILT CARD PHYSICS 🪐 */}
           <div

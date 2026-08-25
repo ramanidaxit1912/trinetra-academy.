@@ -3587,6 +3587,224 @@ html, body {
   box-shadow: 0 20px 48px rgba(37, 99, 235, 0.18);
 }
 
+/* ═══════════════════════════════════════════════════════
+   🌌 FLOATING SCIENCE & MATH EQUATIONS ANIMATIONS (TEACHER LOGIN BG)
+═══════════════════════════════════════════════════════ */
+@keyframes floatFormulaDrift1 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.95);
+    opacity: 0.2;
+  }
+  30% {
+    transform: translate(60px, -45px) rotate(6deg) scale(1.05);
+    opacity: 0.55;
+  }
+  60% {
+    transform: translate(120px, 25px) rotate(-4deg) scale(1);
+    opacity: 0.4;
+  }
+  85% {
+    transform: translate(50px, 60px) rotate(3deg) scale(1.02);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.95);
+    opacity: 0.2;
+  }
+}
+
+@keyframes floatFormulaDrift2 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    opacity: 0.25;
+  }
+  35% {
+    transform: translate(-70px, 50px) rotate(-8deg) scale(1.08);
+    opacity: 0.6;
+  }
+  70% {
+    transform: translate(-130px, -35px) rotate(5deg) scale(0.98);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+    opacity: 0.25;
+  }
+}
+
+@keyframes floatFormulaDrift3 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.9);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate(85px, 70px) rotate(12deg) scale(1.12);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.9);
+    opacity: 0.18;
+  }
+}
+
+@keyframes floatFormulaDrift4 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1.02);
+    opacity: 0.22;
+  }
+  40% {
+    transform: translate(-90px, -60px) rotate(-10deg) scale(0.92);
+    opacity: 0.58;
+  }
+  80% {
+    transform: translate(40px, -30px) rotate(6deg) scale(1.06);
+    opacity: 0.38;
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1.02);
+    opacity: 0.22;
+  }
+}
+
+@keyframes floatFormulaDrift5 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.96);
+    opacity: 0.28;
+  }
+  45% {
+    transform: translate(110px, -50px) rotate(8deg) scale(1.1);
+    opacity: 0.62;
+  }
+  75% {
+    transform: translate(-40px, 45px) rotate(-6deg) scale(0.95);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(0.96);
+    opacity: 0.28;
+  }
+}
+
+.floating-equation-item {
+  position: absolute;
+  user-select: none;
+  pointer-events: none;
+  font-family: 'Times New Roman', serif, 'Hind Vadodara', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.45));
+  will-change: transform, opacity;
+}
+
+@keyframes spinOrbitSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlowDiagram {
+  0%, 100% { opacity: 0.25; transform: scale(0.95); }
+  50% { opacity: 0.65; transform: scale(1.05); }
+}
+
+.floating-visual-graph {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+/* ═══════════════════════════════════════════════════════
+   📄 3D ORIGAMI EXAM PAPER FLIP & PAGE CURL TRANSITIONS
+═══════════════════════════════════════════════════════ */
+@keyframes paperFlipNext {
+  0% {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg) scale(1);
+    transform-origin: left center;
+    opacity: 1;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+  35% {
+    transform: perspective(1400px) rotateY(-40deg) rotateZ(-3deg) scale(0.94) translateY(-10px);
+    opacity: 0.7;
+    filter: brightness(0.92) contrast(1.1);
+    box-shadow: 25px 25px 50px rgba(0,0,0,0.25);
+  }
+  100% {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg) scale(1);
+    transform-origin: center center;
+    opacity: 1;
+    filter: brightness(1) contrast(1);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+  }
+}
+
+@keyframes paperFlipPrev {
+  0% {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg) scale(1);
+    transform-origin: right center;
+    opacity: 1;
+  }
+  35% {
+    transform: perspective(1400px) rotateY(40deg) rotateZ(3deg) scale(0.94) translateY(-10px);
+    opacity: 0.7;
+    filter: brightness(0.92) contrast(1.1);
+    box-shadow: -25px 25px 50px rgba(0,0,0,0.25);
+  }
+  100% {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg) scale(1);
+    transform-origin: center center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.paper-flip-next-anim {
+  animation: paperFlipNext 0.48s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.paper-flip-prev-anim {
+  animation: paperFlipPrev 0.48s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════
+   🔘 REALISTIC OMR BUBBLE INK FILL & PENCIL SHADING FX
+═══════════════════════════════════════════════════════ */
+@keyframes omrInkFillIn {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.3;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 10px #1e3a8a;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.9;
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.6), 0 0 16px rgba(37,99,235,0.6);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 12px rgba(37,99,235,0.3);
+  }
+}
+
+.omr-bubble-selected {
+  animation: omrInkFillIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #0f172a 100%) !important;
+  color: #ffffff !important;
+  border-color: #1e3a8a !important;
+}
+
+.omr-option-row-active {
+  background: linear-gradient(90deg, rgba(37,99,235,0.09) 0%, rgba(240,249,255,0.6) 100%) !important;
+  border: 1.8px solid #2563eb !important;
+  box-shadow: 0 4px 18px rgba(37,99,235,0.14) !important;
+  transform: translateX(4px);
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+
+
 
 
 
