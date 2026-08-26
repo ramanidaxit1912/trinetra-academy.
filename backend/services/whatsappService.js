@@ -157,6 +157,57 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
   }
 }
 
+/**
+ * Send Pragati Report (Progress Certificate) PDF document buffer directly to student WhatsApp
+ */
+async function sendWhatsAppPragatiPDF(mobile, studentName, totalTests, avgScore, overallGrade, pdfBuffer) {
+  const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const jid = `91${cleanMobile}@s.whatsapp.net`;
+
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*
+━━━━━━━━━━━━━━━━━━━━━━
+નમસ્તે *${studentName}*,
+
+📊 તમારી તમામ કસોટીઓનો *સત્તાવાર શૈક્ષણિક પ્રગતિ રિપોર્ટ (Pragati Card)* તૈયાર છે!
+
+🎯 *કુલ કસોટીઓ:* ${totalTests}
+📈 *સરેરાશ ટકાવારી:* ${avgScore}%
+🏅 *પરફોર્મન્સ ગ્રેડ:* ${overallGrade}
+
+📄 વિગતવાર સ્કોર બાર ચાર્ટ, વિષયવાર વિશ્લેષણ, સુનિલ સરની સહી અને એકેડેમી સીલ સાથેની ઓફિશ્યલ PDF ઉપર જોડાયેલ છે.
+━━━━━━━━━━━━━━━━━━━━━━
+✨ *મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી!* 🏆
+🌐 પોર્ટલ: https://trinetraacademy.in
+📞 હેલ્પલાઇન: 8200405300`;
+
+  if (waSocket && connectionStatus === 'CONNECTED') {
+    try {
+      const safeStudentName = String(studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const fileName = `Trinetra_Pragati_Report_${safeStudentName}.pdf`;
+
+      await waSocket.sendMessage(jid, {
+        document: pdfBuffer,
+        mimetype: 'application/pdf',
+        fileName: fileName,
+        caption: caption
+      });
+
+      console.log(`✅ [WhatsApp Pragati PDF Sent] Document sent to +91${cleanMobile} (${studentName})`);
+      return { success: true, message: `📊 પ્રગતિ રિપોર્ટ PDF તમારા WhatsApp (+91${cleanMobile}) પર સફળતાપૂર્વક મોકલી દીધું છે!` };
+    } catch (err) {
+      console.error(`❌ [WhatsApp Pragati PDF Failed] to ${mobile}:`, err);
+      return { success: false, error: 'WhatsApp પર PDF મોકલવામાં તકલીફ પડી: ' + err.message };
+    }
+  } else {
+    console.log(`⚠️ [WhatsApp Offline] Teacher WhatsApp is disconnected. Status: ${connectionStatus}`);
+    return {
+      success: false,
+      isOffline: true,
+      error: 'ટીચરનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી પ્રયાસ કરો અથવા ટીચર ડેશબોર્ડમાં QR સ્કેન કરો.'
+    };
+  }
+}
+
 async function logoutWhatsApp() {
   try {
     if (waSocket) {
@@ -189,6 +240,8 @@ module.exports = {
   initWhatsApp,
   sendWhatsAppOTP,
   sendWhatsAppScorecardPDF,
+  sendWhatsAppPragatiPDF,
   getWhatsAppStatus,
   logoutWhatsApp
 };
+

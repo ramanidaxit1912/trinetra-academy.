@@ -569,16 +569,54 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer style={{
         background: '#060911', color: '#64748b',
-        textAlign: 'center', padding: '24px 16px',
+        textAlign: 'center', padding: '28px 16px 36px',
         borderTop: '1px solid rgba(255,255,255,0.06)'
       }}>
-        <div style={{ marginBottom: 6, color: 'white', fontWeight: 800, fontSize: 'clamp(0.95rem,3vw,1.1rem)' }}>
+        <div style={{ marginBottom: 6, color: 'white', fontWeight: 800, fontSize: 'clamp(0.95rem,3vw,1.15rem)' }}>
           🎓 Trinetra Online Academy
         </div>
-        <div style={{ fontSize: 'clamp(0.85rem,3vw,0.95rem)', color: '#94a3b8' }}>
-          📞 WhatsApp: <strong style={{ color: '#f59e0b' }}>8200405300</strong>
+        <div style={{ fontSize: 'clamp(0.85rem,3vw,0.95rem)', color: '#94a3b8', marginBottom: 12 }}>
+          📞 WhatsApp / Helpline: <strong style={{ color: '#f59e0b' }}>8200405300</strong>
         </div>
-        <div style={{ fontSize: 'clamp(0.72rem,2.5vw,0.8rem)', marginTop: 8, color: '#475569' }}>
+
+        {/* 🌐 Social Links Strip */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <a
+            href="https://t.me/Trinetra_Online"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: '#0284c7', color: 'white', padding: '6px 14px', borderRadius: 20,
+              fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(2,132,199,0.3)'
+            }}>
+            ✈ Telegram
+          </a>
+          <a
+            href="https://youtube.com/@trinetra_academy100?si=o40zQ7nNp8bMptcU"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: '#dc2626', color: 'white', padding: '6px 14px', borderRadius: 20,
+              fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(220,38,38,0.3)'
+            }}>
+            ▶ YouTube
+          </a>
+          <a
+            href="https://www.instagram.com/trinetra_online_academy?igsh=d2JqYmE4eWNsNmts"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', color: 'white', padding: '6px 14px', borderRadius: 20,
+              fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(236,72,153,0.3)'
+            }}>
+            📷 Instagram
+          </a>
+        </div>
+
+        <div style={{ fontSize: 'clamp(0.72rem,2.5vw,0.8rem)', color: '#475569' }}>
           © 2026 Trinetra Online Academy. All rights reserved.
         </div>
       </footer>

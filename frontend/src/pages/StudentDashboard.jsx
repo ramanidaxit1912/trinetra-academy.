@@ -65,7 +65,8 @@ import { AchievementBadges, ConfettiCanvas } from '../components/ConfettiBadges'
 import {
   sendOTP, verifyOTP, getQuestions, getMySubmissions, getStudentHistoryByMobile,
   getSubmissionReview, getLeaderboard, getTestWiseLeaderboard, getMaterials, getMarketingItems,
-  sendWhatsAppScorecard
+  sendWhatsAppScorecard,
+  sendPragatiWhatsApp
 } from '../services/api';
 import { LeaderboardUI } from '../components/Leaderboard';
 import {
@@ -127,18 +128,18 @@ function buildMarketingBrochureHtml(marketingItems = []) {
         </div>
 
         <!-- 🌟 POSTERS GRID: LAPTOP 2-COLS, MOBILE 1-COL 🌟 -->
-        <div class="brochure-posters-grid">
+        <div class="brochure-posters-grid" style="display: flex; align-items: center; justify-content: center; width: 100%; margin: 8px 0;">
           ${displayItems.map((p) => {
             const rawImg = p.imageUrl || p.image;
             const fullImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `${origin}${rawImg}`) : null;
             const isSingle = displayItems.length === 1;
-            const posterMaxHeight = isSingle ? '440px' : displayItems.length === 2 ? '330px' : '230px';
+            const posterMaxHeight = isSingle ? '680px' : displayItems.length === 2 ? '440px' : '260px';
 
             return `
               <div class="brochure-poster-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; page-break-inside: avoid; break-inside: avoid;">
                 ${fullImg ? `
-                  <div style="position: relative; border-radius: 10px; overflow: hidden; border: 2px solid #1e3a8a; box-shadow: 0 6px 18px rgba(30,58,138,0.15); background: #ffffff; width: 100%; max-width: 380px; text-align: center;">
-                    <img src="${fullImg}" class="brochure-poster-img" style="max-height: ${posterMaxHeight}; max-width: 100%; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" alt="${p.title || 'Course Poster'}" />
+                  <div style="position: relative; border-radius: 8px; overflow: hidden; background: #ffffff; width: 100%; text-align: center; display: flex; align-items: center; justify-content: center;">
+                    <img src="${fullImg}" class="brochure-poster-img" style="max-height: ${posterMaxHeight}; max-width: 100%; width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 8px;" alt="${p.title || 'Course Poster'}" />
                   </div>
                 ` : `
                   <div style="color: #64748b; font-size: 13px; font-weight: 800; padding: 24px; text-align: center; border: 2px dashed #cbd5e1; border-radius: 10px; width: 100%;">
@@ -730,6 +731,7 @@ export default function StudentDashboard() {
   const [waModalSub, setWaModalSub]                   = useState(null);
   const [waTargetMobile, setWaTargetMobile]           = useState('');
   const [waSuccessModal, setWaSuccessModal]           = useState(null);
+  const [sendingPragatiWa, setSendingPragatiWa]       = useState(false);
 
   // Extract unique subjects from student's submissions
   const uniqueSubjects = useMemo(() => {
@@ -774,11 +776,12 @@ export default function StudentDashboard() {
   }, [otpCooldown]);
   
   useEffect(() => {
-    const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl) {
-      setActiveTab(tabFromUrl);
+    if (user) {
+      loadDashboardData();
+    } else {
+      setLoadingData(false);
     }
-  }, [searchParams]);
+  }, [user]);
 
   // Review modal state
   const [reviewSubId, setReviewSubId]     = useState(null);
@@ -802,23 +805,16 @@ export default function StudentDashboard() {
   const [pptSlideIndex, setPptSlideIndex] = useState(0);
   const [pptSlideDirection, setPptSlideDirection] = useState('next'); // 'next' | 'prev'
 
-  // Load dashboard data when student is logged in or tab changes
-  useEffect(() => {
-    if (user?.mobile || user?.id) {
-      loadDashboardData();
-    } else {
-      setLoadingData(false);
-    }
-  }, [user, activeTab]);
-
-  const loadDashboardData = async () => {
-    setLoadingData(true);
+  // Load dashboard data when student is logged in
+  const loadDashboardData = async (silent = false) => {
+    if (!silent && liveTests.length === 0) setLoadingData(true);
     try {
-      // 1. Fetch live tests
-            // Fetch marketing items for poster integration
-      const mktRes = await getMarketingItems({ type: 'POSTER' }).catch(() => ({ data: [] }));
+      // 1. Fetch live tests & marketing in parallel
+      const [mktRes, qRes] = await Promise.all([
+        getMarketingItems({ type: 'POSTER' }).catch(() => ({ data: [] })),
+        getQuestions().catch(() => ({ data: [] }))
+      ]);
       setMarketingList(Array.isArray(mktRes?.data) ? mktRes.data : []);
-      const qRes = await getQuestions().catch(() => ({ data: [] }));
       const rawQs = Array.isArray(qRes?.data) ? qRes.data : [];
 
       // Group active questions by testCode
@@ -845,13 +841,15 @@ export default function StudentDashboard() {
       });
       setLiveTests(Object.values(groups));
 
-      // 2. Fetch past submissions (try getMySubmissions, fallback to getStudentHistoryByMobile)
-      let subData = [];
-      try {
-        const subRes = await getMySubmissions();
-        subData = Array.isArray(subRes?.data) ? subRes.data : [];
-      } catch (e) {}
+      // 2. Fetch past submissions, leaderboard, materials in parallel
+      const [subRes, lbRes, twRes, matRes] = await Promise.all([
+        getMySubmissions().catch(() => ({ data: [] })),
+        getLeaderboard().catch(() => ({ data: [] })),
+        getTestWiseLeaderboard().catch(() => ({ data: [] })),
+        getMaterials().catch(() => ({ data: { data: [] } }))
+      ]);
 
+      let subData = Array.isArray(subRes?.data) ? subRes.data : [];
       if (subData.length === 0 && user?.mobile) {
         try {
           const mobileRes = await getStudentHistoryByMobile(user.mobile);
@@ -859,26 +857,19 @@ export default function StudentDashboard() {
         } catch (e) {}
       }
       setSubmissions(subData);
-
-      // 3. Fetch Leaderboard (overall + test-wise)
-      const lbRes = await getLeaderboard().catch(() => ({ data: [] }));
       setLeaderboard(Array.isArray(lbRes?.data) ? lbRes.data : []);
-      const twRes = await getTestWiseLeaderboard().catch(() => ({ data: [] }));
       setTestWiseLeaderboard(Array.isArray(twRes?.data) ? twRes.data : []);
-
-      // 4. Fetch Study Materials
-      const matRes = await getMaterials().catch(() => ({ data: { data: [] } }));
-      const dbMaterials = Array.isArray(matRes?.data?.data) ? matRes.data.data : [];
-      setMaterialsList(dbMaterials);
+      setMaterialsList(Array.isArray(matRes?.data?.data) ? matRes.data.data : []);
     } catch (e) {
       console.warn('Student data load error:', e);
+    } finally {
+      setLoadingData(false);
     }
-    setLoadingData(false);
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadDashboardData();
+    await loadDashboardData(true);
     setRefreshing(false);
   };
 
@@ -1589,6 +1580,48 @@ export default function StudentDashboard() {
         printWindow.document.write(html);
         printWindow.document.close();
       }
+    }
+  };
+
+  // ─── 📲 Send Pragati Report (Progress Card) via WhatsApp ───────────────────
+  const handleSendPragatiWhatsApp = async () => {
+    if (sendingPragatiWa || !submissions.length) return;
+
+    const rawMobile = user?.mobile || '';
+    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+
+    if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
+      alert('⚠️ માન્ય WhatsApp નંબર ખાતામાં નોંધાયેલ નથી. Admin ને સંપર્ક કરો.');
+      return;
+    }
+
+    setSendingPragatiWa(true);
+    try {
+      const res = await sendPragatiWhatsApp({
+        studentId: user.id,
+        studentName: user.name,
+        mobile: cleanMobile
+      });
+
+      if (res.data?.success) {
+        // Reuse the same grand success popup as Scorecard WhatsApp
+        setWaSuccessModal({
+          testName: '📊 પ્રગતિ રિપોર્ટ (Pragati Card)',
+          mobile: cleanMobile,
+          studentName: user.name,
+          filename: `Trinetra_Pragati_Report_${(user.name || '').replace(/\s+/g, '_')}.pdf`
+        });
+      }
+    } catch (err) {
+      const isOffline = err.response?.data?.isOffline;
+      const errMsg = err.response?.data?.error || 'WhatsApp પર Pragati Card મોકલવામાં ભૂલ.';
+      if (isOffline) {
+        alert('⚠️ એકેડેમીનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી ફરી પ્રયાસ કરો.');
+      } else {
+        alert(`❌ ${errMsg}`);
+      }
+    } finally {
+      setSendingPragatiWa(false);
     }
   };
 
@@ -2477,67 +2510,163 @@ export default function StudentDashboard() {
         })()}
 
         {/* ═══════════════════════════════════════════════════════
-            TAB 1: 🔴 લાઈવ કસોટીઓ
+            TAB 1: 🔴 લાઈવ કસોટીઓ (ULTRA ATTRACTIVE & RESPONSIVE)
         ═══════════════════════════════════════════════════════ */}
         {activeTab === 'live' && (
           <div className="animate-fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                  🔴 હાલમાં ઉપલબ્ધ લાઈવ કસોટીઓ (Active Tests)
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '2px 0 0' }}>
-                  શિક્ષકે શરૂ કરેલી કસોટીઓ અહીંથી સીધી આપી શકાય છે.
-                </p>
+            {/* 👑 VIP Header Banner */}
+            <div className="live-header-banner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.45rem',
+                  boxShadow: '0 4px 14px rgba(239,68,68,0.4)',
+                  flexShrink: 0,
+                  position: 'relative'
+                }}>
+                  🔴
+                  <span style={{
+                    position: 'absolute',
+                    top: -2, right: -2,
+                    width: 10, height: 10,
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    border: '2px solid #ffffff',
+                    animation: 'pulse 1.5s infinite'
+                  }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: '1.18rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
+                      લાઈવ કસોટી કેન્દ્ર (Live Exams)
+                    </h2>
+                    <span style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid #22c55e', color: '#86efac', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 12 }}>
+                      {liveTests.length} કસોટીઓ સક્રિય
+                    </span>
+                  </div>
+                  <p style={{ color: '#93c5fd', fontSize: '0.78rem', margin: '2px 0 0', fontWeight: 600 }}>
+                    શિક્ષકે સક્રિય કરેલી પરીક્ષાઓ અહીંથી સીધી આપી શકાય છે
+                  </p>
+                </div>
               </div>
-              <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: 20 }}>
-                {liveTests.length} કસોટીઓ સક્રિય
-              </span>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="live-refresh-btn"
+                  title="નવી કસોટીઓ ચેક કરવા રીફ્રેશ કરો">
+                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                  <span>{refreshing ? 'રીફ્રેશ થઈ રહ્યું છે...' : 'રીફ્રેશ કરો'}</span>
+                </button>
+              </div>
             </div>
 
-            {liveTests.length === 0 ? (
-              <div className="card" style={{ padding: 40, textAlign: 'center', background: 'white' }}>
-                <div style={{ fontSize: '3rem', marginBottom: 10 }}>⏳</div>
-                <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.1rem', margin: '0 0 6px' }}>
+            {loadingData && liveTests.length === 0 ? (
+              <div className="card" style={{
+                padding: '40px 20px',
+                textAlign: 'center',
+                background: 'white',
+                borderRadius: 18,
+                border: '1.5px solid #e2e8f0',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{
+                  display: 'inline-block',
+                  width: 44,
+                  height: 44,
+                  border: '4px solid #bfdbfe',
+                  borderTopColor: '#2563eb',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  marginBottom: 14
+                }} />
+                <h3 style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.15rem', margin: '0 0 4px' }}>
+                  🔴 લાઈવ કસોટીઓ લોડ થઈ રહી છે...
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>
+                  કૃપા કરીને થોડી ક્ષણ રાહ જુઓ...
+                </p>
+              </div>
+            ) : liveTests.length === 0 ? (
+              <div className="card" style={{
+                padding: '40px 20px',
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 18,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                  color: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2.4rem',
+                  margin: '0 auto 16px',
+                  boxShadow: '0 4px 16px rgba(37,99,235,0.15)'
+                }}>
+                  ⏳
+                </div>
+                <h3 style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.2rem', margin: '0 0 6px' }}>
                   હાલ કોઈ કસોટી લાઈવ નથી!
                 </h3>
-                <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: 400, margin: '0 auto 18px' }}>
-                  શિક્ષક કસોટી લાઈવ કરશે એટલે તરત જ અહીં જોવા મળશે. થોડીવાર પછી રીફ્રેશ કરો.
+                <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: 420, margin: '0 auto 20px', lineHeight: 1.5 }}>
+                  શિક્ષક નવી કસોટી લાઈવ કરશે એટલે તરત જ અહીં જોવા મળશે. થોડીવાર પછી નીચેના બટનથી રીફ્રેશ કરો.
                 </p>
-                <button onClick={handleRefresh} className="btn-primary" style={{ display: 'inline-flex', padding: '10px 20px', gap: 6 }}>
-                  <RefreshCw size={15} /> રીફ્રેશ કરીને ચેક કરો
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    padding: '11px 22px',
+                    borderRadius: 12,
+                    fontWeight: 900,
+                    fontSize: '0.92rem',
+                    gap: 8,
+                    boxShadow: '0 4px 16px rgba(37,99,235,0.3)'
+                  }}>
+                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /> રીફ્રેશ કરીને ચેક કરો
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16 }}>
+              <div className="live-test-grid">
                 {liveTests.map(t => {
                   const alreadyDone = submissions.some(s => s.testCode === t.testCode);
 
                   return (
-                    <div key={t.testCode} className="card animate-fade-in" style={{
-                      padding: 22,
-                      background: alreadyDone 
-                        ? 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
-                        : 'linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%)',
-                      border: alreadyDone ? '2px solid #cbd5e1' : '2px solid #86efac',
-                      borderRadius: 18,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      boxShadow: alreadyDone ? '0 4px 14px rgba(0,0,0,0.05)' : '0 12px 30px rgba(34,197,94,0.12)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
+                    <div
+                      key={t.testCode}
+                      className={`card live-test-card ${alreadyDone ? 'live-test-card-done' : 'live-test-card-active'} animate-fade-in`}>
                       {/* Top ambient glow strip */}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 5, background: alreadyDone ? '#94a3b8' : 'linear-gradient(90deg, #22c55e, #10b981, #3b82f6)' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 5,
+                        background: alreadyDone ? '#94a3b8' : 'linear-gradient(90deg, #22c55e, #10b981, #3b82f6)'
+                      }} />
 
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        {/* Status badge & Test ID */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
                           {alreadyDone ? (
                             <span style={{
                               background: '#dcfce7',
                               color: '#15803d',
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 900,
                               padding: '4px 12px',
                               borderRadius: 20,
@@ -2552,7 +2681,7 @@ export default function StudentDashboard() {
                             <span style={{
                               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                               color: '#ffffff',
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 900,
                               padding: '4px 12px',
                               borderRadius: 20,
@@ -2565,81 +2694,88 @@ export default function StudentDashboard() {
                               🔴 LIVE NOW
                             </span>
                           )}
-                          <span style={{ background: '#f8fafc', color: '#1e3a8a', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 900, padding: '3px 9px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                          <span style={{
+                            background: '#f8fafc',
+                            color: '#1e3a8a',
+                            fontSize: '0.72rem',
+                            fontFamily: 'monospace',
+                            fontWeight: 900,
+                            padding: '3px 9px',
+                            borderRadius: 8,
+                            border: '1px solid #cbd5e1'
+                          }}>
                             ID: {t.testCode}
                           </span>
                         </div>
 
-                        <h3 style={{ fontSize: '1.24rem', fontWeight: 900, color: '#0f172a', margin: '0 0 10px', lineHeight: 1.3 }}>
+                        {/* Test Title */}
+                        <h3 style={{
+                          fontSize: '1.18rem',
+                          fontWeight: 900,
+                          color: '#0f172a',
+                          margin: '0 0 10px',
+                          lineHeight: 1.35
+                        }}>
                           {t.testName}
                         </h3>
 
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                          <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: 8, border: '1px solid #bfdbfe' }}>
+                        {/* Subject & Time Pills */}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                          <span style={{
+                            background: '#dbeafe',
+                            color: '#1e40af',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: 8,
+                            border: '1px solid #bfdbfe'
+                          }}>
                             📚 {t.subject}
                           </span>
-                          <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: 8, border: '1px solid #fde68a' }}>
+                          <span style={{
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: 8,
+                            border: '1px solid #fde68a'
+                          }}>
                             ⏱️ {t.timeLimit} મિનિટ
                           </span>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, background: '#ffffff', padding: '12px 14px', borderRadius: 12, border: '1.5px solid #e2e8f0', marginBottom: 18, boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                        {/* 3-Box Stats Strip */}
+                        <div className="live-card-stats-strip">
                           <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>પ્રશ્નો</div>
-                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1 }}>📋 {t.questions.length}</div>
+                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>પ્રશ્નો</div>
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1rem', marginTop: 1 }}>📋 {t.questions.length}</div>
                           </div>
                           <div style={{ textAlign: 'center', borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>કુલ ગુણ</div>
-                            <div style={{ color: '#2563eb', fontWeight: 900, fontSize: '1.05rem', marginTop: 1 }}>💯 {t.totalMarks}</div>
+                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>કુલ ગુણ</div>
+                            <div style={{ color: '#2563eb', fontWeight: 900, fontSize: '1rem', marginTop: 1 }}>💯 {t.totalMarks}</div>
                           </div>
                           <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>પ્રકાર</div>
-                            <div style={{ color: '#059669', fontWeight: 900, fontSize: '0.85rem', marginTop: 3 }}>{t.mcqCount}M + {t.descCount}D</div>
+                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>પ્રકાર</div>
+                            <div style={{ color: '#059669', fontWeight: 900, fontSize: '0.82rem', marginTop: 2 }}>{t.mcqCount}M + {t.descCount}D</div>
                           </div>
                         </div>
                       </div>
 
+                      {/* Action Button */}
                       {alreadyDone ? (
-                        <button onClick={() => {
-                          setActiveTab('results');
-                          setResultSearch(t.testCode || t.testName);
-                        }}
-                          style={{
-                            width: '100%',
-                            justifyContent: 'center',
-                            padding: '13px 16px',
-                            fontSize: '0.98rem',
-                            fontWeight: 900,
-                            borderRadius: 12,
-                            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-                            boxShadow: '0 6px 20px rgba(37,99,235,0.25)',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8
-                          }}>
+                        <button
+                          onClick={() => {
+                            setActiveTab('results');
+                            setResultSearch(t.testCode || t.testName);
+                          }}
+                          className="live-result-btn">
                           📊 તમારું પરિણામ જુઓ (View Result) →
                         </button>
                       ) : (
-                        <button onClick={() => handleStartExam(t.questions)}
-                          className="btn-primary"
-                          style={{
-                            width: '100%',
-                            justifyContent: 'center',
-                            padding: '13px 16px',
-                            fontSize: '1.02rem',
-                            fontWeight: 900,
-                            borderRadius: 12,
-                            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                            boxShadow: '0 6px 20px rgba(16,185,129,0.35)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8
-                          }}>
+                        <button
+                          onClick={() => handleStartExam(t.questions)}
+                          className="live-start-btn">
                           <Play size={18} fill="white" /> 🚀 કસોટી શરૂ કરો (Start Test)
                         </button>
                       )}
@@ -3235,39 +3371,117 @@ export default function StudentDashboard() {
         {/* ═══════════════════════════════════════════════════════
             TAB 3: 📊 પ્રગતિ એનાલિટિક્સ & ગ્રાફ્સ (GRAPHS & CHARTS)
         ═══════════════════════════════════════════════════════ */}
-        {activeTab === 'analytics' && (
-          <div className="animate-fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                  📊 પ્રગતિ એનાલિટિક્સ & પરફોર્મન્સ ગ્રાફ્સ (Performance Graphs)
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '2px 0 0' }}>
-                  તમારી દરેક પરીક્ષાના સ્કોર ટ્રેન્ડ, વિષયવાર સરખામણી અને એક્યુરેસીનું વિઝ્યુઅલ વિશ્લેષણ.
-                </p>
-              </div>
-              <button onClick={handlePrintProgressReport}
-                style={{ background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: 'white', border: 'none', padding: '9px 16px', borderRadius: 10, fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 3px 12px rgba(37,99,235,0.25)' }}>
-                <Download size={14} /> 📥 પ્રગતિ રિપોર્ટ (PDF Print)
-              </button>
-            </div>
+        {activeTab === 'analytics' && (() => {
+          const avgPercentage = testTrendData.length > 0
+            ? Math.round(testTrendData.reduce((acc, t) => acc + (t.percentage || 0), 0) / testTrendData.length)
+            : 0;
+          const performanceGrade = avgPercentage >= 80 ? 'A+ (ઉત્કૃષ્ટ)' : avgPercentage >= 70 ? 'A (ખૂબ સરસ)' : avgPercentage >= 50 ? 'B (સરેરાશ)' : 'C (સુધારણા જરૂર)';
 
-            {submissions.length === 0 ? (
-              <div className="card" style={{ padding: 40, textAlign: 'center', background: 'white' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>📊</div>
-                <h3 style={{ color: '#0f172a', fontWeight: 800 }}>કોઈ ગ્રાફ ડેટા ઉપલબ્ધ નથી</h3>
-                <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: 16 }}>
-                  તમે પરીક્ષા આપશો એટલે તરત જ તમારો લાઈવ સ્કોર ગ્રાફ અહીં જનરેટ થઈ જશે!
-                </p>
-                <button onClick={() => setActiveTab('live')} className="btn-primary" style={{ display: 'inline-flex' }}>
-                  🔴 Live કસોટી આપો →
-                </button>
+          return (
+            <div className="animate-fade-in">
+              {/* 👑 VIP Header Banner */}
+              <div className="pragati-header-banner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.45rem',
+                    boxShadow: '0 4px 14px rgba(59,130,246,0.4)',
+                    flexShrink: 0
+                  }}>
+                    📈
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.18rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
+                      પ્રગતિ એનાલિટિક્સ & પરફોર્મન્સ હબ
+                    </h2>
+                    <p style={{ color: '#93c5fd', fontSize: '0.78rem', margin: '2px 0 0', fontWeight: 600 }}>
+                      કસોટી સ્કોર ટ્રેન્ડ, વિષયવાર પર્સેન્ટેજ અને એક્યુરેસીનું સ્માર્ટ વિશ્લેષણ
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    onClick={handleSendPragatiWhatsApp}
+                    disabled={sendingPragatiWa || !submissions.length}
+                    className="pragati-wa-btn"
+                    style={{
+                      opacity: sendingPragatiWa ? 0.75 : 1,
+                      cursor: sendingPragatiWa ? 'not-allowed' : 'pointer'
+                    }}>
+                    {sendingPragatiWa
+                      ? <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> ⏳ WhatsApp પર મોકલી રહ્યા...</>
+                      : <>📲 WhatsApp માં મેળવો</>
+                    }
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                
-                {/* ── 📊 1. MODERN VERTICAL BAR CHART: NO HORIZONTAL SCROLL ON MOBILE ── */}
-                <div className="card animate-fade-in" style={{ padding: '16px 14px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', width: '100%', boxSizing: 'border-box' }}>
+
+              {submissions.length === 0 ? (
+                <div className="card" style={{ padding: 40, textAlign: 'center', background: 'white' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>📊</div>
+                  <h3 style={{ color: '#0f172a', fontWeight: 800 }}>કોઈ ગ્રાફ ડેટા ઉપલબ્ધ નથી</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: 16 }}>
+                    તમે પરીક્ષા આપશો એટલે તરત જ તમારો લાઈવ સ્કોર ગ્રાફ અહીં જનરેટ થઈ જશે!
+                  </p>
+                  <button onClick={() => setActiveTab('live')} className="btn-primary" style={{ display: 'inline-flex' }}>
+                    🔴 Live કસોટી આપો →
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  
+                  {/* ── ⚡ 4 Quick Summary Stat Cards (Desktop 4 in row, Mobile 2x2 Grid) ── */}
+                  <div className="pragati-stats-grid">
+                    <div className="card pragati-stat-card" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1.5px solid #bfdbfe' }}>
+                      <div className="stat-icon-wrap" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                        📊
+                      </div>
+                      <div>
+                        <div className="stat-label" style={{ color: '#1e40af' }}>કુલ કસોટીઓ</div>
+                        <div className="stat-value">{submissions.length} ટેસ્ટ</div>
+                      </div>
+                    </div>
+
+                    <div className="card pragati-stat-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1.5px solid #bbf7d0' }}>
+                      <div className="stat-icon-wrap" style={{ background: '#dcfce7', color: '#15803d' }}>
+                        ⭐
+                      </div>
+                      <div>
+                        <div className="stat-label" style={{ color: '#15803d' }}>સરેરાશ ટકાવારી</div>
+                        <div className="stat-value">{avgPercentage}%</div>
+                      </div>
+                    </div>
+
+                    <div className="card pragati-stat-card" style={{ background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)', border: '1.5px solid #e9d5ff' }}>
+                      <div className="stat-icon-wrap" style={{ background: '#f3e8ff', color: '#7e22ce' }}>
+                        🎯
+                      </div>
+                      <div>
+                        <div className="stat-label" style={{ color: '#7e22ce' }}>ચોકસાઈ (Accuracy)</div>
+                        <div className="stat-value">{accuracyMetrics.accuracy}%</div>
+                      </div>
+                    </div>
+
+                    <div className="card pragati-stat-card" style={{ background: 'linear-gradient(135deg, #fefce8 0%, #ffffff 100%)', border: '1.5px solid #fef08a' }}>
+                      <div className="stat-icon-wrap" style={{ background: '#fef9c3', color: '#a16207' }}>
+                        🏆
+                      </div>
+                      <div>
+                        <div className="stat-label" style={{ color: '#a16207' }}>પરફોર્મન્સ ગ્રેડ</div>
+                        <div className="stat-value" style={{ fontSize: '1rem' }}>{performanceGrade.split(' ')[0]}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── 📊 1. MODERN VERTICAL BAR CHART: NO HORIZONTAL SCROLL ON MOBILE ── */}
+                  <div className="card pragati-chart-card animate-fade-in">
                   
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
@@ -3453,7 +3667,7 @@ export default function StudentDashboard() {
                 </div>
 
                 {/* ── 🥧 2. SUBJECT DISTRIBUTION PIE CHART WITH DIRECT LABELS & LEGENDS ── */}
-                <div className="card animate-fade-in" style={{ padding: 24, background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                <div className="card pragati-chart-card animate-fade-in">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: '1.4rem' }}>🥧</span>
@@ -3766,21 +3980,98 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
-        )}
+        );
+      })()}
 
         {/* ═══════════════════════════════════════════════════════
-            TAB 4: 🏆 લીડરબોર્ડ
+            TAB 4: 🏆 લીડરબોર્ડ (ULTRA-ATTRACTIVE VIP UI)
         ═══════════════════════════════════════════════════════ */}
         {activeTab === 'leaderboard' && (
           <div className="animate-fade-in">
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>
-                🏆 ટેસ્ટ-wise લીડરબોર્ડ
-              </h2>
-              <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>
-                ટેસ્ટ પ્રમાણે ટોચના વિદ્યાર્થીઓ — ડાબી બાજુ ટેસ્ટ પસંદ કરો
-              </p>
+            {/* 👑 VIP Leaderboard Header Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0b1329 0%, #1e293b 50%, #1e3a8a 100%)',
+              borderRadius: 16,
+              padding: '16px 20px',
+              marginBottom: 16,
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+              boxShadow: '0 8px 24px rgba(11,19,41,0.3), 0 0 16px rgba(245,158,11,0.15)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background ambient gold orb */}
+              <div style={{
+                position: 'absolute',
+                top: -30,
+                right: -30,
+                width: 130,
+                height: 130,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(245,158,11,0.25) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.6rem',
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
+                  flexShrink: 0,
+                  border: '1.5px solid rgba(255,255,255,0.3)'
+                }}>
+                  🏆
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: '1.22rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
+                      ટેસ્ટ-wise લીડરબોર્ડ (Leaderboard)
+                    </h2>
+                    <span style={{
+                      background: 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.2))',
+                      border: '1px solid #f59e0b',
+                      color: '#fef08a',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: 12
+                    }}>
+                      ⭐ ટોપ રેન્કર્સ
+                    </span>
+                  </div>
+                  <p style={{ color: '#93c5fd', fontSize: '0.78rem', margin: '2px 0 0', fontWeight: 600 }}>
+                    કસોટી પસંદ કરી ટોચના તેજસ્વી વિદ્યાર્થીઓનું પરિણામ જુઓ
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                <span style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(4px)'
+                }}>
+                  🎯 {testWiseLeaderboard.length} કસોટીઓ ઉપલબ્ધ
+                </span>
+              </div>
             </div>
+
             <LeaderboardUI
               tests={testWiseLeaderboard}
               loading={loadingData}
@@ -3884,65 +4175,113 @@ export default function StudentDashboard() {
 
           return (
             <div className="animate-fade-in">
-              {/* Header Title */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>📁</span> સ્ટડી મટીરીયલ અને મોડેલ પેપર્સ (Study Materials)
-                  </h2>
-                  <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '3px 0 0' }}>
-                    TET-1 / TET-2 / TAT માટેના મહત્વપૂર્ણ PDF પુસ્તકો, શોર્ટ નોટ્સ અને મોડેલ પેપર્સ.
-                  </p>
-                </div>
-                <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.78rem', fontWeight: 800, padding: '5px 14px', borderRadius: 20, border: '1px solid #bfdbfe' }}>
-                  {filtered.length} ફાઇલો ઉપલબ્ધ
-                </span>
-              </div>
-
-              {/* ── 3 Quick Stats Mini Cards ── */}
-              <div className="material-stats-grid">
-                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #eff6ff, #ffffff)', border: '1.5px solid #bfdbfe' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+              {/* Header Title Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0b1329 0%, #1e3a8a 100%)',
+                borderRadius: 16,
+                padding: '16px 20px',
+                marginBottom: 16,
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+                boxShadow: '0 6px 20px rgba(11,19,41,0.25)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    boxShadow: '0 4px 12px rgba(56,189,248,0.3)',
+                    flexShrink: 0
+                  }}>
                     📁
                   </div>
                   <div>
-                    <div style={{ color: '#1e40af', fontSize: '0.74rem', fontWeight: 700 }}>કુલ સાહિત્ય</div>
-                    <div style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>{displayList.length} PDFs</div>
+                    <h2 style={{ fontSize: '1.18rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
+                      સ્ટડી મટીરીયલ અને મોડેલ પેપર્સ
+                    </h2>
+                    <p style={{ color: '#93c5fd', fontSize: '0.78rem', margin: '2px 0 0', fontWeight: 600 }}>
+                      TET-1 / TET-2 / TAT માટેના મહત્વપૂર્ણ PDF પુસ્તકો & શોર્ટ નોટ્સ
+                    </p>
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#fde047',
+                  fontSize: '0.78rem',
+                  fontWeight: 900,
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  border: '1px solid rgba(253,224,71,0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  ✨ <span>{filtered.length} ફાઇલો ઉપલબ્ધ</span>
+                </div>
+              </div>
+
+              {/* ── 3 Quick Stats Mini Cards (Responsive Mobile 3-in-Row) ── */}
+              <div className="material-stats-grid">
+                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1.5px solid #bfdbfe' }}>
+                  <div className="stat-icon-wrap" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                    📁
+                  </div>
+                  <div>
+                    <div className="stat-label" style={{ color: '#1e40af' }}>કુલ સાહિત્ય</div>
+                    <div className="stat-value">{displayList.length} PDFs</div>
                   </div>
                 </div>
 
-                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #faf5ff, #ffffff)', border: '1.5px solid #e9d5ff' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)', border: '1.5px solid #e9d5ff' }}>
+                  <div className="stat-icon-wrap" style={{ background: '#f3e8ff', color: '#6b21a8' }}>
                     📋
                   </div>
                   <div>
-                    <div style={{ color: '#6b21a8', fontSize: '0.74rem', fontWeight: 700 }}>મોડેલ પેપર્સ</div>
-                    <div style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>{modelPapersCount} સેટ</div>
+                    <div className="stat-label" style={{ color: '#6b21a8' }}>મોડેલ પેપર્સ</div>
+                    <div className="stat-value">{modelPapersCount} સેટ</div>
                   </div>
                 </div>
 
-                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #fefce8, #ffffff)', border: '1.5px solid #fef08a' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fef9c3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                <div className="card material-stat-card" style={{ background: 'linear-gradient(135deg, #fefce8 0%, #ffffff 100%)', border: '1.5px solid #fef08a' }}>
+                  <div className="stat-icon-wrap" style={{ background: '#fef9c3', color: '#854d0e' }}>
                     ⭐
                   </div>
                   <div>
-                    <div style={{ color: '#854d0e', fontSize: '0.74rem', fontWeight: 700 }}>IMP પરીક્ષા લક્ષી</div>
-                    <div style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>{specialTagCount} નોટ્સ</div>
+                    <div className="stat-label" style={{ color: '#854d0e' }}>IMP નોટ્સ</div>
+                    <div className="stat-value">{specialTagCount} ફાઇલો</div>
                   </div>
                 </div>
               </div>
 
               {/* ── Search & Horizontal Carousel Pills ── */}
-              <div className="card" style={{ padding: '14px 16px', marginBottom: 18, background: 'white', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8fafc', padding: '8px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                  <Search size={18} color="#64748b" />
+              <div className="card" style={{ padding: '12px 14px', marginBottom: 16, background: 'white', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8fafc', padding: '9px 14px', borderRadius: 12, border: '1.5px solid #e2e8f0' }}>
+                  <Search size={17} color="#64748b" />
                   <input
                     type="text"
                     placeholder="મટીરીયલ અથવા વિષય શોધો..."
                     value={materialSearch}
                     onChange={e => setMaterialSearch(e.target.value)}
-                    style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: '#0f172a', background: 'transparent' }}
+                    style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.88rem', color: '#0f172a', background: 'transparent' }}
                   />
+                  {materialSearch && (
+                    <button
+                      onClick={() => setMaterialSearch('')}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}>
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
 
                 {/* Scrollable Pills Carousel */}
@@ -3999,11 +4338,11 @@ export default function StudentDashboard() {
                         style={{
                           background: meta.bgGradient,
                           border: meta.border,
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.05)'
+                          boxShadow: '0 4px 18px rgba(0,0,0,0.06)'
                         }}>
                         <div>
                           {/* Top Badges */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{
                                 background: meta.badgeBg,
@@ -4012,96 +4351,42 @@ export default function StudentDashboard() {
                                 fontSize: '0.74rem',
                                 fontWeight: 900,
                                 padding: '3px 9px',
-                                borderRadius: 6
+                                borderRadius: 8,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
                               }}>
-                                {meta.icon} {typeLabel}
+                                <span>{meta.icon}</span> {typeLabel}
                               </span>
                               {mat.tag && (
-                                <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 6, border: '1px solid #fde68a' }}>
+                                <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.7rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, border: '1px solid #fde68a' }}>
                                   🏷️ {mat.tag}
                                 </span>
                               )}
                             </div>
 
-                            <span style={{ color: '#64748b', fontSize: '0.76rem', fontWeight: 700, background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <span style={{ color: '#475569', fontSize: '0.72rem', fontWeight: 800, background: 'rgba(255,255,255,0.85)', padding: '2.5px 8px', borderRadius: 6, border: '1px solid rgba(0,0,0,0.06)' }}>
                               💾 {sizeLabel}
                             </span>
                           </div>
 
-                          <h3 style={{ fontSize: '1.08rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.4 }}>
+                          <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.4 }}>
                             {mat.title}
                           </h3>
 
-                          <div style={{ color: meta.accentColor, fontSize: '0.82rem', fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>{meta.icon} વિષય:</span> {mat.subject || 'General'}
+                          <div style={{ color: meta.accentColor, fontSize: '0.8rem', fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>{meta.icon} વિષય:</span> {mat.subject || 'સામાન્ય જ્ઞાન'}
                           </div>
 
                           {mat.description && (
-                            <p style={{ color: '#64748b', fontSize: '0.82rem', lineHeight: 1.5, margin: '0 0 14px' }}>
+                            <p style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: 1.45, margin: '0 0 12px' }}>
                               {mat.description}
                             </p>
                           )}
                         </div>
 
-                        {/* Actions: Download PDF + Get in App */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 14 }}>
-                          {/* ── Direct Download Button (auto-saves to device Downloads) ── */}
-                          {downloadUrl && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  showToast?.('⬇️ ડાઉનલોડ શરૂ થઈ રહ્યું છે...', 'info');
-                                  const response = await fetch(downloadUrl, { mode: 'cors' });
-                                  if (!response.ok) throw new Error('fetch failed');
-                                  const blob = await response.blob();
-                                  const blobUrl = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = blobUrl;
-                                  const ext = downloadUrl.split('?')[0].split('.').pop().toLowerCase() || 'pdf';
-                                  const filename = `${(mat.title || 'material').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.${ext}`;
-                                  a.download = filename;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
-                                  setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
-                                  setDownloadPopup({ filename, type: 'material' });
-                                  setTimeout(() => setDownloadPopup(null), 5000);
-                                } catch {
-                                  // Fallback: direct anchor download (works for same-origin)
-                                  const ext = downloadUrl.split('?')[0].split('.').pop().toLowerCase() || 'pdf';
-                                  const filename = `${(mat.title || 'material').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.${ext}`;
-                                  const a = document.createElement('a');
-                                  a.href = downloadUrl;
-                                  a.download = filename;
-                                  a.target = '_self';
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
-                                  setDownloadPopup({ filename, type: 'material' });
-                                  setTimeout(() => setDownloadPopup(null), 5000);
-                                }
-                              }}
-                              style={{
-                                width: '100%',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '11px 16px',
-                                fontSize: '0.92rem',
-                                fontWeight: 900,
-                                background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-                                color: 'white',
-                                borderRadius: 10,
-                                border: 'none',
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
-                                transition: 'all 0.15s ease',
-                                fontFamily: 'inherit'
-                              }}>
-                              <Download size={17} /> ⬇️ PDF ડાઉનલોડ કરો (Download)
-                            </button>
-                          )}
+                        {/* Actions: Get in App */}
+                        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 12 }}>
                           {/* ── Get in App ── */}
                           <a
                             href={playAppUrl}
@@ -4117,12 +4402,13 @@ export default function StudentDashboard() {
                               textDecoration: 'none',
                               background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
                               color: 'white',
-                              borderRadius: 10,
+                              borderRadius: 12,
                               fontWeight: 900,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
-                              transition: 'all 0.15s ease'
+                              boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                              transition: 'all 0.15s ease',
+                              boxSizing: 'border-box'
                             }}>
                             <Smartphone size={17} /> 📱 એપ્લિકેશનમાં મેળવો (Get in App)
                           </a>
@@ -4141,106 +4427,499 @@ export default function StudentDashboard() {
         ═══════════════════════════════════════════════════════ */}
         {activeTab === 'teacher_support' && (
           <div className="animate-fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                  💭 શિક્ષક સહાય અને શંકા નિવારણ (Teacher Support)
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '2px 0 0' }}>
-                  પરીક્ષા, પ્રશ્નો કે તૈયારી અંગે સીધા શિક્ષકનો સંપર્ક કરો અને શંકાનું સમાધાન મેળવો.
-                </p>
+            {/* 👑 VIP Header Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0b1329 0%, #1e3a8a 60%, #1d4ed8 100%)',
+              borderRadius: 16,
+              padding: '18px 20px',
+              marginBottom: 16,
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+              boxShadow: '0 8px 24px rgba(11,19,41,0.3)',
+              border: '1px solid rgba(255,255,255,0.12)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
+                  flexShrink: 0
+                }}>
+                  👨‍🏫
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.22rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
+                    શિક્ષક સહાય & લાઈવ શંકા નિવારણ
+                  </h2>
+                  <p style={{ color: '#93c5fd', fontSize: '0.8rem', margin: '2px 0 0', fontWeight: 600 }}>
+                    સુનિલ સર અને વિષય નિષ્ણાતો સાથે સીધો સંપર્ક કરી શંકાનું સમાધાન મેળવો
+                  </p>
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(34,197,94,0.18)',
+                border: '1px solid #22c55e',
+                color: '#86efac',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                padding: '6px 14px',
+                borderRadius: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e', animation: 'pulse 1.5s infinite' }} />
+                <span>લાઈવ સપોર્ટ એક્ટિવ</span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 18 }}>
-              
-              {/* Left Box: Contact & Helplines */}
-              <div className="card" style={{ padding: 22, background: 'white', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', margin: '0 0 14px' }}>
-                  📞 ડાયરેક્ટ હેલ્પલાઇન & સંપર્ક
-                </h3>
+            {/* ── 3 Quick Action Helpline Cards ── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 12,
+              marginBottom: 18
+            }}>
+              {/* 1. Direct Call Card */}
+              <a
+                href="tel:8200405300"
+                style={{
+                  background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.08)',
+                  transition: 'all 0.2s ease'
+                }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(37,99,235,0.3)'
+                }}>
+                  <Phone size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>ડાયરેક્ટ કૉલ (Helpline)</div>
+                  <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#1e3a8a', letterSpacing: '0.3px' }}>8200405300</div>
+                  <div style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 800, marginTop: 1 }}>📞 1-ટેપ કૉલ કરો</div>
+                </div>
+              </a>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                  <a href="tel:8200405300" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px', background: '#eff6ff', borderRadius: 12, border: '1px solid #bfdbfe', textDecoration: 'none', color: '#1e3a8a' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: '#2563eb', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Phone size={20} />
+              {/* 2. WhatsApp Chat Card */}
+              <a
+                href="https://wa.me/918200405300?text=નમસ્તે%20સર,%20મને%20કસોટી%20અંગે%20માર્ગદર્શન%20જોઈએ%20છે."
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)',
+                  border: '1.5px solid #bbf7d0',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.08)',
+                  transition: 'all 0.2s ease'
+                }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #059669, #10b981)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(16,185,129,0.3)'
+                }}>
+                  <MessageSquare size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>WhatsApp ઈન્સ્ટન્ટ ચેટ</div>
+                  <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#15803d', letterSpacing: '0.3px' }}>+91 8200405300</div>
+                  <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 800, marginTop: 1 }}>⚡ ઝડપી પ્રત્યુત્તર મળશે</div>
+                </div>
+              </a>
+
+              {/* 3. Telegram Channel Card */}
+              <a
+                href="https://t.me/Trinetra_Online"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)',
+                  border: '1.5px solid #bae6fd',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(2,132,199,0.08)',
+                  transition: 'all 0.2s ease'
+                }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(2,132,199,0.3)'
+                }}>
+                  <Send size={18} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>સત્તાવાર Telegram</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0369a1', letterSpacing: '0.2px' }}>@Trinetra_Online</div>
+                  <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 800, marginTop: 1 }}>📢 રોજ નવા IMP પ્રશ્નો & PDF</div>
+                </div>
+              </a>
+
+              {/* 4. YouTube Channel Card */}
+              <a
+                href="https://youtube.com/@trinetra_academy100?si=o40zQ7nNp8bMptcU"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)',
+                  border: '1.5px solid #fecaca',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(239,68,68,0.08)',
+                  transition: 'all 0.2s ease'
+                }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #dc2626, #ef4444)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(239,68,68,0.3)',
+                  fontSize: '1.2rem',
+                  fontWeight: 900
+                }}>
+                  ▶
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>સત્તાવાર YouTube ચેનલ</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b91c1c', letterSpacing: '0.2px' }}>@trinetra_academy100</div>
+                  <div style={{ fontSize: '0.68rem', color: '#dc2626', fontWeight: 800, marginTop: 1 }}>🎥 વિડીયો લેક્ચર્સ & સોલ્યુશન</div>
+                </div>
+              </a>
+
+              {/* 5. Instagram Page Card */}
+              <a
+                href="https://www.instagram.com/trinetra_online_academy?igsh=d2JqYmE4eWNsNmts"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'linear-gradient(135deg, #fdf2f8 0%, #ffffff 100%)',
+                  border: '1.5px solid #fbcfe8',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(236,72,153,0.08)',
+                  transition: 'all 0.2s ease'
+                }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(236,72,153,0.3)',
+                  fontSize: '1.15rem'
+                }}>
+                  📷
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>સત્તાવાર Instagram</div>
+                  <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#9d174d', letterSpacing: '0.2px' }}>@trinetra_online_academy</div>
+                  <div style={{ fontSize: '0.68rem', color: '#db2777', fontWeight: 800, marginTop: 1 }}>📸 ડેઇલી ક્વિઝ & શોર્ટ ટિપ્સ</div>
+                </div>
+              </a>
+            </div>
+
+            {/* ── Main Two Column Grid: Support Hours + Ask Doubt Form ── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: 16
+            }}>
+              {/* Left Column: Director Bio & Timings */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Director Profile Card */}
+                <div className="card" style={{
+                  padding: '18px 20px',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                    <div style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      border: '2.5px solid #d97706',
+                      padding: 2,
+                      background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.6rem',
+                      boxShadow: '0 4px 10px rgba(217,119,6,0.25)',
+                      flexShrink: 0
+                    }}>
+                      🎓
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>કૉલ કરો (Calling Helpline)</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e3a8a' }}>8200405300</div>
+                      <div style={{ fontSize: '1.12rem', fontWeight: 900, color: '#1e3a8a' }}>
+                        સુનિલ સર (Sunil Sir)
+                      </div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#d97706' }}>
+                        Founder & Director • Trinetra Academy
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>
+                        TET / TAT & શૈક્ષણિક ભરતી માર્ગદર્શક
+                      </div>
                     </div>
-                  </a>
+                  </div>
 
-                  <a href="https://wa.me/918200405300?text=નમસ્તે%20સર,%20મને%20કસોટી%20અંગે%20માર્ગદર્શન%20જોઈએ%20છે." target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px', background: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', textDecoration: 'none', color: '#166534' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: '#16a34a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <MessageSquare size={20} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>WhatsApp ચેટ (Instant Reply)</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#166534' }}>+91 8200405300</div>
-                    </div>
-                  </a>
+                  <div style={{
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    fontSize: '0.8rem',
+                    color: '#1e40af',
+                    lineHeight: 1.5,
+                    fontStyle: 'italic'
+                  }}>
+                    💬 "તમારી કોઈપણ શંકા કે મુશ્કેલી હોય તો સંકોચ વિના પૂછો. તમારી સફળતા એ જ અમારું લક્ષ્ય છે!"
+                  </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                  <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }}>
-                    ⏰ સહાય સમય (Support Hours):
+                {/* Support Hours Card */}
+                <div className="card" style={{
+                  padding: '16px 18px',
+                  background: 'white',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 16,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    color: '#0f172a',
+                    fontWeight: 900,
+                    fontSize: '0.92rem',
+                    marginBottom: 10,
+                    borderBottom: '1px solid #f1f5f9',
+                    paddingBottom: 8
+                  }}>
+                    <Clock size={16} color="#d97706" /> ⏰ સહાય સમયપત્રક (Support Timings)
                   </div>
-                  <div style={{ color: '#64748b', fontSize: '0.8rem', lineHeight: 1.6 }}>
-                    • સવારે ૯:૦૦ થી રાત્રે ૮:૦૦ વાગ્યા સુધી<br />
-                    • રવિવારે મોક ટેસ્ટ દરમિયાન લાઈવ સપોર્ટ ઉપલબ્ધ
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f8fafc', borderRadius: 8 }}>
+                      <span style={{ color: '#475569', fontWeight: 700 }}>📅 સોમવાર - શનિવાર</span>
+                      <strong style={{ color: '#1e3a8a' }}>સવારે ૯:૦૦ થી રાત્રે ૮:૦૦</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #dcfce7' }}>
+                      <span style={{ color: '#166534', fontWeight: 800 }}>🏆 રવિવાર મોક ટેસ્ટ</span>
+                      <strong style={{ color: '#15803d' }}>સવારે ૮:૦૦ થી રાત્રે ૧૦:૦૦</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#fefce8', borderRadius: 8 }}>
+                      <span style={{ color: '#854d0e', fontWeight: 700 }}>⚡ પ્રત્યુત્તર સમય</span>
+                      <strong style={{ color: '#b45309' }}>૧૫ - ૩૦ મિનિટમાં</strong>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Box: Doubt Submission Form */}
-              <div className="card" style={{ padding: 22, background: 'white', border: '1.5px solid #bfdbfe' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e3a8a', margin: '0 0 4px' }}>
-                  ✍️ શિક્ષકને શંકા / પ્રશ્ન પૂછો (Ask Doubt)
-                </h3>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0 0 14px' }}>
-                  તમારો પ્રશ્ન લખો — તે સીધો શિક્ષકના WhatsApp પર મોકલવામાં આવશે.
+              {/* Right Column: Ask Doubt Form */}
+              <div className="card" style={{
+                padding: '18px 20px',
+                background: 'white',
+                border: '2px solid #bfdbfe',
+                borderRadius: 16,
+                boxShadow: '0 6px 20px rgba(37,99,235,0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.3rem' }}>✍️</span>
+                  <h3 style={{ fontSize: '1.08rem', fontWeight: 900, color: '#1e3a8a', margin: 0 }}>
+                    શિક્ષકને શંકા પૂછો (Ask Doubt)
+                  </h3>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '0 0 14px' }}>
+                  પ્રશ્ન લખો — તે વિગતવાર સીધો શિક્ષકના WhatsApp પર પહોંચી જશે.
                 </p>
 
                 {doubtSent && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '10px 14px', marginBottom: 14, color: '#15803d', fontSize: '0.85rem', fontWeight: 700 }}>
-                    ✅ તમારો પ્રશ્ન શિક્ષકને મોકલાઈ ગયો છે!
+                  <div style={{
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    marginBottom: 14,
+                    color: '#15803d',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}>
+                    <CheckCircle2 size={18} color="#16a34a" /> તમારો પ્રશ્ન શિક્ષકને WhatsApp પર મોકલાઈ ગયો છે!
                   </div>
                 )}
 
                 <form onSubmit={handleSendWhatsAppDoubt}>
+                  {/* Subject Dropdown */}
                   <div style={{ marginBottom: 12 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155', display: 'block', marginBottom: 4 }}>
-                      વિષય પસંદ કરો (Subject)
+                    <label style={{ fontWeight: 800, fontSize: '0.8rem', color: '#334155', display: 'block', marginBottom: 4 }}>
+                      વિષય પસંદ કરો (Subject):
                     </label>
-                    <select className="input-field" value={doubtSubject} onChange={e => setDoubtSubject(e.target.value)}>
-                      <option value="સામાન્ય શંકા (General)">સામાન્ય શંકા (General)</option>
-                      <option value="વિજ્ઞાન (Science)">વિજ્ઞાન (Science)</option>
-                      <option value="ગુજરાતી (Gujarati)">ગુજરાતી (Gujarati)</option>
-                      <option value="ગણિત (Maths)">ગણિત (Maths)</option>
-                      <option value="મનોવિજ્ઞાન (Psychology)">મનોવિજ્ઞાન (Psychology)</option>
-                      <option value="કસોટી અંગે પ્રશ્ન (Exam Doubt)">કસોટી અંગે પ્રશ્ન (Exam Doubt)</option>
+                    <select
+                      className="input-field"
+                      value={doubtSubject}
+                      onChange={e => setDoubtSubject(e.target.value)}
+                      style={{
+                        padding: '10px 12px',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        borderRadius: 10,
+                        border: '1.5px solid #cbd5e1',
+                        minHeight: 44
+                      }}>
+                      <option value="સામાન્ય શંકા (General)">🌟 સામાન્ય શંકા (General)</option>
+                      <option value="વિજ્ઞાન (Science)">🔬 વિજ્ઞાન (Science)</option>
+                      <option value="ગુજરાતી (Gujarati)">📖 ગુજરાતી વ્યાકરણ & સાહિત્ય</option>
+                      <option value="ગણિત (Maths)">📐 ગણિત & રીઝનીંગ</option>
+                      <option value="મનોવિજ્ઞાન (Psychology)">🧠 બાળ વિકાસ & મનોવિજ્ઞાન</option>
+                      <option value="કસોટી અંગે પ્રશ્ન (Exam Doubt)">📋 કસોટી પ્રશ્ન સોલ્યુશન શંકા</option>
                     </select>
                   </div>
 
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#334155', display: 'block', marginBottom: 4 }}>
+                  {/* Quick Preset Suggestion Chips */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: 5 }}>
+                      💡 ઝડપી પ્રશ્ન સૂચનો (Quick Suggestions):
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {[
+                        'પ્રશ્ન નં. માં સાચો જવાબ સમજાવો',
+                        'આ વિષયની તૈયારી કઈ રીતે કરવી?',
+                        'મોક ટેસ્ટ સ્કોર સુધારવા ટિપ્સ આપો'
+                      ].map((chipText) => (
+                        <button
+                          key={chipText}
+                          type="button"
+                          onClick={() => setDoubtText(prev => prev ? `${prev}\n${chipText}` : chipText)}
+                          style={{
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 14,
+                            padding: '4px 9px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: '#334155',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}>
+                          + {chipText}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Textarea */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.8rem', color: '#334155', display: 'block', marginBottom: 4 }}>
                       તમારો પ્રશ્ન અથવા શંકા અહીં લખો *
                     </label>
-                    <textarea className="input-field" rows={4}
-                      placeholder="દા.ત. સર, વિજ્ઞાનના પ્રશ્ન નં. ૪ માં સાચો જવાબ સમજાવો..."
+                    <textarea
+                      className="input-field"
+                      rows={3}
+                      placeholder="દા.ત. સર, વિજ્ઞાનના ટેસ્ટમાં પ્રશ્ન નં. ૪ ના સોલ્યુશન અંગે માર્ગદર્શન આપશો..."
                       value={doubtText}
                       onChange={e => setDoubtText(e.target.value)}
                       required
+                      style={{
+                        padding: '10px 12px',
+                        fontSize: '0.86rem',
+                        borderRadius: 10,
+                        border: '1.5px solid #cbd5e1',
+                        lineHeight: 1.4,
+                        minHeight: 80
+                      }}
                     />
                   </div>
 
-                  <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '0.95rem', gap: 8, background: 'linear-gradient(135deg,#1e3a8a,#2563eb)' }}>
-                    <Send size={16} /> 💬 શિક્ષકને WhatsApp પર મોકલો
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      padding: '12px 16px',
+                      fontSize: '0.92rem',
+                      fontWeight: 900,
+                      gap: 8,
+                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      borderRadius: 12,
+                      border: 'none',
+                      boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                      cursor: 'pointer'
+                    }}>
+                    <MessageSquare size={17} /> 💬 શિક્ષકને WhatsApp પર મોકલો →
                   </button>
                 </form>
               </div>
-
             </div>
           </div>
         )}

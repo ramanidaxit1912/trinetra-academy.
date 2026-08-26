@@ -1,8 +1,8 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
-const { generateScorecardPDF, generateScorecardPDFBuffer } = require('../services/pdfService');
-const { sendWhatsAppScorecardPDF } = require('../services/whatsappService');
+const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer } = require('../services/pdfService');
+const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF } = require('../services/whatsappService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -672,6 +672,94 @@ router.post('/:id/send-whatsapp', async (req, res) => {
   } catch (err) {
     console.error('Send WhatsApp Scorecard Error:', err);
     res.status(500).json({ error: 'WhatsApp સેન્ડ કરવામાં સર્વર ભૂલ.' });
+  }
+});
+
+// ─── POST /api/submissions/send-pragati-whatsapp ─────────────
+// Generate Pragati (Progress Report) PDF and send to student's WhatsApp
+router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
+  try {
+    const { studentId, studentName, mobile } = req.body;
+
+    const rawMobile = mobile || req.user?.mobile || '';
+    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
+      return res.status(400).json({ error: 'માન્ય ૧૦-અંકનો WhatsApp મોબાઈલ નંબર જરૂરી છે.' });
+    }
+
+    const targetStudentId = studentId ? parseInt(studentId) : (req.user?.id ? parseInt(req.user.id) : null);
+    
+    let student = null;
+    if (targetStudentId) {
+      student = await prisma.student.findUnique({ where: { id: targetStudentId } });
+    }
+    if (!student && cleanMobile) {
+      student = await prisma.student.findFirst({ where: { mobile: cleanMobile } });
+    }
+    if (!student && targetStudentId) {
+      student = { id: targetStudentId, name: studentName || req.user?.name || 'વિદ્યાર્થી', mobile: cleanMobile };
+    }
+    if (!student) {
+      return res.status(404).json({ error: 'વિદ્યાર્થી એકાઉન્ટ મળ્યું નથી.' });
+    }
+
+    const effectiveName = studentName || student.name || req.user?.name || 'વિદ્યાર્થી';
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        OR: [
+          ...(student.id ? [{ studentId: student.id }] : []),
+          ...(cleanMobile ? [{ student: { mobile: cleanMobile } }] : [])
+        ],
+        status: { not: 'IN_PROGRESS' },
+        mcqScore: { not: null }
+      },
+      orderBy: { submittedAt: 'desc' }
+    });
+
+    if (submissions.length === 0) {
+      return res.status(400).json({ error: 'આ વિદ્યાર્થીએ હજુ કોઈ કસોટી આપી નથી.' });
+    }
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { isActive: true, showInPdf: true },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const pdfBuffer = await generatePragatiReportPDFBuffer({
+      student: { name: effectiveName, mobile: cleanMobile },
+      submissions,
+      marketingItems
+    });
+
+    let sumScore = 0, sumTotal = 0;
+    submissions.forEach(s => {
+      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
+      const totalM = Number(s.totalMarks) > 0 ? Number(s.totalMarks) : Number(s.totalMCQ) > 0 ? Number(s.totalMCQ) : 20;
+      sumScore += Math.min(totalM, Math.max(0, score));
+      sumTotal += totalM;
+    });
+    const avgPct = sumTotal > 0 ? Math.min(100, Math.round((sumScore / sumTotal) * 100)) : 0;
+    const overallGrade = avgPct >= 90 ? 'A+ (ટોપર)' : avgPct >= 75 ? 'A (ઉત્કૃષ્ટ)' : avgPct >= 60 ? 'B (સક્ષમ)' : 'C (સુધારણા)';
+
+    const result = await sendWhatsAppPragatiPDF(
+      cleanMobile,
+      effectiveName,
+      submissions.length,
+      avgPct,
+      overallGrade,
+      pdfBuffer
+    );
+
+    if (result.success) {
+      console.log(`✅ [Pragati WhatsApp Sent] To: +91${cleanMobile} (${effectiveName})`);
+      return res.json({ success: true, message: `📊 પ્રગતિ રિપોર્ટ PDF WhatsApp (+91${cleanMobile}) પર સફળતાપૂર્વક મોકલ્યો!` });
+    } else {
+      return res.status(result.isOffline ? 503 : 500).json({ error: result.error, isOffline: result.isOffline });
+    }
+  } catch (err) {
+    console.error('Send Pragati WhatsApp Error:', err);
+    res.status(500).json({ error: 'Pragati WhatsApp: ' + (err.message || 'સર્વર ભૂલ') });
   }
 });
 
