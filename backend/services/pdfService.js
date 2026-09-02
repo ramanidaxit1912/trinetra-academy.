@@ -1394,7 +1394,8 @@ function generateScorecardPDF(data) {
 module.exports = {
   generateScorecardPDF,
   generateScorecardPDFBuffer,
-  generatePragatiReportPDFBuffer
+  generatePragatiReportPDFBuffer,
+  launchPdfBrowser
 };
 
 /**
