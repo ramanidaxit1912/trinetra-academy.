@@ -1,3 +1,8 @@
+let chromium;
+try {
+  chromium = require('@sparticuz/chromium');
+} catch (e) {}
+
 let puppeteer;
 try {
   puppeteer = require('puppeteer');
@@ -13,6 +18,40 @@ const os = require('os');
 
 async function launchPdfBrowser() {
   const tmpProfile = path.join(os.tmpdir(), `trinetra_pup_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  
+  function wrapBrowserCleanup(browser) {
+    const origClose = browser.close.bind(browser);
+    browser.close = async () => {
+      try { await origClose(); } catch (e) {}
+      try { fs.rmSync(tmpProfile, { recursive: true, force: true }); } catch (e) {}
+    };
+    return browser;
+  }
+
+  // 1. Linux Cloud Environment (Render / Heroku / Container): Use @sparticuz/chromium
+  if (process.platform === 'linux' && chromium) {
+    try {
+      const execPath = await chromium.executablePath();
+      console.log('[PDF Browser] Using @sparticuz/chromium on Linux:', execPath);
+      const browser = await puppeteer.launch({
+        args: [
+          ...chromium.args,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          `--user-data-dir=${tmpProfile}`
+        ],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: execPath,
+        headless: chromium.headless
+      });
+      return wrapBrowserCleanup(browser);
+    } catch (err) {
+      console.warn('[PDF Browser] @sparticuz/chromium launch note:', err.message);
+    }
+  }
+
   const baseArgs = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -26,16 +65,7 @@ async function launchPdfBrowser() {
     `--user-data-dir=${tmpProfile}`
   ];
 
-  function wrapBrowserCleanup(browser) {
-    const origClose = browser.close.bind(browser);
-    browser.close = async () => {
-      try { await origClose(); } catch (e) {}
-      try { fs.rmSync(tmpProfile, { recursive: true, force: true }); } catch (e) {}
-    };
-    return browser;
-  }
-
-  // 1. First try: Standard puppeteer.launch() (auto-detects bundled Chrome on Linux/Windows)
+  // 2. Standard Puppeteer launch (works out-of-the-box on Windows & installed Chrome)
   try {
     const browser = await puppeteer.launch({
       headless: true,
@@ -46,7 +76,7 @@ async function launchPdfBrowser() {
     console.warn('[PDF Browser] Standard launch failed, checking specific candidate paths...', err.message);
   }
 
-  // 2. Second try: Check resolved executable path from puppeteer
+  // 3. Check resolved executable path from puppeteer
   const candidatePaths = [];
   try {
     if (typeof puppeteer.executablePath === 'function') {
@@ -55,15 +85,13 @@ async function launchPdfBrowser() {
     }
   } catch (e) {}
 
-  // 3. Third try: Common Linux & Windows binary locations
+  // 4. Common Linux & Windows binary locations
   const osPaths = [
-    // Linux / Render cloud paths
     '/usr/bin/google-chrome',
     '/usr/bin/google-chrome-stable',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     '/snap/bin/chromium',
-    // Windows paths
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
