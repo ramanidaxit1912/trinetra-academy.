@@ -1090,10 +1090,10 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       console.error('Send WhatsApp Scorecard Error:', err);
-      const isOffline = err.response?.data?.isOffline;
+      const isOffline = err.response?.data?.isOffline || err.response?.status === 503;
       const errMsg = err.response?.data?.error || 'WhatsApp પર PDF મોકલવામાં ભૂલ આવી.';
       if (isOffline) {
-        alert('⚠️ એકેડેમીનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી પ્રયાસ કરો.');
+        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
         alert(`❌ ${errMsg}`);
       }
@@ -1615,10 +1615,10 @@ export default function StudentDashboard() {
         });
       }
     } catch (err) {
-      const isOffline = err.response?.data?.isOffline;
+      const isOffline = err.response?.data?.isOffline || err.response?.status === 503;
       const errMsg = err.response?.data?.error || 'WhatsApp પર Pragati Card મોકલવામાં ભૂલ.';
       if (isOffline) {
-        alert('⚠️ એકેડેમીનું WhatsApp હાલ ઑફલાઇન છે. કૃપા કરીને થોડીવાર પછી ફરી પ્રયાસ કરો.');
+        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
         alert(`❌ ${errMsg}`);
       }
