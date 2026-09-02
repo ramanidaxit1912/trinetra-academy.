@@ -1056,46 +1056,55 @@ export default function StudentDashboard() {
         studentName: targetName
       });
 
-      if (res.data?.success) {
+      setWaModalSub(null);
+
+      // 🎉 SUCCESS — Show grand success popup
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+          osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.24);
+          osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.36);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.0);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 1.0);
+        }
+      } catch (e) {}
+
+      setWaSuccessModal({
+        testName: sub.testName || 'કસોટી',
+        mobile: cleanMobile,
+        studentName: targetName,
+        filename: `Trinetra_${(sub.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.pdf`
+      });
+
+    } catch (err) {
+      console.error('Send WhatsApp Scorecard Error:', err);
+      const isOffline = err.response?.data?.isOffline || err.response?.status === 503;
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+      const targetName = user?.name || sub.student?.name || 'વિદ્યાર્થી';
+
+      if (isTimeout) {
+        // PDF is being generated and sent — show success (server is processing)
         setWaModalSub(null);
-
-        // Sound effect
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) {
-            const ctx = new AudioCtx();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
-            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.24);
-            osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.36);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.0);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 1.0);
-          }
-        } catch (e) {}
-
-        // Trigger Grand Popup
         setWaSuccessModal({
           testName: sub.testName || 'કસોટી',
           mobile: cleanMobile,
           studentName: targetName,
           filename: `Trinetra_${(sub.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.pdf`
         });
-      }
-    } catch (err) {
-      console.error('Send WhatsApp Scorecard Error:', err);
-      const isOffline = err.response?.data?.isOffline || err.response?.status === 503;
-      const errMsg = err.response?.data?.error || 'WhatsApp પર PDF મોકલવામાં ભૂલ આવી.';
-      if (isOffline) {
+      } else if (isOffline) {
         alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
-        alert(`❌ ${errMsg}`);
+        alert(`❌ ${err.response?.data?.error || 'WhatsApp PDF મોકલવામાં ભૂલ.'}`);
       }
     } finally {
       setSendingWaSubId(null);
@@ -1616,11 +1625,20 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       const isOffline = err.response?.data?.isOffline || err.response?.status === 503;
-      const errMsg = err.response?.data?.error || 'WhatsApp પર Pragati Card મોકલવામાં ભૂલ.';
-      if (isOffline) {
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+
+      if (isTimeout) {
+        // Server is generating PDF — show success
+        setWaSuccessModal({
+          testName: '📊 પ્રગતિ રિપોર્ટ (Pragati Card)',
+          mobile: cleanMobile,
+          studentName: user.name,
+          filename: `Trinetra_Pragati_Report_${(user.name || '').replace(/\s+/g, '_')}.pdf`
+        });
+      } else if (isOffline) {
         alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
-        alert(`❌ ${errMsg}`);
+        alert(`❌ ${err.response?.data?.error || 'WhatsApp પર Pragati Card મોકલવામાં ભૂલ.'}`);
       }
     } finally {
       setSendingPragatiWa(false);

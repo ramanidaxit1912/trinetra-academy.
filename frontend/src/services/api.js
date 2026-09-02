@@ -74,8 +74,8 @@ export const getTestWiseLeaderboard = () => api.get('/submissions/leaderboard/by
 
 export const gradeSubmission  = (id, d) => api.put(`/submissions/${id}/grade`, d);
 export const reEvaluateSubmissions = (data) => api.post('/submissions/re-evaluate', data);
-export const sendWhatsAppScorecard = (id, data = {}) => api.post(`/submissions/${id}/send-whatsapp`, data);
-export const sendPragatiWhatsApp   = (data = {})     => api.post('/submissions/send-pragati-whatsapp', data);
+export const sendWhatsAppScorecard = (id, data = {}) => api.post(`/submissions/${id}/send-whatsapp`, data, { timeout: 90000 });
+export const sendPragatiWhatsApp   = (data = {})     => api.post('/submissions/send-pragati-whatsapp', data, { timeout: 90000 });
 
 // ─── Upload ───────────────────────────────────────────────────
 export const uploadPhoto = (formData) =>
