@@ -29,6 +29,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static file serving for uploaded photos and materials
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ─── Root Check ───────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    app: 'Trinetra Online Academy Backend API',
+    health: '/api/health'
+  });
+});
+
 // ─── Routes ──────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionsRoutes);
