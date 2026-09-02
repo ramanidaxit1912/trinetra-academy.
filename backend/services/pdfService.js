@@ -3,10 +3,57 @@ const katex = require('katex');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
-const CHROME_PATH = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')
-  ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-  : 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const BROWSER_CANDIDATES = [
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+];
+
+async function launchPdfBrowser() {
+  const existingPaths = BROWSER_CANDIDATES.filter(p => fs.existsSync(p));
+  if (existingPaths.length === 0) {
+    throw new Error('No Chrome or Edge browser executable found on system.');
+  }
+
+  const tmpProfile = path.join(os.tmpdir(), `trinetra_pup_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+
+  for (const execPath of existingPaths) {
+    try {
+      const browser = await puppeteer.launch({
+        executablePath: execPath,
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--font-render-hinting=none',
+          `--user-data-dir=${tmpProfile}`
+        ]
+      });
+
+      // Attach cleanup hook to browser close
+      const origClose = browser.close.bind(browser);
+      browser.close = async () => {
+        try { await origClose(); } catch (e) {}
+        try { fs.rmSync(tmpProfile, { recursive: true, force: true }); } catch (e) {}
+      };
+
+      return browser;
+    } catch (e) {
+      console.warn(`[PDF Browser] Launch failed with ${execPath}, trying next...`, e.message);
+    }
+  }
+
+  throw new Error('Failed to launch any browser instance for PDF generation.');
+}
 
 const APP_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=co.bolton.unhnx';
 
@@ -1258,17 +1305,7 @@ async function generateScorecardPDFBuffer(data) {
   try {
     const html = await buildScorecardHTML(data);
 
-    browser = await puppeteer.launch({
-      executablePath: CHROME_PATH,
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--font-render-hinting=none'
-      ]
-    });
+    browser = await launchPdfBrowser();
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
@@ -1865,11 +1902,7 @@ async function generatePragatiReportPDFBuffer(data) {
   try {
     const html = await buildPragatiReportHTML(data);
 
-    browser = await puppeteer.launch({
-      executablePath: CHROME_PATH,
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--font-render-hinting=none']
-    });
+    browser = await launchPdfBrowser();
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
