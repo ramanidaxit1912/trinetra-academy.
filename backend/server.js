@@ -260,7 +260,8 @@ app.get('/api/test-pdf', async (req, res) => {
   };
 
   try {
-    const chromium = require('@sparticuz/chromium');
+    const cLib = require('@sparticuz/chromium');
+    const chromium = cLib.default || cLib;
     diag.hasChromiumPackage = true;
     try {
       diag.chromiumExecPath = await chromium.executablePath();

@@ -1,6 +1,7 @@
 let chromium;
 try {
-  chromium = require('@sparticuz/chromium');
+  const cLib = require('@sparticuz/chromium');
+  chromium = cLib.default || cLib;
 } catch (e) {}
 
 let puppeteer;
@@ -36,16 +37,16 @@ async function launchPdfBrowser() {
       console.log('[PDF Browser] Using @sparticuz/chromium on Linux:', execPath);
       const browser = await puppeteer.launch({
         args: [
-          ...chromium.args,
+          ...(chromium.args || []),
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-gpu',
           `--user-data-dir=${tmpProfile}`
         ],
-        defaultViewport: chromium.defaultViewport,
+        defaultViewport: chromium.defaultViewport || { width: 1200, height: 1600 },
         executablePath: execPath,
-        headless: chromium.headless
+        headless: true
       });
       return wrapBrowserCleanup(browser);
     } catch (err) {
