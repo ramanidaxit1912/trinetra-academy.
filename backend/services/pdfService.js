@@ -1,58 +1,95 @@
-const puppeteer = require('puppeteer-core');
+let puppeteer;
+try {
+  puppeteer = require('puppeteer');
+} catch (e) {
+  puppeteer = require('puppeteer-core');
+}
+
 const katex = require('katex');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const BROWSER_CANDIDATES = [
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
-];
-
 async function launchPdfBrowser() {
-  const existingPaths = BROWSER_CANDIDATES.filter(p => fs.existsSync(p));
-  if (existingPaths.length === 0) {
-    throw new Error('No Chrome or Edge browser executable found on system.');
+  const tmpProfile = path.join(os.tmpdir(), `trinetra_pup_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  const baseArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-extensions',
+    '--disable-background-networking',
+    '--font-render-hinting=none',
+    `--user-data-dir=${tmpProfile}`
+  ];
+
+  function wrapBrowserCleanup(browser) {
+    const origClose = browser.close.bind(browser);
+    browser.close = async () => {
+      try { await origClose(); } catch (e) {}
+      try { fs.rmSync(tmpProfile, { recursive: true, force: true }); } catch (e) {}
+    };
+    return browser;
   }
 
-  const tmpProfile = path.join(os.tmpdir(), `trinetra_pup_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  // 1. First try: Standard puppeteer.launch() (auto-detects bundled Chrome on Linux/Windows)
+  try {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: baseArgs
+    });
+    return wrapBrowserCleanup(browser);
+  } catch (err) {
+    console.warn('[PDF Browser] Standard launch failed, checking specific candidate paths...', err.message);
+  }
 
-  for (const execPath of existingPaths) {
+  // 2. Second try: Check resolved executable path from puppeteer
+  const candidatePaths = [];
+  try {
+    if (typeof puppeteer.executablePath === 'function') {
+      const p = await puppeteer.executablePath();
+      if (p && fs.existsSync(p)) candidatePaths.push(p);
+    }
+  } catch (e) {}
+
+  // 3. Third try: Common Linux & Windows binary locations
+  const osPaths = [
+    // Linux / Render cloud paths
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    // Windows paths
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+  ];
+
+  for (const p of osPaths) {
+    if (fs.existsSync(p) && !candidatePaths.includes(p)) {
+      candidatePaths.push(p);
+    }
+  }
+
+  for (const execPath of candidatePaths) {
     try {
       const browser = await puppeteer.launch({
         executablePath: execPath,
         headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--disable-extensions',
-          '--disable-background-networking',
-          '--font-render-hinting=none',
-          `--user-data-dir=${tmpProfile}`
-        ]
+        args: baseArgs
       });
-
-      // Attach cleanup hook to browser close
-      const origClose = browser.close.bind(browser);
-      browser.close = async () => {
-        try { await origClose(); } catch (e) {}
-        try { fs.rmSync(tmpProfile, { recursive: true, force: true }); } catch (e) {}
-      };
-
-      return browser;
+      return wrapBrowserCleanup(browser);
     } catch (e) {
-      console.warn(`[PDF Browser] Launch failed with ${execPath}, trying next...`, e.message);
+      console.warn(`[PDF Browser] Launch failed with ${execPath}:`, e.message);
     }
   }
 
-  throw new Error('Failed to launch any browser instance for PDF generation.');
+  throw new Error('No compatible Chrome/Edge browser found for PDF generation on server.');
 }
 
 const APP_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=co.bolton.unhnx';
