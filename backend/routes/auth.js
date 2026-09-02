@@ -118,15 +118,16 @@ router.post('/send-otp', async (req, res) => {
       console.warn('WhatsApp service trigger note:', waErr.message);
     }
 
-    if (process.env.OTP_MODE === 'dev') {
-      console.log(`\n📱 OTP for ${mobile} (${name}): ${otp}\n`);
-    }
+    const isDeliveredViaWhatsApp = Boolean(waResult?.success);
+    const shouldProvideScreenOtp = process.env.OTP_MODE === 'dev' || !isDeliveredViaWhatsApp;
 
     res.json({ 
       success: true, 
-      message: `OTP સફળતાપૂર્વક મોકલાયો છે.`,
-      whatsappSent: waResult?.success || false,
-      devOtp: process.env.OTP_MODE === 'dev' ? otp : undefined
+      message: isDeliveredViaWhatsApp 
+        ? `તમારા WhatsApp નંબર પર OTP સફળતાપૂર્વક મોકલાયો છે.`
+        : `WhatsApp હાલ ઑફલાઇન હોવાથી સ્ક્રીન પર સુરક્ષિત OTP દર્શાવવામાં આવ્યો છે.`,
+      whatsappSent: isDeliveredViaWhatsApp,
+      devOtp: shouldProvideScreenOtp ? otp : undefined
     });
   } catch (err) {
     console.error('Send OTP Error:', err);

@@ -584,6 +584,7 @@ export default function StudentDashboard() {
   const [name, setName]         = useState('');
   const [otp, setOtp]           = useState('');
   const [devOtp, setDevOtp]     = useState('');
+  const [otpDeliveryMsg, setOtpDeliveryMsg] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [authError, setAuthError]     = useState('');
@@ -891,6 +892,7 @@ export default function StudentDashboard() {
     try {
       const res = await sendOTP(valResult.cleaned, name);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
+      setOtpDeliveryMsg(res.data.message || (res.data.whatsappSent ? `📲 +91 ${mobile} ના WhatsApp પર OTP મોકલ્યો છે.` : ''));
       
       // ⚡ TRIGGER STAR FLOW ANIMATION & SPARKLE SOUND ⚡
       playCinematicSound('sparkle');
@@ -2139,13 +2141,36 @@ export default function StudentDashboard() {
                 </form>
               ) : (
                 <form onSubmit={handleVerifyOTP}>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '10px 14px', marginBottom: 16, textAlign: 'center', color: '#15803d', fontSize: '0.88rem', fontWeight: 700 }}>
-                    📲 +91 {mobile} પર 6-અંકનો OTP મોકલ્યો છે
+                  <div style={{ 
+                    background: devOtp ? '#eff6ff' : '#f0fdf4', 
+                    border: `1px solid ${devOtp ? '#bfdbfe' : '#86efac'}`, 
+                    borderRadius: 10, 
+                    padding: '10px 14px', 
+                    marginBottom: 16, 
+                    textAlign: 'center', 
+                    color: devOtp ? '#1e40af' : '#15803d', 
+                    fontSize: '0.88rem', 
+                    fontWeight: 700 
+                  }}>
+                    {otpDeliveryMsg || `📲 +91 ${mobile} પર 6-અંકનો OTP મોકલ્યો છે`}
                   </div>
 
                   {devOtp && (
-                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, padding: '8px 12px', marginBottom: 16, fontSize: '0.84rem', color: '#92400e', fontWeight: 800, textAlign: 'center' }}>
-                      🔧 Dev Mode OTP: <strong style={{ letterSpacing: '2px', fontSize: '1rem' }}>{devOtp}</strong>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', 
+                      border: '2px dashed #f59e0b', 
+                      borderRadius: 12, 
+                      padding: '12px 14px', 
+                      marginBottom: 16, 
+                      textAlign: 'center',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)'
+                    }}>
+                      <div style={{ fontSize: '0.82rem', color: '#92400e', fontWeight: 800, marginBottom: 4 }}>
+                        ⚡ લૉગિન OTP (સુરક્ષિત પ્રવેશ):
+                      </div>
+                      <div style={{ letterSpacing: '4px', fontSize: '1.35rem', color: '#b45309', fontWeight: 900, fontFamily: 'monospace' }}>
+                        {devOtp}
+                      </div>
                     </div>
                   )}
 

@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/whatsapp",
+      "destination": "https://trinetra-backend-4qni.onrender.com/whatsapp"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://trinetra-backend-4qni.onrender.com/api/:path*"
     },
