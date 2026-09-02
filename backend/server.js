@@ -251,6 +251,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ─── Test PDF Diagnostic Route ────────────────────────────────
+app.get('/api/test-pdf', async (req, res) => {
+  try {
+    const { launchPdfBrowser } = require('./services/pdfService');
+    const browser = await launchPdfBrowser();
+    const ver = await browser.version();
+    await browser.close();
+    res.json({ success: true, browserVersion: ver, timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('Test PDF Error:', err);
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
+
 // ─── 404 Handler ──────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

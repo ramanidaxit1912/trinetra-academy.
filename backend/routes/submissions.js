@@ -671,7 +671,7 @@ router.post('/:id/send-whatsapp', async (req, res) => {
     }
   } catch (err) {
     console.error('Send WhatsApp Scorecard Error:', err);
-    res.status(500).json({ error: 'WhatsApp સેન્ડ કરવામાં સર્વર ભૂલ.' });
+    res.status(500).json({ error: 'WhatsApp સેન્ડ કરવામાં સર્વર ભૂલ: ' + (err.message || '') });
   }
 });
 
