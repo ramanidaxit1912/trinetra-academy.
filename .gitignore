@@ -8,3 +8,5 @@ dist/
 frontend/dist/
 backend/uploads/
 *.log
+backend/whatsapp_session/
+.system_generated/
