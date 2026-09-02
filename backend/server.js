@@ -253,15 +253,34 @@ app.get('/api/health', (req, res) => {
 
 // ─── Test PDF Diagnostic Route ────────────────────────────────
 app.get('/api/test-pdf', async (req, res) => {
+  const diag = {
+    platform: process.platform,
+    nodeVersion: process.version,
+    env: process.env.NODE_ENV
+  };
+
+  try {
+    const chromium = require('@sparticuz/chromium');
+    diag.hasChromiumPackage = true;
+    try {
+      diag.chromiumExecPath = await chromium.executablePath();
+      diag.execExists = require('fs').existsSync(diag.chromiumExecPath);
+    } catch (e) {
+      diag.chromiumExecError = e.message;
+    }
+  } catch (e) {
+    diag.hasChromiumPackage = false;
+    diag.chromiumRequireError = e.message;
+  }
+
   try {
     const { launchPdfBrowser } = require('./services/pdfService');
     const browser = await launchPdfBrowser();
-    const ver = await browser.version();
+    diag.browserVersion = await browser.version();
     await browser.close();
-    res.json({ success: true, browserVersion: ver, timestamp: new Date().toISOString() });
+    res.json({ success: true, diag });
   } catch (err) {
-    console.error('Test PDF Error:', err);
-    res.status(500).json({ error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, error: err.message, stack: err.stack, diag });
   }
 });
 

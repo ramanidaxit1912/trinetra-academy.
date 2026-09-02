@@ -18,6 +18,7 @@ const os = require('os');
 
 async function launchPdfBrowser() {
   const tmpProfile = path.join(os.tmpdir(), `trinetra_pup_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  const errors = [];
   
   function wrapBrowserCleanup(browser) {
     const origClose = browser.close.bind(browser);
@@ -48,6 +49,7 @@ async function launchPdfBrowser() {
       });
       return wrapBrowserCleanup(browser);
     } catch (err) {
+      errors.push(`Sparticuz: ${err.message}`);
       console.warn('[PDF Browser] @sparticuz/chromium launch note:', err.message);
     }
   }
@@ -113,11 +115,12 @@ async function launchPdfBrowser() {
       });
       return wrapBrowserCleanup(browser);
     } catch (e) {
+      errors.push(`Candidate ${execPath}: ${e.message}`);
       console.warn(`[PDF Browser] Launch failed with ${execPath}:`, e.message);
     }
   }
 
-  throw new Error('No compatible Chrome/Edge browser found for PDF generation on server.');
+  throw new Error('No compatible Chrome/Edge browser found for PDF generation on server. Errors: ' + (errors.length ? errors.join(' || ') : 'None tried'));
 }
 
 const APP_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=co.bolton.unhnx';
