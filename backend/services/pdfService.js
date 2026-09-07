@@ -1370,8 +1370,20 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
 let sharedBrowser = null;
 let sharedBrowserLaunching = null;
 
+function isBrowserAlive(b) {
+  if (!b) return false;
+  try {
+    if (typeof b.isConnected === 'function') return b.isConnected();
+    if (typeof b.connected === 'boolean') return b.connected;
+    const proc = typeof b.process === 'function' ? b.process() : null;
+    return proc ? !proc.killed : true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function getOrCreateBrowser() {
-  if (sharedBrowser && sharedBrowser.isConnected()) {
+  if (isBrowserAlive(sharedBrowser)) {
     return sharedBrowser;
   }
   if (sharedBrowserLaunching) {
