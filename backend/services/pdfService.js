@@ -1378,7 +1378,7 @@ async function generateScorecardPDFBuffer(data) {
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -1405,6 +1405,30 @@ async function generateScorecardPDFBuffer(data) {
 }
 
 /**
+ * Pre-warm PDF Engine on server boot in background to eliminate 1st-click cold start
+ */
+let isWarming = false;
+let isWarmed = false;
+
+async function prewarmPdfEngine() {
+  if (isWarming || isWarmed) return;
+  isWarming = true;
+  console.log('⚡ [PDF Engine] Pre-warming Chromium in background for instant student downloads...');
+  try {
+    const b = await launchPdfBrowser();
+    const p = await b.newPage();
+    await p.setContent('<!DOCTYPE html><html><body><h1>Trinetra Warmup</h1></body></html>', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await b.close();
+    isWarmed = true;
+    console.log('✅ [PDF Engine] Chromium pre-warmed successfully. 1st-click will be instant!');
+  } catch (e) {
+    console.warn('⚠️ [PDF Engine Warmup Note]:', e.message);
+  } finally {
+    isWarming = false;
+  }
+}
+
+/**
  * Stream PDF for direct download route
  */
 function generateScorecardPDF(data) {
@@ -1427,7 +1451,8 @@ module.exports = {
   generateScorecardPDF,
   generateScorecardPDFBuffer,
   generatePragatiReportPDFBuffer,
-  launchPdfBrowser
+  launchPdfBrowser,
+  prewarmPdfEngine
 };
 
 /**
@@ -1976,7 +2001,7 @@ async function generatePragatiReportPDFBuffer(data) {
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 2 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 18000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

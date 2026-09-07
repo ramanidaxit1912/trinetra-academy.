@@ -11,6 +11,7 @@ const teacherRoutes = require('./routes/teacher');
 const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
 const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp } = require('./services/whatsappService');
+const { prewarmPdfEngine } = require('./services/pdfService');
 
 const app = express();
 const PORT = process.env.PORT || 8085;
@@ -324,4 +325,6 @@ setInterval(async () => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Trinetra Academy Backend started: http://localhost:${PORT}`);
   console.log(`📊 API Health: http://localhost:${PORT}/api/health`);
+  // Pre-warm Chromium in background so 1st student click is instant
+  setTimeout(prewarmPdfEngine, 5000);
 });
