@@ -3,6 +3,9 @@ const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 let waSocket = null;
 let qrCodeDataUrl = null;
@@ -14,8 +17,91 @@ if (!fs.existsSync(sessionDir)) {
   fs.mkdirSync(sessionDir, { recursive: true });
 }
 
+// ─── Helper: Clean Indian Mobile number safely ─────────────────
+function cleanIndianMobile(rawMobile) {
+  const digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return digits.slice(1);
+  }
+  return digits;
+}
+
+// ─── Supabase Persistent Session Storage ──────────────────────
+async function ensureDbSessionTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+        id VARCHAR(255) PRIMARY KEY,
+        data TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp DB Table Check Note]:', e.message);
+  }
+}
+
+async function restoreSessionFromDb() {
+  try {
+    await ensureDbSessionTable();
+    const rows = await prisma.$queryRawUnsafe(`SELECT id, data FROM whatsapp_sessions`);
+    if (rows && rows.length > 0) {
+      console.log(`📥 [WhatsApp Session] Restoring ${rows.length} session files from Database...`);
+      if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      }
+      for (const row of rows) {
+        fs.writeFileSync(path.join(sessionDir, row.id), row.data, 'utf8');
+      }
+      console.log('✅ [WhatsApp Session] Session restored from Database successfully.');
+    } else {
+      console.log('ℹ️ [WhatsApp Session] No saved session in Database. Ready for QR scan.');
+    }
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Session Restore Note]:', e.message);
+  }
+}
+
+async function saveSessionToDb() {
+  try {
+    if (!fs.existsSync(sessionDir)) return;
+    const files = fs.readdirSync(sessionDir);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const filePath = path.join(sessionDir, file);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf8');
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO whatsapp_sessions (id, data, updated_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
+          `, file, content);
+        }
+      }
+    }
+    console.log(`💾 [WhatsApp Session] Persisted ${files.length} session files to Database.`);
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Session Save Note]:', e.message);
+  }
+}
+
+async function clearSessionFromDb() {
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM whatsapp_sessions`);
+    console.log('🗑️ [WhatsApp Session] Cleared session from Database.');
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Session Clear Note]:', e.message);
+  }
+}
+
 async function initWhatsApp() {
   try {
+    // 1. Restore persistent session from Supabase Database to local disk
+    await restoreSessionFromDb();
+
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
     const { version } = await fetchLatestBaileysVersion();
 
@@ -29,7 +115,10 @@ async function initWhatsApp() {
       browser: ['Trinetra Academy Portal', 'Chrome', '1.0.0']
     });
 
-    waSocket.ev.on('creds.update', saveCreds);
+    waSocket.ev.on('creds.update', async () => {
+      await saveCreds();
+      await saveSessionToDb();
+    });
 
     waSocket.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -43,18 +132,23 @@ async function initWhatsApp() {
       }
 
       if (connection === 'close') {
-        const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+        const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         connectionStatus = 'DISCONNECTED';
         qrCodeDataUrl = null;
-        console.log('🔴 [WhatsApp Bridge] Connection closed. Reconnecting:', shouldReconnect);
+        console.log('🔴 [WhatsApp Bridge] Connection closed. StatusCode:', statusCode, 'Reconnecting:', shouldReconnect);
         if (shouldReconnect) {
           setTimeout(initWhatsApp, 4000);
+        } else {
+          await clearSessionFromDb();
         }
       } else if (connection === 'open') {
         connectionStatus = 'CONNECTED';
         qrCodeDataUrl = null;
         connectedPhone = waSocket.user?.id?.split(':')[0] || 'Active';
         console.log('✅ [WhatsApp Bridge] 100% Connected successfully as:', connectedPhone);
+        // Persist full session to Database on successful connection
+        setTimeout(saveSessionToDb, 2000);
       }
     });
 
@@ -68,7 +162,7 @@ async function initWhatsApp() {
  * Send automated OTP message via connected WhatsApp
  */
 async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર્થી') {
-  const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
 
   const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*
@@ -104,7 +198,7 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
  * Send Scorecard PDF document buffer directly to student WhatsApp from teacher's connected session
  */
 async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, totalMarks, pdfBuffer) {
-  const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
 
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
@@ -161,7 +255,7 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
  * Send Pragati Report (Progress Certificate) PDF document buffer directly to student WhatsApp
  */
 async function sendWhatsAppPragatiPDF(mobile, studentName, totalTests, avgScore, overallGrade, pdfBuffer) {
-  const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
 
   const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*
@@ -216,6 +310,7 @@ async function logoutWhatsApp() {
     if (fs.existsSync(sessionDir)) {
       fs.rmSync(sessionDir, { recursive: true, force: true });
     }
+    await clearSessionFromDb();
     connectionStatus = 'DISCONNECTED';
     qrCodeDataUrl = null;
     connectedPhone = null;

@@ -113,7 +113,7 @@ router.post('/send-otp', async (req, res) => {
     let waResult = { success: false };
     try {
       const { sendWhatsAppOTP } = require('../services/whatsappService');
-      waResult = await sendWhatsAppOTP(mobile, otp, name || 'વિદ્યાર્થી');
+      waResult = await sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી');
     } catch (waErr) {
       console.warn('WhatsApp service trigger note:', waErr.message);
     }
@@ -124,7 +124,7 @@ router.post('/send-otp', async (req, res) => {
     res.json({ 
       success: true, 
       message: isDeliveredViaWhatsApp 
-        ? `તમારા WhatsApp નંબર પર OTP સફળતાપૂર્વક મોકલાયો છે.`
+        ? `તમારા WhatsApp નંબર (+91 ${cleanMobile}) પર OTP સફળતાપૂર્વક મોકલાયો છે.`
         : `WhatsApp હાલ ઑફલાઇન હોવાથી સ્ક્રીન પર સુરક્ષિત OTP દર્શાવવામાં આવ્યો છે.`,
       whatsappSent: isDeliveredViaWhatsApp,
       devOtp: shouldProvideScreenOtp ? otp : undefined
