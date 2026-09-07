@@ -204,11 +204,11 @@ router.post('/verify-otp', async (req, res) => {
       create: { mobile, name, currentSessionId: sessionId, lastLoginAt: new Date() }
     });
 
-    // Generate JWT with embedded sessionId
+    // Generate JWT with embedded sessionId (10-hour student session)
     const token = jwt.sign(
       { id: student.id, mobile: student.mobile, name: student.name, sessionId, role: 'student' },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '10h' }
     );
 
     res.json({
