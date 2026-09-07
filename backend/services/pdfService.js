@@ -1366,109 +1366,56 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
 </html>`;
 }
 
-// ─── High-Performance Persistent Chromium Browser Instance ───
-let sharedBrowser = null;
-let sharedBrowserLaunching = null;
-
-function isBrowserAlive(b) {
-  if (!b) return false;
-  try {
-    if (typeof b.isConnected === 'function') return b.isConnected();
-    if (typeof b.connected === 'boolean') return b.connected;
-    const proc = typeof b.process === 'function' ? b.process() : null;
-    return proc ? !proc.killed : true;
-  } catch (e) {
-    return false;
-  }
-}
-
-async function getOrCreateBrowser() {
-  if (isBrowserAlive(sharedBrowser)) {
-    return sharedBrowser;
-  }
-  if (sharedBrowserLaunching) {
-    return sharedBrowserLaunching;
-  }
-
-  sharedBrowserLaunching = (async () => {
-    try {
-      if (sharedBrowser) {
-        try { await sharedBrowser.close(); } catch (e) {}
-        sharedBrowser = null;
-      }
-      console.log('🚀 [PDF Engine] Launching high-performance Chromium instance...');
-      sharedBrowser = await launchPdfBrowser();
-      sharedBrowser.on('disconnected', () => {
-        console.log('🔄 [PDF Engine] Shared browser closed/disconnected. Will auto-restart on next PDF.');
-        sharedBrowser = null;
-      });
-      return sharedBrowser;
-    } finally {
-      sharedBrowserLaunching = null;
-    }
-  })();
-
-  return sharedBrowserLaunching;
-}
-
-/**
- * Generate PDF Buffer using Persistent Puppeteer and Chrome (Ultra-fast 3-4s)
- */
-async function generateScorecardPDFBuffer(data) {
-  let page = null;
-  try {
-    const html = await buildScorecardHTML(data);
-    const browser = await getOrCreateBrowser();
-
-    page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 45000 });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '12mm',
-        bottom: '12mm',
-        left: '10mm',
-        right: '10mm'
-      }
-    });
-
-    await page.close();
-    page = null;
-
-    return Buffer.from(pdfBuffer);
-  } catch (err) {
-    if (page) {
-      try { await page.close(); } catch (e) {}
-    }
-    console.error('Puppeteer PDF Generation Error:', err);
-    throw err;
-  }
-}
-
-/**
- * Pre-warm PDF Engine on server boot in background to eliminate 1st-click cold start
- */
+// ─── Pre-warm state ───────────────────────────────────────────
 let isWarming = false;
 let isWarmed = false;
 
+/**
+ * Pre-warm PDF Engine on server boot to eliminate 1st-click cold start delay
+ */
 async function prewarmPdfEngine() {
   if (isWarming || isWarmed) return;
   isWarming = true;
-  console.log('⚡ [PDF Engine] Pre-warming persistent Chromium in background...');
+  console.log('⚡ [PDF Engine] Pre-warming Chromium so 1st student PDF click is instant...');
   try {
-    const browser = await getOrCreateBrowser();
-    const page = await browser.newPage();
-    await page.setContent('<!DOCTYPE html><html><body><h1>Trinetra Warmup</h1></body></html>', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.close();
+    const b = await launchPdfBrowser();
+    const p = await b.newPage();
+    await p.setContent('<!DOCTYPE html><html><body><h1>Trinetra Warmup</h1></body></html>', {
+      waitUntil: 'domcontentloaded', timeout: 30000
+    });
+    await b.close();
     isWarmed = true;
-    console.log('✅ [PDF Engine] Persistent Chromium is hot and ready for 3s PDF generation!');
+    console.log('✅ [PDF Engine] Chromium warmed and ready!');
   } catch (e) {
-    console.warn('⚠️ [PDF Engine Warmup Note]:', e.message);
+    console.warn('⚠️ [PDF Engine Warmup]:', e.message);
   } finally {
     isWarming = false;
+  }
+}
+
+/**
+ * Generate Scorecard PDF Buffer (simple reliable per-request launch)
+ */
+async function generateScorecardPDFBuffer(data) {
+  let browser = null;
+  try {
+    const html = await buildScorecardHTML(data);
+    browser = await launchPdfBrowser();
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '12mm', bottom: '12mm', left: '10mm', right: '10mm' }
+    });
+    await browser.close();
+    browser = null;
+    return Buffer.from(pdfBuffer);
+  } catch (err) {
+    if (browser) { try { await browser.close(); } catch (e) {} }
+    console.error('Puppeteer Scorecard PDF Error:', err);
+    throw err;
   }
 }
 
@@ -2037,14 +1984,13 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
  * Generate Pragati Report (Progress Certificate) PDF buffer using Persistent Puppeteer (Ultra-fast)
  */
 async function generatePragatiReportPDFBuffer(data) {
-  let page = null;
+  let browser = null;
   try {
     const html = await buildPragatiReportHTML(data);
-    const browser = await getOrCreateBrowser();
-
-    page = await browser.newPage();
+    browser = await launchPdfBrowser();
+    const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -2052,11 +1998,11 @@ async function generatePragatiReportPDFBuffer(data) {
       margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
     });
 
-    await page.close();
-    page = null;
+    await browser.close();
+    browser = null;
     return Buffer.from(pdfBuffer);
   } catch (err) {
-    if (page) { try { await page.close(); } catch(e) {} }
+    if (browser) { try { await browser.close(); } catch(e) {} }
     console.error('Pragati Report PDF Error:', err);
     throw err;
   }
