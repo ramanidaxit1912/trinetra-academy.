@@ -97,6 +97,23 @@ async function clearSessionFromDb() {
   }
 }
 
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+let sessionSaveInterval = null;
+let connectionWatchdog = null;
+
+function scheduleReconnect() {
+  if (reconnectTimer) return; // already scheduled
+  // Exponential backoff: 4s, 8s, 16s, 32s, max 60s
+  const delay = Math.min(4000 * Math.pow(2, reconnectAttempts), 60000);
+  reconnectAttempts++;
+  console.log(`🔄 [WhatsApp] Reconnecting in ${Math.round(delay/1000)}s (attempt #${reconnectAttempts})...`);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    initWhatsApp();
+  }, delay);
+}
+
 async function initWhatsApp() {
   try {
     // 1. Restore persistent session from Supabase Database to local disk
@@ -107,12 +124,21 @@ async function initWhatsApp() {
 
     connectionStatus = 'CONNECTING';
 
+    // Close old socket cleanly if re-initializing
+    if (waSocket) {
+      try { waSocket.end(); } catch (e) {}
+      waSocket = null;
+    }
+
     waSocket = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
       auth: state,
       printQRInTerminal: true,
-      browser: ['Trinetra Academy Portal', 'Chrome', '1.0.0']
+      browser: ['Trinetra Academy Portal', 'Chrome', '1.0.0'],
+      keepAliveIntervalMs: 30000,  // Ping WhatsApp server every 30s to keep connection alive
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
     });
 
     waSocket.ev.on('creds.update', async () => {
@@ -133,28 +159,59 @@ async function initWhatsApp() {
 
       if (connection === 'close') {
         const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         connectionStatus = 'DISCONNECTED';
         qrCodeDataUrl = null;
-        console.log('🔴 [WhatsApp Bridge] Connection closed. StatusCode:', statusCode, 'Reconnecting:', shouldReconnect);
-        if (shouldReconnect) {
-          setTimeout(initWhatsApp, 4000);
-        } else {
+        connectedPhone = null;
+        console.log('🔴 [WhatsApp Bridge] Connection closed. StatusCode:', statusCode, 'LoggedOut:', isLoggedOut);
+
+        // Stop periodic session save
+        if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
+        if (connectionWatchdog) { clearInterval(connectionWatchdog); connectionWatchdog = null; }
+
+        if (isLoggedOut) {
           await clearSessionFromDb();
+          reconnectAttempts = 0; // Reset for fresh QR scan
+          scheduleReconnect(); // Will show QR again
+        } else {
+          scheduleReconnect(); // Auto-reconnect with backoff
         }
       } else if (connection === 'open') {
         connectionStatus = 'CONNECTED';
         qrCodeDataUrl = null;
         connectedPhone = waSocket.user?.id?.split(':')[0] || 'Active';
+        reconnectAttempts = 0; // Reset backoff on successful connection
         console.log('✅ [WhatsApp Bridge] 100% Connected successfully as:', connectedPhone);
+
         // Persist full session to Database on successful connection
         setTimeout(saveSessionToDb, 2000);
+
+        // ── Periodic session save every 5 minutes (keeps session fresh in DB) ──
+        if (sessionSaveInterval) clearInterval(sessionSaveInterval);
+        sessionSaveInterval = setInterval(async () => {
+          if (connectionStatus === 'CONNECTED') {
+            await saveSessionToDb();
+            console.log('💾 [WhatsApp] Periodic session backup saved to DB.');
+          }
+        }, 5 * 60 * 1000); // Every 5 minutes
+
+        // ── Connection Watchdog: if socket goes stale, force reconnect ──
+        if (connectionWatchdog) clearInterval(connectionWatchdog);
+        connectionWatchdog = setInterval(() => {
+          if (connectionStatus !== 'CONNECTED') {
+            console.log('🐕 [WhatsApp Watchdog] Status not CONNECTED, triggering reconnect...');
+            clearInterval(connectionWatchdog);
+            connectionWatchdog = null;
+            scheduleReconnect();
+          }
+        }, 60 * 1000); // Check every 60 seconds
       }
     });
 
   } catch (err) {
     console.error('WhatsApp Init Error:', err);
     connectionStatus = 'DISCONNECTED';
+    scheduleReconnect();
   }
 }
 

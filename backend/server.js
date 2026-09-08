@@ -327,4 +327,21 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 API Health: http://localhost:${PORT}/api/health`);
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
+
+  // ── Self-ping every 10 minutes to prevent Render free tier from sleeping ──
+  // This keeps WhatsApp connection alive 24/7
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-backend-4qni.onrender.com`;
+  if (process.env.NODE_ENV === 'production') {
+    setInterval(async () => {
+      try {
+        const http = require('https');
+        http.get(`${SELF_URL}/api/health`, (res) => {
+          console.log(`💓 [Keep-Alive] Self-ping OK (${res.statusCode}) - Server staying awake`);
+        }).on('error', (e) => {
+          console.warn(`⚠️ [Keep-Alive] Self-ping failed: ${e.message}`);
+        });
+      } catch (e) {}
+    }, 10 * 60 * 1000); // Every 10 minutes
+    console.log(`💓 [Keep-Alive] Self-ping scheduled every 10 min → ${SELF_URL}/api/health`);
+  }
 });
