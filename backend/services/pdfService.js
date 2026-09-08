@@ -220,7 +220,42 @@ function resolveImageSrc(imgStr) {
     }
   }
 
-  return trimmed;
+  // If remote URL, return as-is
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  // If local file was not found on disk, return empty string so it doesn't render a broken image
+  return '';
+}
+
+// Async helper: Convert remote URLs (Cloudinary) or local paths to Base64 data URLs
+async function resolveImageSrcAsync(imgStr) {
+  if (!imgStr || typeof imgStr !== 'string') return '';
+  const trimmed = imgStr.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:image/')) return trimmed;
+
+  // Pre-fetch remote Cloudinary/HTTP images to Base64 so Puppeteer prints them immediately without network delay
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(trimmed, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = res.headers.get('content-type') || 'image/jpeg';
+        return `data:${contentType};base64,${buffer.toString('base64')}`;
+      }
+    } catch (e) {
+      console.warn('[PDF Image Fetch Note]:', trimmed, e.message);
+    }
+    return trimmed;
+  }
+
+  return resolveImageSrc(trimmed);
 }
 
 // Helper: Get Base64 Data URL for an image file
@@ -340,16 +375,16 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
                     getImageBase64('../frontend/public/logo.png') || 
                     getImageBase64('uploads/logo.jpg');
 
-  // Process ONLY teacher marketing items / posters that are made live for PDF
+  // Process teacher marketing items / posters that are made live for PDF
   const renderedPosters = [];
   if (Array.isArray(marketingItems) && marketingItems.length > 0) {
-    marketingItems.forEach(item => {
+    for (const item of marketingItems) {
       // Must be active and explicitly enabled for PDF
-      if (item.isActive === false || item.showInPdf === false) return;
+      if (item.isActive === false || item.showInPdf === false) continue;
 
       let imgUrl = item.imageUrl || item.image;
-      let b64 = resolveImageSrc(imgUrl);
-      if (b64 || item.title) {
+      let b64 = await resolveImageSrcAsync(imgUrl);
+      if (b64) {
         renderedPosters.push({
           title: item.title || '',
           subtitle: item.subtitle || '',
@@ -361,10 +396,33 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
           imageDataUrl: b64
         });
       }
-    });
+      if (renderedPosters.length >= 2) break;
+    }
   }
 
-  // Display EXACTLY and ONLY the posters the teacher has set live
+  // ── Automatic Fallback to Official Trinetra Academy Posters ──
+  // If no valid poster was found (e.g. wiped uploads or none configured),
+  // automatically show high-definition official academy posters from git!
+  if (renderedPosters.length === 0) {
+    const defaultCandidates = [
+      { title: 'TET-2 ગણિત સ્પેશિયલ (ધોરણ ૬-૮) મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_maths.png' },
+      { title: 'TET-2 વિજ્ઞાન & ટેકનોલોજી મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_science.png' },
+      { title: 'TET-2 સામાજિક વિજ્ઞાન મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_social.png' },
+      { title: 'ગુજરાતી વર્ણનાત્મક & વ્યાકરણ PDF પેકેજ', path: '../frontend/public/images/poster_gujarati.png' }
+    ];
+    for (const def of defaultCandidates) {
+      const b64 = getImageBase64(def.path);
+      if (b64) {
+        renderedPosters.push({
+          title: def.title,
+          imageDataUrl: b64
+        });
+        break;
+      }
+    }
+  }
+
+  // Display the posters (custom or official fallback)
   const displayPosters = renderedPosters;
 
   // Resolve Green Arrow Image Base64
@@ -1555,10 +1613,32 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
     for (const item of marketingItems) {
       if (item.isActive !== false && item.showInPdf !== false && (item.imageUrl || item.image)) {
         const imgPath = item.imageUrl || item.image;
-        const imgDataUrl = resolveImageSrc(imgPath);
+        const imgDataUrl = await resolveImageSrcAsync(imgPath);
         if (imgDataUrl) displayPosters.push({ ...item, imageDataUrl: imgDataUrl });
       }
       if (displayPosters.length >= 2) break;
+    }
+  }
+
+  // ── Automatic Fallback to Official Trinetra Academy Posters ──
+  // If no valid poster was found (e.g. wiped uploads or none configured),
+  // automatically show high-definition official academy posters from git!
+  if (displayPosters.length === 0) {
+    const defaultCandidates = [
+      { title: 'TET-2 ગણિત સ્પેશિયલ (ધોરણ ૬-૮) મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_maths.png' },
+      { title: 'TET-2 વિજ્ઞાન & ટેકનોલોજી મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_science.png' },
+      { title: 'TET-2 સામાજિક વિજ્ઞાન મોક ટેસ્ટ સિરીઝ', path: '../frontend/public/images/poster_social.png' },
+      { title: 'ગુજરાતી વર્ણનાત્મક & વ્યાકરણ PDF પેકેજ', path: '../frontend/public/images/poster_gujarati.png' }
+    ];
+    for (const def of defaultCandidates) {
+      const b64 = getImageBase64(def.path);
+      if (b64) {
+        displayPosters.push({
+          title: def.title,
+          imageDataUrl: b64
+        });
+        break;
+      }
     }
   }
 
