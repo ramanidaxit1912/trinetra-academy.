@@ -1403,7 +1403,7 @@ async function generateScorecardPDFBuffer(data) {
     browser = await launchPdfBrowser();
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 60000 });
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -1451,6 +1451,15 @@ module.exports = {
  * Matches the client-side StudentDashboard handlePrintProgressReport + Royal Scorecard brochure
  */
 async function buildPragatiReportHTML({ student, submissions, marketingItems = [] }) {
+  // Load same Gujarati fonts as Scorecard (Hind Vadodara base64 from backend/fonts)
+  let fontRegularB64 = null, fontBoldB64 = null;
+  try {
+    const regPath = path.join(__dirname, '../fonts/HindVadodara-Regular.ttf');
+    const boldPath = path.join(__dirname, '../fonts/HindVadodara-Bold.ttf');
+    if (fs.existsSync(regPath)) { fontRegularB64 = fs.readFileSync(regPath).toString('base64'); }
+    if (fs.existsSync(boldPath)) { fontBoldB64 = fs.readFileSync(boldPath).toString('base64'); }
+  } catch (e) {}
+
   // Generate real scannable QR Code Data URL for Play Store App URL
   let qrDataUrl = '';
   try {
@@ -1558,10 +1567,38 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
 <head>
   <meta charset="UTF-8">
   <title>Trinetra Progress Report - ${student.name}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
+    ${fontRegularB64 ? `
+      @font-face {
+        font-family: 'HindVadodara';
+        font-weight: 400;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontRegularB64}) format('truetype');
+      }
+    ` : ''}
+    ${fontBoldB64 ? `
+      @font-face {
+        font-family: 'HindVadodara';
+        font-weight: 700;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'HindVadodara';
+        font-weight: 800;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'HindVadodara';
+        font-weight: 900;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+    ` : ''}
     @page { size: A4; margin: 8mm 10mm; }
     * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: ${fontRegularB64 ? "'HindVadodara'" : "'Noto Sans Gujarati'"}, 'Noto Sans Gujarati', 'Segoe UI', system-ui, sans-serif; padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
     
     .watermark-bg {
       position: absolute;
@@ -1990,7 +2027,7 @@ async function generatePragatiReportPDFBuffer(data) {
     browser = await launchPdfBrowser();
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
