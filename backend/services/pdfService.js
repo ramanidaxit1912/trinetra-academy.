@@ -1402,8 +1402,8 @@ async function generateScorecardPDFBuffer(data) {
     const html = await buildScorecardHTML(data);
     browser = await launchPdfBrowser();
     const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -1573,6 +1573,11 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
   <style>
     ${fontRegularB64 ? `
       @font-face {
+        font-family: 'Hind Vadodara';
+        font-weight: 400;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontRegularB64}) format('truetype');
+      }
+      @font-face {
         font-family: 'HindVadodara';
         font-weight: 400;
         src: url(data:font/truetype;charset=utf-8;base64,${fontRegularB64}) format('truetype');
@@ -1580,13 +1585,28 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
     ` : ''}
     ${fontBoldB64 ? `
       @font-face {
-        font-family: 'HindVadodara';
+        font-family: 'Hind Vadodara';
         font-weight: 700;
         src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
       }
       @font-face {
         font-family: 'HindVadodara';
+        font-weight: 700;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'Hind Vadodara';
         font-weight: 800;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'HindVadodara';
+        font-weight: 800;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'Hind Vadodara';
+        font-weight: 900;
         src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
       }
       @font-face {
@@ -1597,7 +1617,10 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
     ` : ''}
     @page { size: A4; margin: 8mm 10mm; }
     * { box-sizing: border-box; }
-    body { font-family: ${fontRegularB64 ? "'HindVadodara'" : "'Noto Sans Gujarati'"}, 'Noto Sans Gujarati', 'Segoe UI', system-ui, sans-serif; padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body, table, th, td, div, span, h1, h2, h3, h4, p, strong, text {
+      font-family: 'Hind Vadodara', 'HindVadodara', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body { padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
     
     .watermark-bg {
@@ -2026,8 +2049,8 @@ async function generatePragatiReportPDFBuffer(data) {
     const html = await buildPragatiReportHTML(data);
     browser = await launchPdfBrowser();
     const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
-    await page.setContent(html, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

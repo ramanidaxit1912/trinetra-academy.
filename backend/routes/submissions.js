@@ -569,6 +569,9 @@ router.post('/:id/send-whatsapp', async (req, res) => {
       where: { id },
       include: { student: true }
     });
+    if (!submission) {
+      return res.status(404).json({ error: 'કસોટી સબમિશન મળ્યું નથી.' });
+    }
     const cleanReqMobile = String(req.body.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
     const cleanSubMobile = String(submission.student?.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
     const studentMobile = (cleanReqMobile && cleanReqMobile !== '9999999999' && cleanReqMobile.length === 10)
