@@ -3,28 +3,14 @@ const { PrismaClient } = require('@prisma/client');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadToCloudinary, deleteFromCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Ensure posters directory exists inside uploads
-const posterDir = path.join(__dirname, '..', 'uploads', 'posters');
-if (!fs.existsSync(posterDir)) {
-  fs.mkdirSync(posterDir, { recursive: true });
-}
-
-// Multer config for posters & banners
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, posterDir),
-  filename: (req, file, cb) => {
-    const cleanOriginal = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueName = `poster_${Date.now()}_${cleanOriginal}`;
-    cb(null, uniqueName);
-  }
-});
-
+// Use memory storage — file goes to Cloudinary, not local disk
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
 });
 
@@ -217,7 +203,23 @@ router.post('/', upload.single('posterFile'), async (req, res) => {
 
     let finalImageUrl = imageUrl || '';
     if (req.file) {
-      finalImageUrl = `/uploads/posters/${req.file.filename}`;
+      if (isCloudinaryConfigured()) {
+        try {
+          const result = await uploadToCloudinary(req.file.buffer, 'trinetra/posters', req.file.originalname);
+          finalImageUrl = result.url;
+          console.log('☁️ [Cloudinary] Poster uploaded:', finalImageUrl);
+        } catch (e) {
+          console.error('[Cloudinary] Upload failed:', e.message);
+          return res.status(500).json({ error: 'ઈમેજ Cloudinary પર upload થઈ શકી નહીં: ' + e.message });
+        }
+      } else {
+        // Fallback: local disk (only works locally, not on Render)
+        const posterDir = path.join(__dirname, '..', 'uploads', 'posters');
+        if (!fs.existsSync(posterDir)) fs.mkdirSync(posterDir, { recursive: true });
+        const fname = `poster_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        fs.writeFileSync(path.join(posterDir, fname), req.file.buffer);
+        finalImageUrl = `/uploads/posters/${fname}`;
+      }
     }
 
     const newItem = await prisma.marketingItem.create({
@@ -285,7 +287,27 @@ router.put('/:id', upload.single('posterFile'), async (req, res) => {
 
     let finalImageUrl = existing.imageUrl;
     if (req.file) {
-      finalImageUrl = `/uploads/posters/${req.file.filename}`;
+      if (isCloudinaryConfigured()) {
+        try {
+          // Upload new image to Cloudinary
+          const result = await uploadToCloudinary(req.file.buffer, 'trinetra/posters', req.file.originalname);
+          finalImageUrl = result.url;
+          console.log('☁️ [Cloudinary] Poster updated:', finalImageUrl);
+          // Delete old Cloudinary image if it was from Cloudinary
+          if (existing.imageUrl && existing.imageUrl.includes('cloudinary.com')) {
+            await deleteFromCloudinary(existing.imageUrl);
+          }
+        } catch (e) {
+          console.error('[Cloudinary] Upload failed:', e.message);
+          return res.status(500).json({ error: 'ઈમેજ Cloudinary પર upload થઈ શકી નહીં: ' + e.message });
+        }
+      } else {
+        const posterDir = path.join(__dirname, '..', 'uploads', 'posters');
+        if (!fs.existsSync(posterDir)) fs.mkdirSync(posterDir, { recursive: true });
+        const fname = `poster_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        fs.writeFileSync(path.join(posterDir, fname), req.file.buffer);
+        finalImageUrl = `/uploads/posters/${fname}`;
+      }
     } else if (imageUrl !== undefined) {
       finalImageUrl = imageUrl;
     }

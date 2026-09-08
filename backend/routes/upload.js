@@ -3,26 +3,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authMiddleware } = require('../middleware/authMiddleware');
+const { uploadToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
 
-// Ensure uploads directory exists
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueName = `photo_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
-
+// Use memory storage — file goes to Cloudinary or local fallback
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -31,18 +18,38 @@ const upload = multer({
 });
 
 // ─── POST /api/upload/photo ───────────────────────────────────
-// Upload descriptive answer photo
-router.post('/photo', authMiddleware, upload.single('photo'), (req, res) => {
+// Upload descriptive answer photo — permanent via Cloudinary
+router.post('/photo', authMiddleware, upload.single('photo'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Photo file જરૂરી છે.' });
   }
 
-  const photoUrl = `/uploads/${req.file.filename}`;
-  res.json({
-    success: true,
-    photoUrl,
-    message: 'ફોટો અપલોડ સફળ!'
-  });
+  try {
+    let photoUrl;
+
+    if (isCloudinaryConfigured()) {
+      // Upload to Cloudinary — permanent, survives Render restarts
+      const result = await uploadToCloudinary(req.file.buffer, 'trinetra/photos', req.file.originalname);
+      photoUrl = result.url;
+      console.log('☁️ [Cloudinary] Photo uploaded:', photoUrl);
+    } else {
+      // Fallback: local disk (for local dev only)
+      const uploadDir = process.env.UPLOAD_DIR || './uploads';
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const uniqueName = `photo_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(req.file.originalname)}`;
+      fs.writeFileSync(path.join(uploadDir, uniqueName), req.file.buffer);
+      photoUrl = `/uploads/${uniqueName}`;
+    }
+
+    res.json({
+      success: true,
+      photoUrl,
+      message: 'ફોટો અપલોડ સફળ!'
+    });
+  } catch (err) {
+    console.error('[Upload] Photo upload error:', err);
+    res.status(500).json({ error: 'ફોટો અપલોડ કરવામાં ભૂલ: ' + err.message });
+  }
 });
 
 // Error handler for multer
@@ -57,3 +64,4 @@ router.use((err, req, res, next) => {
 });
 
 module.exports = router;
+
