@@ -10,7 +10,7 @@ import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
-  getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem
+  getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
 } from '../services/api';
 import {
   LogOut, Plus, Trash2, Eye, CheckCircle, Users, Clock, BarChart2, Edit3, Play, Square,
@@ -10945,7 +10945,7 @@ function MarketingManager({ showToast }) {
                 {/* Mobile Responsive Image Container */}
                 <div onClick={() => item.imageUrl && setZoomImg(item.imageUrl)} style={{ height: 170, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: item.imageUrl ? 'zoom-in' : 'default', position: 'relative' }}>
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0f172a' }} onError={e => { e.target.src = '/images/logo.jpg'; }} />
+                    <img src={getImageSrc(item.imageUrl)} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0f172a' }} onError={e => { e.target.src = '/images/logo.jpg'; }} />
                   ) : (
                     <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}>🖼️ ઇમેજ નથી (Edit પર ક્લિક કરી ફોટો ઉમેરો)</div>
                   )}

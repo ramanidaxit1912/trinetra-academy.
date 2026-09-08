@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { getMarketingItems } from '../services/api';
+import { getMarketingItems, getImageSrc } from '../services/api';
 import { ChevronLeft, ChevronRight, Sparkles, ExternalLink, Maximize2, X, Ticket, Copy, Check } from 'lucide-react';
 
 const DEFAULT_CAROUSEL = [
@@ -255,7 +255,7 @@ export default function HomePage() {
                 </div>
 
                 <img
-                  src={currentPoster.imageUrl}
+                  src={getImageSrc(currentPoster.imageUrl)}
                   alt={currentPoster.title || 'Marketing Poster'}
                   style={{
                     width: '100%', height: '100%',
@@ -716,7 +716,7 @@ function OfferCard({ offer, onZoom }) {
             title="ક્લિક કરીને ફુલ સાઈઝ મોટું પોસ્ટર જુઓ (Zoom HD)"
           >
             <img
-              src={imageUrl}
+              src={getImageSrc(imageUrl)}
               alt={title || 'Course Poster'}
               style={{
                 maxWidth: '100%',

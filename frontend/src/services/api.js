@@ -1,9 +1,33 @@
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace('/api', '')
+  : '';
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000,
 });
+
+/**
+ * Resolve image URL — handles both:
+ *   - Cloudinary URLs: https://res.cloudinary.com/... → returned as-is ✅
+ *   - Old local paths: /uploads/posters/... → prepended with backend URL ✅
+ *   - Public images: /images/... → returned as-is ✅
+ */
+export function getImageSrc(url) {
+  if (!url) return '';
+  // Already absolute URL (Cloudinary, http/https) — use as-is
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  // Local /uploads/ path — prepend backend base URL
+  if (url.startsWith('/uploads/')) {
+    return `${API_BASE}${url}`;
+  }
+  // Public assets (/images/, etc.) — use as-is
+  return url;
+}
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
