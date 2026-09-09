@@ -37,6 +37,12 @@ async function authMiddleware(req, res, next) {
 
     next();
   } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        code: 'TOKEN_EXPIRED',
+        error: 'તમારું ૮-કલાકનું લોગિન સત્ર પૂર્ણ થયું છે. સુરક્ષા માટે ફરીથી લોગિન કરો.'
+      });
+    }
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 }

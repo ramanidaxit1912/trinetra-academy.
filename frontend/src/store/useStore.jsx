@@ -98,8 +98,8 @@ export function StoreProvider({ children }) {
 
     const interval = setInterval(() => {
       checkSession().catch((err) => {
-        if (err.response?.data?.code === 'SESSION_TERMINATED') {
-          const msg = err.response.data.error;
+        if (err.response?.status === 401) {
+          const msg = err.response?.data?.error || '⚠️ તમારું લોગિન સત્ર સમાપ્ત થયું છે. કૃપા કરીને ફરીથી લોગિન કરો.';
           setSessionAlert(msg);
           logout();
         }

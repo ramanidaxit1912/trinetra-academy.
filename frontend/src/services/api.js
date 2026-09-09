@@ -42,13 +42,16 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       const isSessionTerminated = err.response?.data?.code === 'SESSION_TERMINATED';
-      const errMsg = err.response?.data?.error || '⚠️ તમારું એકાઉન્ટ અન્ય ડિવાઇસમાં લોગિન થયું છે.';
+      const isTokenExpired = err.response?.data?.code === 'TOKEN_EXPIRED';
+      const errMsg = err.response?.data?.error || (isTokenExpired
+        ? '⚠️ તમારું ૮-કલાકનું લોગિન સત્ર પૂર્ણ થયું છે. સુરક્ષા માટે ફરીથી લોગિન કરો.'
+        : '⚠️ તમારું એકાઉન્ટ અન્ય ડિવાઇસમાં લોગિન થયું છે.');
       
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('role');
 
-      if (isSessionTerminated) {
+      if (isSessionTerminated || isTokenExpired) {
         sessionStorage.setItem('session_terminated_msg', errMsg);
         window.dispatchEvent(new CustomEvent('session-terminated', { detail: errMsg }));
       }
