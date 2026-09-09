@@ -53,15 +53,19 @@ router.get('/export-csv', authMiddleware, teacherOnly, async (req, res) => {
     });
 
     let csv = '\uFEFF'; // UTF-8 BOM for Gujarati
-    csv += 'ક્રમ,વિદ્યાર્થીનું નામ,મોબાઈલ,MCQ સ્કોર,કુલ MCQ,ટકાવારી,શિક્ષક Marks,Comment,સબમિશન સમય\n';
+    csv += 'ક્રમ,વિદ્યાર્થીનું નામ,મોબાઈલ,કસોટીનું નામ,વિષય,MCQ સ્કોર,કુલ MCQ,ટકાવારી,શિક્ષક Marks,Comment,સબમિશન સમય\n';
 
     submissions.forEach((sub, idx) => {
+      const studentName = sub.student?.name || 'વિદ્યાર્થી';
+      const studentMobile = sub.student?.mobile || '';
+      const testTitle = sub.testName || 'સામાન્ય કસોટી';
+      const subjectName = sub.subject || 'સામાન્ય';
       const pct = sub.totalMCQ > 0
         ? Math.round((sub.mcqScore / sub.totalMCQ) * 100)
         : 'N/A';
       const time = new Date(sub.submittedAt).toLocaleString('gu-IN');
 
-      csv += `${idx + 1},"${sub.student.name}","${sub.student.mobile}",${sub.mcqScore ?? ''},${sub.totalMCQ ?? ''},${pct},"${sub.teacherMarks || ''}","${sub.remarks || ''}","${time}"\n`;
+      csv += `${idx + 1},"${studentName}","${studentMobile}","${testTitle}","${subjectName}",${sub.mcqScore ?? ''},${sub.totalMCQ ?? ''},${pct},"${sub.teacherMarks || ''}","${sub.remarks || ''}","${time}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
