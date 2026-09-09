@@ -298,8 +298,7 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Background Job: Auto-activate Scheduled Tests Every 10 Seconds ──
-const { PrismaClient } = require('@prisma/client');
-const cronPrisma = new PrismaClient();
+const cronPrisma = require('./prismaClient');
 
 setInterval(async () => {
   try {

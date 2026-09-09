@@ -1,10 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ─── Helper: Generate 6-digit OTP ────────────────────────────
 function generateOTP() {
@@ -82,7 +81,7 @@ router.post('/send-otp', async (req, res) => {
 
   const cleanMobile = validation.cleaned;
 
-  // Rate Limiting: Check if an OTP was sent in last 45 seconds to this mobile
+  // 1. Cooldown Rate Limiting: Check if an OTP was sent in last 45 seconds to this mobile
   const recentOtp = await prisma.oTPSession.findFirst({
     where: {
       mobile: cleanMobile,
@@ -92,6 +91,20 @@ router.post('/send-otp', async (req, res) => {
 
   if (recentOtp) {
     return res.status(429).json({ error: 'થોડીવાર રાહ જુઓ. તમે 45 સેકન્ડ પછી જ નવો OTP મંગાવી શકો છો.' });
+  }
+
+  // 2. Daily Security Guard: Maximum 6 OTPs per mobile in 24 hours to prevent spam/abuse
+  const dailyOtpCount = await prisma.oTPSession.count({
+    where: {
+      mobile: cleanMobile,
+      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }
+  });
+
+  if (dailyOtpCount >= 6) {
+    return res.status(429).json({
+      error: '⚠️ તમારી દૈનિક OTP મર્યાદા (૬ OTP) પૂર્ણ થઈ ગઈ છે. સુરક્ષા માટે કૃપા કરીને આવતીકાલે પ્રયાસ કરો અથવા હેલ્પલાઇન 8200405300 પર સંપર્ક કરો.'
+    });
   }
 
   try {

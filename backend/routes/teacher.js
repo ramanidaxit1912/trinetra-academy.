@@ -1,9 +1,8 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ─── GET /api/teacher/stats ───────────────────────────────────
 // Dashboard stats: total questions, submissions, pending grades

@@ -1,11 +1,10 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer } = require('../services/pdfService');
 const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF } = require('../services/whatsappService');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ─── Helper: Auto-calculate MCQ score with Negative Marking (Supports Option E / Skip) ────
 function calculateMCQScore(answers, questions) {

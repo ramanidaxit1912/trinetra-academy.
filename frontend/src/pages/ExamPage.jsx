@@ -280,6 +280,11 @@ export default function ExamPage() {
 
   // ─── Final Submit with Popup & Dashboard Redirect ─────────
   const handleFinalSubmit = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setError('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ સબમિટ થઈ જશે.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -307,6 +312,7 @@ export default function ExamPage() {
       // Clear local storage progress upon successful completion
       try {
         localStorage.removeItem(`trinetra_exam_progress_${user?.mobile || 'guest'}_${targetTestCode}`);
+        localStorage.removeItem(`trinetra_exam_q_timers_${user?.mobile || 'guest'}_${targetTestCode}`);
       } catch (e) {}
 
       finishExam(res.data.submission);

@@ -1,12 +1,11 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { uploadToCloudinary, deleteFromCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Use memory storage — file goes to Cloudinary, not local disk
 const upload = multer({

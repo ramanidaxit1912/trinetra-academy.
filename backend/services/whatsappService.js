@@ -3,9 +3,7 @@ const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../prismaClient');
 
 let waSocket = null;
 let qrCodeDataUrl = null;

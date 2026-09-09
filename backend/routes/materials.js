@@ -1,11 +1,10 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Ensure materials directory exists inside uploads
 const uploadDir = path.join(__dirname, '..', 'uploads', 'materials');

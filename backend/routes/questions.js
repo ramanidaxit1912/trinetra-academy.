@@ -1,5 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
@@ -23,7 +23,6 @@ const uploadOcr = multer({ storage: ocrStorage, limits: { fileSize: 15 * 1024 * 
 
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Helper to auto-activate scheduled tests whose time has arrived
 async function autoActivateScheduledTests() {

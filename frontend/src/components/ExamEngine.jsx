@@ -74,6 +74,8 @@ export default function ExamEngine({ onFinish }) {
   const [securityWarning, setSecurityWarning] = useState('');
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [showReconnectedToast, setShowReconnectedToast] = useState(false);
   const timerRef = useRef(null);
 
   // ─── 🔊 Web Audio Procedural Slide Whoosh Sound ───────────
@@ -250,6 +252,73 @@ export default function ExamEngine({ onFinish }) {
     questionStartTimeRef.current = Date.now();
   }, [currentIndex]);
 
+  // ─── Offline-Safe Auto-Restore on Mount ─────────────────────
+  // If in-memory answers are empty (e.g. after refresh or mobile data cut),
+  // immediately restore all saved answers from localStorage!
+  useEffect(() => {
+    if (!activeTestCode || Object.keys(answers || {}).length > 0) return;
+    try {
+      const storageKey = `trinetra_exam_progress_${user?.mobile || 'guest'}_${activeTestCode}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.answers && Object.keys(parsed.answers).length > 0) {
+          Object.entries(parsed.answers).forEach(([qId, ansData]) => {
+            recordAnswer(Number(qId), ansData);
+          });
+          if (parsed.currentIndex !== undefined && parsed.currentIndex > 0) {
+            setCurrentIndex(parsed.currentIndex);
+          }
+        }
+      }
+    } catch (e) {}
+  }, [activeTestCode, user, answers, recordAnswer, setCurrentIndex]);
+
+  // ─── Live Network Online/Offline Monitor & Auto-Sync ─────────
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowReconnectedToast(true);
+      setTimeout(() => setShowReconnectedToast(false), 4500);
+      // Immediately sync latest answers to backend
+      const storageKey = `trinetra_exam_progress_${user?.mobile || 'guest'}_${activeTestCode}`;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved && user) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.answers) {
+            saveTestProgress({
+              testCode: activeTestCode,
+              testName: activeTestName,
+              subject: activeSubject,
+              currentIndex,
+              savedAnswers: parsed.answers,
+              answers: Object.entries(parsed.answers).map(([qId, ans]) => ({
+                questionId: Number(qId),
+                type: 'mcq',
+                selectedOpt: ans.selectedOpt || null,
+                answerText: ans.answerText || '',
+                timeSpent: ans.timeSpent || 0
+              }))
+            }).then(() => setSaveStatus('saved')).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSaveStatus('offline_saved');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user, activeTestCode, activeTestName, activeSubject, currentIndex]);
+
   // ─── Auto-advance when Per-Question Timer hits 0 ────────────
   const goNextAuto = useCallback(() => {
     setCurrentIndex(prev => {
@@ -333,9 +402,12 @@ export default function ExamEngine({ onFinish }) {
     return -1;
   })();
 
-  // ─── Navigation Actions ─────────────────────────────────────
   const goNext = useCallback(() => {
     if (currentIndex >= totalQ - 1) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        alert('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\n\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ પેપર સબમિટ થઈ જશે.');
+        return;
+      }
       onFinish();
     } else {
       // Find the next available unexpired question
@@ -430,6 +502,52 @@ export default function ExamEngine({ onFinish }) {
       {/* ── Main Question Area ── */}
       <div className="exam-main">
 
+        {/* 📡 Live Offline Protection Banner */}
+        {!isOnline && (
+          <div className="animate-fade-in" style={{
+            background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            borderRadius: 12,
+            marginBottom: 12,
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: '0 4px 14px rgba(217,119,6,0.3)',
+            border: '1.5px solid #fde68a'
+          }}>
+            <span style={{ fontSize: '1.25rem' }}>📡</span>
+            <div style={{ flex: 1 }}>
+              તમારું ઇન્ટરનેટ હાલ બંધ છે. <strong>ચિંતા ન કરશો — તમારા બધા જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે!</strong> નેટ આવતાં જ આપોઆપ સિંક થશે.
+            </div>
+          </div>
+        )}
+
+        {/* 🟢 Reconnected Success Banner */}
+        {showReconnectedToast && (
+          <div className="animate-fade-in" style={{
+            background: 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            borderRadius: 12,
+            marginBottom: 12,
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+            border: '1.5px solid #86efac'
+          }}>
+            <span style={{ fontSize: '1.25rem' }}>✅</span>
+            <div style={{ flex: 1 }}>
+              ઇન્ટરનેટ ફરીથી કનેક્ટ થઈ ગયું છે! બધા જવાબો સર્વર સાથે સિંક થઈ ગયા છે.
+            </div>
+          </div>
+        )}
+
         {/* 🛡️ Anti-Cheat Security Alert Notification */}
         {securityWarning && (
           <div className="animate-fade-in" style={{
@@ -500,18 +618,18 @@ export default function ExamEngine({ onFinish }) {
             {/* Badges Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span style={{
-                background: saveStatus === 'saving' ? '#fef3c7' : '#dcfce7',
-                color: saveStatus === 'saving' ? '#92400e' : '#166534',
+                background: !isOnline ? '#fef3c7' : saveStatus === 'saving' ? '#eff6ff' : '#dcfce7',
+                color: !isOnline ? '#b45309' : saveStatus === 'saving' ? '#1d4ed8' : '#166534',
                 fontSize: '0.66rem',
                 fontWeight: 800,
                 padding: '2px 7px',
                 borderRadius: 10,
-                border: `1px solid ${saveStatus === 'saving' ? '#fde68a' : '#86efac'}`,
+                border: `1px solid ${!isOnline ? '#fde68a' : saveStatus === 'saving' ? '#bfdbfe' : '#86efac'}`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 3
               }}>
-                {saveStatus === 'saving' ? '⏳ સેવિંગ...' : '🛡️ ઓટો-સેવ'}
+                {!isOnline ? '💾 ઑફલાઇન સેવ' : saveStatus === 'saving' ? '⏳ સિંક થાય છે...' : '🛡️ ઓટો-સેવ'}
               </span>
 
               {/* Anti-Cheat Shield Badge */}
