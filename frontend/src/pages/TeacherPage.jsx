@@ -657,6 +657,7 @@ export default function TeacherPage() {
                   }}
                   autoFocus
                   required
+                />
               </div>
             </div>
 
