@@ -475,48 +475,48 @@ export default function TeacherPage() {
               </label>
 
               {/* Interactive Visual PIN Pods */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  marginBottom: 10,
-                  cursor: 'pointer'
-                }}
-                onClick={() => document.getElementById('master-pin-hidden-input')?.focus()}
-              >
-                {[0, 1, 2, 3, 4, 5].map((idx) => {
-                  const digit = form.masterPin[idx] || '';
-                  const isActive = form.masterPin.length === idx;
-                  const isFilled = Boolean(digit);
-                  return (
-                    <div
-                      key={idx}
-                      className={`pin-pod-box ${isActive ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
-                    >
-                      {isFilled ? '●' : isActive ? '│' : ''}
-                    </div>
-                  );
-                })}
-              </div>
+              <div style={{ position: 'relative', marginBottom: 10 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 6
+                  }}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((idx) => {
+                    const digit = form.masterPin[idx] || '';
+                    const isActive = form.masterPin.length === idx;
+                    const isFilled = Boolean(digit);
+                    return (
+                      <div
+                        key={idx}
+                        className={`pin-pod-box ${isActive ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
+                      >
+                        {isFilled ? '●' : isActive ? '│' : ''}
+                      </div>
+                    );
+                  })}
+                </div>
 
-              {/* Hidden Real Input for Keyboard capture */}
-              <input
-                id="master-pin-hidden-input"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={form.masterPin}
-                onChange={e => setForm(f => ({ ...f, masterPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                style={{
-                  position: 'absolute',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  top: 0,
-                  left: 0
-                }}
-                required
-              />
+                <input
+                  id="master-pin-hidden-input"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={form.masterPin}
+                  onChange={e => setForm(f => ({ ...f, masterPin: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 10
+                  }}
+                  required
+                />
+              </div>
             </div>
 
             {error && (
@@ -606,57 +606,76 @@ export default function TeacherPage() {
             )}
 
             {/* Visual OTP Input Pods */}
-            <div style={{ marginBottom: 22 }}>
+            <div style={{ marginBottom: 20 }}>
               <label style={{ fontWeight: 800, fontSize: '0.82rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <Smartphone size={14} color="#4ade80" /> ૬-અંકનો 2FA Security OTP દાખલ કરો *
               </label>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  marginBottom: 10,
-                  cursor: 'pointer'
-                }}
-                onClick={() => document.getElementById('admin-otp-hidden-input')?.focus()}
-              >
-                {[0, 1, 2, 3, 4, 5].map((idx) => {
-                  const digit = form.otp[idx] || '';
-                  const isActive = form.otp.length === idx;
-                  const isFilled = Boolean(digit);
-                  return (
-                    <div
-                      key={idx}
-                      className={`pin-pod-box ${isActive ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
-                      style={{
-                        borderColor: isFilled ? '#22c55e' : isActive ? '#38bdf8' : 'rgba(255,255,255,0.15)',
-                        color: isFilled ? '#4ade80' : 'white',
-                        background: isFilled ? 'rgba(34, 197, 94, 0.15)' : undefined
-                      }}
-                    >
-                      {isFilled ? digit : isActive ? '│' : ''}
-                    </div>
-                  );
-                })}
+              <div style={{ position: 'relative', marginBottom: 10 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 6
+                  }}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((idx) => {
+                    const digit = form.otp[idx] || '';
+                    const isActive = form.otp.length === idx;
+                    const isFilled = Boolean(digit);
+                    return (
+                      <div
+                        key={idx}
+                        className={`pin-pod-box ${isActive ? 'active' : ''} ${isFilled ? 'filled' : ''}`}
+                        style={{
+                          borderColor: isFilled ? '#22c55e' : isActive ? '#38bdf8' : 'rgba(255,255,255,0.15)',
+                          color: isFilled ? '#4ade80' : 'white',
+                          background: isFilled ? 'rgba(34, 197, 94, 0.15)' : undefined
+                        }}
+                      >
+                        {isFilled ? digit : isActive ? '│' : ''}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <input
+                  id="admin-otp-hidden-input"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={form.otp}
+                  onChange={e => setForm(f => ({ ...f, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 10
+                  }}
+                  autoFocus
+                  required
+                />
               </div>
 
-              <input
-                id="admin-otp-hidden-input"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={form.otp}
-                onChange={e => setForm(f => ({ ...f, otp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-                style={{
-                  position: 'absolute',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  top: 0,
-                  left: 0
-                }}
-                required
-              />
+              {/* 💡 Emergency Master PIN Backup Hint */}
+              <div style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                color: '#7dd3fc',
+                lineHeight: 1.4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>💡</span>
+                <span>જો WhatsApp પર OTP મોડો આવે, તો તમે તમારો <strong>૬-અંકનો Master PIN (820040)</strong> પણ OTP તરીકે દાખલ કરી શકો છો.</span>
+              </div>
             </div>
 
             {error && (
