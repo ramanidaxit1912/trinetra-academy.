@@ -126,7 +126,7 @@ router.post('/grant-master-by-mobile', authMiddleware, teacherOnly, async (req, 
     });
     res.json({
       success: true,
-      message: `🔑 ${updated.mobile} (${updated.name}) માટે ${minutes} મિનિટ માટે Master PIN (820040) Access સક્રિય થયો!`
+      message: `🔑 ${updated.mobile} (${updated.name}) માટે ${minutes} મિનિટ માટે Master PIN (191219) Access સક્રિય થયો!`
     });
   } catch (err) {
     console.error('Grant Master By Mobile Error:', err);

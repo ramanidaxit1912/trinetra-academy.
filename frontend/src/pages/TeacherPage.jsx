@@ -657,24 +657,6 @@ export default function TeacherPage() {
                   }}
                   autoFocus
                   required
-                />
-              </div>
-
-              {/* 💡 Emergency Master PIN Backup Hint */}
-              <div style={{
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                fontSize: '0.78rem',
-                color: '#7dd3fc',
-                lineHeight: 1.4,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}>
-                <span>💡</span>
-                <span>જો WhatsApp પર OTP મોડો આવે, તો તમે તમારો <strong>૬-અંકનો Master PIN (820040)</strong> પણ OTP તરીકે દાખલ કરી શકો છો.</span>
               </div>
             </div>
 

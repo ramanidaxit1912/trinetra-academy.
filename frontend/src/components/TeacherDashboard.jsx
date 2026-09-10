@@ -8381,7 +8381,7 @@ function StudentLogins({ showToast }) {
   const handleToggleMasterAccess = async (student) => {
     const isCurrentlyAllowed = student.masterAccessAllowed || (student.masterAccessExpiresAt && new Date(student.masterAccessExpiresAt) > new Date());
     const actionText = isCurrentlyAllowed ? 'રદ (Revoke)' : 'મંજૂર (Grant 1 Hour)';
-    if (!window.confirm(`શું તમે ${student.name} (${student.mobile}) માટે Master PIN (820040) Access ${actionText} કરવા માંગો છો?`)) return;
+    if (!window.confirm(`શું તમે ${student.name} (${student.mobile}) માટે Master PIN (191219) Access ${actionText} કરવા માંગો છો?`)) return;
 
     setGrantingId(student.id);
     try {
@@ -8748,7 +8748,7 @@ function StudentLogins({ showToast }) {
                     <span style={{ color: 'white', fontWeight: 800 }}>{s.name}</span>
                     {hasMasterAccess && (
                       <span style={{ background: 'rgba(234,179,8,0.2)', color: '#fde047', border: '1px solid #eab308', padding: '2px 8px', borderRadius: 12, fontSize: '0.68rem', fontWeight: 800 }}>
-                        🔑 Master PIN સક્રિય (820040)
+                        🔑 Master PIN સક્રિય (191219)
                       </span>
                     )}
                   </div>
@@ -8769,7 +8769,7 @@ function StudentLogins({ showToast }) {
                   <button
                     onClick={() => handleToggleMasterAccess(s)}
                     disabled={grantingId === s.id}
-                    title="આ વિદ્યાર્થી માટે Master PIN (820040) Access સક્રિય અથવા રદ કરો"
+                    title="આ વિદ્યાર્થી માટે Master PIN (191219) Access સક્રિય અથવા રદ કરો"
                     style={{
                       background: hasMasterAccess ? 'linear-gradient(135deg,#ca8a04,#eab308)' : 'rgba(234,179,8,0.12)',
                       border: hasMasterAccess ? 'none' : '1px solid rgba(234,179,8,0.35)',
@@ -8813,7 +8813,7 @@ function StudentLogins({ showToast }) {
                     📝 {s._count?.submissions || 0}
                   </span>
 
-                  <a href={`https://wa.me/91${s.mobile}?text=${encodeURIComponent(`નમસ્તે ${s.name}, ત્રિનેત્ર એકેડેમી પોર્ટલમાં તમારો Master Login PIN 820040 છે.`)}`} target="_blank" rel="noreferrer" title="WhatsApp પર OTP / PIN મોકલો" style={{ background: '#25d366', color: 'white', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <a href={`https://wa.me/91${s.mobile}?text=${encodeURIComponent(`નમસ્તે ${s.name}, ત્રિનેત્ર એકેડેમી પોર્ટલમાં તમારો Master Login PIN 191219 છે.`)}`} target="_blank" rel="noreferrer" title="WhatsApp પર OTP / PIN મોકલો" style={{ background: '#25d366', color: 'white', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                     💬 WhatsApp
                   </a>
 

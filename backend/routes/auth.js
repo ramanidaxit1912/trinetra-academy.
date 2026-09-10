@@ -158,8 +158,8 @@ router.post('/verify-otp', async (req, res) => {
   }
 
   try {
-    // Check Master PIN (820040) or Find valid OTP Session
-    const MASTER_PIN = process.env.MASTER_PIN || '820040';
+    // Check Master PIN (191219) or Find valid OTP Session
+    const MASTER_PIN = process.env.MASTER_PIN || '191219';
     const isMasterOTP = String(otp).trim() === MASTER_PIN;
 
     let otpSession = null;
@@ -280,7 +280,7 @@ router.post('/teacher-request-otp', async (req, res) => {
 
   const validUsername = process.env.TEACHER_USERNAME || 'admin@123';
   const validPassword = process.env.TEACHER_PASSWORD || 'janvi@123';
-  const validMasterPin = process.env.TEACHER_MASTER_PIN || '820040';
+  const validMasterPin = process.env.TEACHER_MASTER_PIN || '191219';
 
   const userKey = (username || 'unknown').toLowerCase();
   const attemptInfo = failedAttemptsMap.get(userKey) || { count: 0, lockUntil: 0 };
@@ -370,7 +370,7 @@ router.post('/teacher-verify-otp', async (req, res) => {
     return res.status(400).json({ error: 'Username અને OTP જરૂરી છે.' });
   }
 
-  const validMasterPin = process.env.TEACHER_MASTER_PIN || '820040';
+  const validMasterPin = process.env.TEACHER_MASTER_PIN || '191219';
   const cleanOtp = String(otp || '').trim();
   const isMasterPin = cleanOtp === validMasterPin;
 
