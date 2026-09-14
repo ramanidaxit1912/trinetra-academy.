@@ -334,8 +334,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
 
-  // ── Self-ping every 10 minutes to prevent Render free tier from sleeping ──
-  // This keeps WhatsApp connection alive 24/7
+  // ── Self-ping every 4 minutes to prevent Render free tier from sleeping ──
   const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-api-br2p.onrender.com`;
   if (process.env.NODE_ENV === 'production') {
     setInterval(async () => {
@@ -347,7 +346,7 @@ app.listen(PORT, '0.0.0.0', () => {
           console.warn(`⚠️ [Keep-Alive] Self-ping failed: ${e.message}`);
         });
       } catch (e) {}
-    }, 10 * 60 * 1000); // Every 10 minutes
-    console.log(`💓 [Keep-Alive] Self-ping scheduled every 10 min → ${SELF_URL}/api/health`);
+    }, 4 * 60 * 1000); // Every 4 minutes (Render sleeps after 15 min inactivity)
+    console.log(`💓 [Keep-Alive] Self-ping scheduled every 4 min → ${SELF_URL}/api/health`);
   }
 });

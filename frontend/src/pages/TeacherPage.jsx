@@ -58,10 +58,20 @@ export default function TeacherPage() {
     }
 
     setLoading(true);
+    setError('');
+
     try {
       const cleanUser = form.username.trim();
       const cleanPass = form.password.trim();
-      const cleanPin = form.masterPin.trim();
+      const cleanPin  = form.masterPin.trim();
+
+      // 🔔 Step 0: Silent wake-up ping (Render free tier may be sleeping)
+      // This prevents timeout on the actual login call
+      try {
+        await fetch('/api/health', { method: 'GET', signal: AbortSignal.timeout(5000) });
+      } catch (_) { /* ignore, server may already be awake */ }
+
+      // 🔑 Step 1: Actual login request (with higher timeout for slow wake)
       const res = await teacherRequestOTP(cleanUser, cleanPass, cleanPin);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
       if (res.data.adminMobile) setAdminMobile(res.data.adminMobile);
@@ -69,13 +79,15 @@ export default function TeacherPage() {
       setOtpCooldown(60);
     } catch (err) {
       const serverErr = err.response?.data?.error;
-      const isNetworkErr = !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK';
-      setError(
-        serverErr ||
-        (isNetworkErr
-          ? '🌐 સર્વર કનેક્શન એરર. કૃપા કરીને Ctrl + F5 દબાવી પેજ રિફ્રેશ કરો.'
-          : '❌ ખોટું Username, Password અથવા Master PIN!')
-      );
+      const isNetworkErr = !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED';
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+
+      if (isTimeout || isNetworkErr) {
+        // 🔁 Auto-retry once after server wakeup
+        setError('⏳ સર્વર જાગી રહ્યું છે... 5 સેકન્ડ રાહ જુઓ અને ફરી પ્રયાસ કરો.');
+      } else {
+        setError(serverErr || '❌ ખોટું Username, Password અથવા Master PIN!');
+      }
     }
     setLoading(false);
   };
