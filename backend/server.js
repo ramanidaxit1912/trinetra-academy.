@@ -336,7 +336,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
   // ── Self-ping every 10 minutes to prevent Render free tier from sleeping ──
   // This keeps WhatsApp connection alive 24/7
-  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-backend-4qni.onrender.com`;
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-api-br2p.onrender.com`;
   if (process.env.NODE_ENV === 'production') {
     setInterval(async () => {
       try {

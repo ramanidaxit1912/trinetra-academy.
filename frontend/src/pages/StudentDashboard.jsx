@@ -1102,7 +1102,7 @@ export default function StudentDashboard() {
           filename: `Trinetra_${(sub.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_')}.pdf`
         });
       } else if (isOffline) {
-        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
+        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-api-br2p.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
         alert(`❌ ${err.response?.data?.error || 'WhatsApp PDF મોકલવામાં ભૂલ.'}`);
       }
@@ -1636,7 +1636,7 @@ export default function StudentDashboard() {
           filename: `Trinetra_Pragati_Report_${(user.name || '').replace(/\s+/g, '_')}.pdf`
         });
       } else if (isOffline) {
-        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-backend-4qni.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
+        alert('📱 WhatsApp QR Scan કરો!\n\nPDF બની ગઈ છે, પણ WhatsApp હજી cloud server સાથે connect નથી.\n\nઆ link ખોલો:\nhttps://trinetra-api-br2p.onrender.com/whatsapp\n\nQR Scan કરો ➔ ફરી "WhatsApp PDF મોકલો" ક્લિક કરો.');
       } else {
         alert(`❌ ${err.response?.data?.error || 'WhatsApp પર Pragati Card મોકલવામાં ભૂલ.'}`);
       }
