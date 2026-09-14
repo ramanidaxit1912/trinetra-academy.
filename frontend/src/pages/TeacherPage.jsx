@@ -64,32 +64,6 @@ export default function TeacherPage() {
     const cleanPass = form.password.trim();
     const cleanPin  = form.masterPin.trim();
 
-    // 🔔 Poll until server wakes up (Render free tier can take 30-90s cold start)
-    const serverReady = await (async () => {
-      for (let attempt = 1; attempt <= 18; attempt++) {
-        try {
-          const ctrl = new AbortController();
-          const tid = setTimeout(() => ctrl.abort(), 5000);
-          const res = await fetch('/api/health', { signal: ctrl.signal });
-          clearTimeout(tid);
-          if (res.ok) return true; // ✅ Server is awake
-        } catch (_) {}
-        // Show countdown to user
-        const remaining = (18 - attempt) * 5;
-        setError(`⏳ સર્વર ચાલુ થઈ રહ્યું છે... ${remaining} સેકન્ડ રાહ જુઓ. (પ્રયાસ ${attempt}/18)`);
-        await new Promise(r => setTimeout(r, 5000)); // wait 5s between attempts
-      }
-      return false; // gave up after 90s
-    })();
-
-    if (!serverReady) {
-      setLoading(false);
-      setError('🔴 Server 90 સેકન્ડ પછી પણ ઉઠ્યો નહીં. Render dashboard ચેક કરો અથવા 2 min પછી ફરી try કરો.');
-      return;
-    }
-
-    setError(''); // clear countdown message
-
     try {
       const res = await teacherRequestOTP(cleanUser, cleanPass, cleanPin);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
@@ -100,7 +74,16 @@ export default function TeacherPage() {
     } catch (err) {
       setLoading(false);
       const serverErr = err.response?.data?.error;
-      setError(serverErr || '❌ ખોટું Username, Password અથવા Master PIN!');
+      const status = err.response?.status;
+      let displayError = serverErr;
+      if (!displayError) {
+        if (!err.response) {
+          displayError = `🌐 સર્વર કનેક્શન એરર (${err.message || 'Network Error'}). પેજ Ctrl + F5 થી રિફ્રેશ કરો.`;
+        } else {
+          displayError = `⚠️ સર્વર ભૂલ (Status: ${status || 'Unknown'}). ફરી પ્રયાસ કરો.`;
+        }
+      }
+      setError(displayError);
     }
   };
 

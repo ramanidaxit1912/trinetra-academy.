@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL
   : RENDER_BACKEND_URL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `${RENDER_BACKEND_URL}/api`,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 60000, // 60s
 });
 
