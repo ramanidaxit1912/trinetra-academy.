@@ -389,6 +389,81 @@ async function logoutWhatsApp() {
   }
 }
 
+/**
+ * Send Daily Academic Summary Report to Director's WhatsApp (default: 8200405300)
+ */
+async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
+  if (!waSocket || connectionStatus !== 'CONNECTED') {
+    console.log('⚠️ [Daily Report] WhatsApp is not connected. Skipping daily report.');
+    return { success: false, isOffline: true, error: 'WhatsApp હાલ ડિસ્કનેક્ટેડ છે. કૃપા કરીને QR સ્કેન કરો.' };
+  }
+
+  try {
+    const cleanMobile = cleanIndianMobile(targetMobile);
+    const jid = `91${cleanMobile}@s.whatsapp.net`;
+
+    // Past 24 hours submissions
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        submittedAt: { gte: twentyFourHoursAgo },
+        status: 'COMPLETED'
+      },
+      include: {
+        student: true
+      },
+      orderBy: { submittedAt: 'desc' }
+    });
+
+    const totalSubs = submissions.length;
+    const uniqueStudents = new Set(submissions.map(s => s.student?.mobile).filter(Boolean)).size;
+    const avgScore = totalSubs > 0
+      ? (submissions.reduce((acc, s) => acc + (s.mcqScore ?? s.score ?? 0), 0) / totalSubs).toFixed(1)
+      : 0;
+
+    // Top 3 Scorers
+    const topScorers = [...submissions]
+      .sort((a, b) => (b.mcqScore ?? 0) - (a.mcqScore ?? 0))
+      .slice(0, 3)
+      .map((s, idx) => `  ${idx + 1}. *${s.student?.name || 'વિદ્યાર્થી'}*: ${s.mcqScore} ગુણ (${s.testName || s.testCode})`)
+      .join('\n');
+
+    // Cheating attempts count today
+    const cheatingCount = submissions.filter(s => s.remarks && s.remarks.includes('સ્ક્રીન સ્વિચ')).length;
+
+    const istDate = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toLocaleDateString('gu-IN', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toLocaleTimeString('gu-IN', {
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
+
+    const message = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી - દૈનિક અહેવાલ* 📊
+━━━━━━━━━━━━━━━━━━━━━━
+📅 *તારીખ:* ${istDate} (${istTime})
+👨‍🏫 *ડિરેક્ટર:* સુનિલ સર
+
+📈 *આજના મુખ્ય આંકડા (છેલ્લા ૨૪ કલાક):*
+👥 *કુલ પરીક્ષાર્થીઓ:* ${uniqueStudents} વિદ્યાર્થીઓ
+📝 *કુલ સબમિટ થયેલ કસોટીઓ:* ${totalSubs}
+🎯 *સરેરાશ સ્કોર (Average):* ${avgScore} ગુણ
+${cheatingCount > 0 ? `⚠️ *સ્ક્રીન સ્વિચ ઉલ્લંઘન:* ${cheatingCount} વિદ્યાર્થીઓ\n` : ''}
+${topScorers ? `🏆 *આજના ટોપ પર્ફોર્મર્સ:*\n${topScorers}\n` : 'ℹ️ આજે કોઈ નવી કસોટી સબમિટ થયેલ નથી.\n'}
+━━━━━━━━━━━━━━━━━━━━━━
+✨ *સિસ્ટમ સ્ટેટસ:* Render Cloud & Database સક્રિય છે ✅
+🌐 એડમિન પોર્ટલ: https://www.trinetraonline.in/teacher`;
+
+    await waSocket.sendMessage(jid, { text: message });
+    console.log(`✅ [Daily Report Sent] to Director: +91${cleanMobile}`);
+    return { success: true, message: `દૈનિક અહેવાલ WhatsApp (+91${cleanMobile}) પર મોકલી દીધો છે!` };
+  } catch (err) {
+    console.error('❌ [Daily Report Error]:', err.message);
+    return { success: false, error: 'રિપોર્ટ મોકલવામાં ભૂલ: ' + err.message };
+  }
+}
+
 function getWhatsAppStatus() {
   return {
     status: connectionStatus,
@@ -402,6 +477,7 @@ module.exports = {
   sendWhatsAppOTP,
   sendWhatsAppScorecardPDF,
   sendWhatsAppPragatiPDF,
+  sendWhatsAppDailyReport,
   getWhatsAppStatus,
   logoutWhatsApp
 };

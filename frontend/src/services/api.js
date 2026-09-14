@@ -125,6 +125,7 @@ export const disconnectWhatsAppBridge = () => api.post('/whatsapp/disconnect');
 export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-whatsapp', data);
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
 export const cleanTestData          = (data) => api.post('/teacher/clean-test-data', data);
+export const sendDailyReport        = (data) => api.post('/teacher/send-daily-report', data);
 
 // ─── Materials ────────────────────────────────────────────────
 export const getMaterials    = (params) => api.get('/materials', { params });

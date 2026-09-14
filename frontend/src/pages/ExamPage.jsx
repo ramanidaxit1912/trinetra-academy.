@@ -105,6 +105,7 @@ export default function ExamPage() {
   const [agreeRules, setAgreeRules] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(2);
+  const [tabSwitchViolations, setTabSwitchViolations] = useState(0);
   const navigate = useNavigate();
 
   const checkAndSetResumable = async (testQuestions) => {
@@ -275,11 +276,20 @@ export default function ExamPage() {
     setStep(STEPS.EXAM);
   };
 
-  // ─── Exam Done → Upload Screen ────────────────────────────
-  const handleExamFinish = () => setStep(STEPS.UPLOAD);
+  // ─── Exam Done → Upload Screen or Instant Auto-Submit ────
+  const handleExamFinish = (isCheatingAutoSubmit = false, violations = 0) => {
+    setTabSwitchViolations(violations);
+    if (isCheatingAutoSubmit) {
+      handleFinalSubmit(violations);
+    } else {
+      setStep(STEPS.UPLOAD);
+    }
+  };
 
   // ─── Final Submit with Popup & Dashboard Redirect ─────────
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (forcedViolations) => {
+    const finalViolations = typeof forcedViolations === 'number' ? forcedViolations : tabSwitchViolations;
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ સબમિટ થઈ જશે.');
       return;
@@ -306,7 +316,8 @@ export default function ExamPage() {
         photoUrl: photoUrl || null,
         testCode: targetTestCode,
         testName: targetTestName,
-        subject:  targetSubject
+        subject:  targetSubject,
+        tabSwitchCount: finalViolations
       });
 
       // Clear local storage progress upon successful completion

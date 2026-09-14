@@ -191,7 +191,7 @@ router.delete('/active-session', authMiddleware, async (req, res) => {
 // ─── POST /api/submissions ────────────────────────────────────
 // Student submits final test
 router.post('/', authMiddleware, async (req, res) => {
-  const { answers, photoUrl, testCode, testName, subject } = req.body;
+  const { answers, photoUrl, testCode, testName, subject, tabSwitchCount } = req.body;
   let studentId = req.user.id;
 
   if (!studentId) {
@@ -267,6 +267,11 @@ router.post('/', authMiddleware, async (req, res) => {
       }
     });
 
+    const violations = Number(tabSwitchCount || 0);
+    const antiCheatRemark = violations > 0
+      ? `⚠️ વિદ્યાર્થીએ કસોટી દરમિયાન ${violations} વાર સ્ક્રીન સ્વિચ કરી હતી${violations >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`
+      : null;
+
     let submission;
     if (existingInProgress) {
       submission = await prisma.submission.update({
@@ -282,6 +287,7 @@ router.post('/', authMiddleware, async (req, res) => {
           correctCount:  correctCount,
           wrongCount:    wrongCount,
           negativeMarks: negativeMarks,
+          remarks:       antiCheatRemark || existingInProgress.remarks || null,
           status:        'COMPLETED',
           submittedAt:   new Date()
         },
@@ -302,6 +308,7 @@ router.post('/', authMiddleware, async (req, res) => {
           correctCount:  correctCount,
           wrongCount:    wrongCount,
           negativeMarks: negativeMarks,
+          remarks:       antiCheatRemark,
           status:        'COMPLETED',
           submittedAt:   new Date()
         },

@@ -72,11 +72,38 @@ export default function ExamEngine({ onFinish }) {
   const [showPalette, setShowPalette] = useState(false);
   const [lockedToast, setLockedToast] = useState('');
   const [securityWarning, setSecurityWarning] = useState('');
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [securityModal, setSecurityModal] = useState(null); // { strike, title, message, color, autoSubmit }
+  const [tabSwitchCount, setTabSwitchCount] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`trinetra_tab_switch_${user?.mobile || 'guest'}_${activeTestCode}`);
+      return saved ? Number(saved) : 0;
+    } catch (_) { return 0; }
+  });
   const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [showReconnectedToast, setShowReconnectedToast] = useState(false);
   const timerRef = useRef(null);
+
+  // ─── 🔊 Procedural Anti-Cheat Warning Audio Synthesizer ───
+  const playAlertBeep = (freq = 750, count = 2) => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      for (let i = 0; i < count; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.16);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.16);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + i * 0.16 + 0.13);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.16);
+        osc.stop(ctx.currentTime + i * 0.16 + 0.13);
+      }
+    } catch (_) {}
+  };
 
   // ─── 🔊 Web Audio Procedural Slide Whoosh Sound ───────────
   // 📄 3D Origami Exam Paper Flip Audio Synthesizer (Realistic Page Turn)
@@ -319,6 +346,79 @@ export default function ExamEngine({ onFinish }) {
     };
   }, [user, activeTestCode, activeTestName, activeSubject, currentIndex]);
 
+  // ─── 🛡️ Anti-Cheating: Tab Switch & Window Blur Detection (3-Strike Rule) ───
+  useEffect(() => {
+    let lastViolationTime = 0;
+
+    const recordViolation = () => {
+      const now = Date.now();
+      // Debounce: prevent multiple triggers from blur + visibilitychange within 2 seconds
+      if (now - lastViolationTime < 2000) return;
+      lastViolationTime = now;
+
+      setTabSwitchCount(prev => {
+        const next = prev + 1;
+        try {
+          localStorage.setItem(`trinetra_tab_switch_${user?.mobile || 'guest'}_${activeTestCode}`, String(next));
+        } catch (_) {}
+
+        if (next === 1) {
+          playAlertBeep(650, 2);
+          setSecurityWarning('⚠️ પ્રથમ ચેતવણી (૧/૩): તમે પરીક્ષા સ્ક્રીન છોડી હતી!');
+          setSecurityModal({
+            strike: 1,
+            title: '⚠️ પ્રથમ ચેતવણી (Strike 1 / 3)',
+            message: 'તમે પરીક્ષા સ્ક્રીન છોડી દીધી હતી! કૃપા કરીને પરીક્ષા દરમિયાન અન્ય કોઈ ટેબ, એપ્લિકેશન કે ગૂગલ ન ખોલો.',
+            color: '#d97706',
+            autoSubmit: false
+          });
+        } else if (next === 2) {
+          playAlertBeep(900, 3);
+          setSecurityWarning('🚨 આખરી ચેતવણી (૨/૩): હવે ફરીથી સ્ક્રીન બદલશો તો ટેસ્ટ આપોઆપ સબમિટ થશે!');
+          setSecurityModal({
+            strike: 2,
+            title: '🚨 આખરી ચેતવણી (Strike 2 / 3)',
+            message: 'આ તમારી છેલ્લી ચેતવણી છે! જો તમે ફરીથી એક પણ વાર સ્ક્રીન બદલશો કે અન્ય એપ ખોલશો, તો તમારી કસોટી આપોઆપ સબમિટ થઈ જશે!',
+            color: '#dc2626',
+            autoSubmit: false
+          });
+        } else {
+          playAlertBeep(1100, 4);
+          setSecurityWarning('🛑 નિયમભંગ: ૩ વાર સ્ક્રીન છોડવા બદલ પરીક્ષા આપમેળે સબમિટ થઈ રહી છે...');
+          setSecurityModal({
+            strike: 3,
+            title: '🛑 પરીક્ષા આપોઆપ સબમિટ થઈ રહી છે...',
+            message: 'નિયમભંગ: તમે ૩ વાર પરીક્ષા સ્ક્રીન છોડી છે. પરીક્ષા શિસ્ત અને સુરક્ષા નીતિ અનુસાર તમારી કસોટી આપમેળે સબમિટ કરવામાં આવી છે.',
+            color: '#991b1b',
+            autoSubmit: true
+          });
+          setTimeout(() => {
+            onFinish(true, 3);
+          }, 3000);
+        }
+        return next;
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        recordViolation();
+      }
+    };
+
+    const handleBlur = () => {
+      recordViolation();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [activeTestCode, user, onFinish]);
+
   // ─── Auto-advance when Per-Question Timer hits 0 ────────────
   const goNextAuto = useCallback(() => {
     setCurrentIndex(prev => {
@@ -408,7 +508,7 @@ export default function ExamEngine({ onFinish }) {
         alert('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\n\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ પેપર સબમિટ થઈ જશે.');
         return;
       }
-      onFinish();
+      onFinish(false, tabSwitchCount);
     } else {
       // Find the next available unexpired question
       let targetNext = currentIndex + 1;
@@ -418,14 +518,14 @@ export default function ExamEngine({ onFinish }) {
         }
       }
       if (targetNext >= totalQ) {
-        onFinish();
+        onFinish(false, tabSwitchCount);
       } else {
         playSlideWhoosh();
         setSlideDirection('next');
         setCurrentIndex(targetNext);
       }
     }
-  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap]);
+  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount]);
 
   const goPrev = useCallback(() => {
     if (prevAccessibleIndex !== -1) {
@@ -548,7 +648,7 @@ export default function ExamEngine({ onFinish }) {
           </div>
         )}
 
-        {/* 🛡️ Anti-Cheat Security Alert Notification */}
+        {/* 🛡️ Anti-Cheat Security Alert Notification Banner */}
         {securityWarning && (
           <div className="animate-fade-in" style={{
             background: 'linear-gradient(135deg,#991b1b,#dc2626)',
@@ -566,6 +666,119 @@ export default function ExamEngine({ onFinish }) {
           }}>
             <span style={{ fontSize: '1.3rem' }}>🚨</span>
             <div style={{ flex: 1 }}>{securityWarning}</div>
+          </div>
+        )}
+
+        {/* 🛡️ Anti-Cheating High-Alert Pop-up Modal */}
+        {securityModal && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}>
+            <div className="card animate-fade-in" style={{
+              maxWidth: 480,
+              width: '100%',
+              background: '#ffffff',
+              borderRadius: 20,
+              padding: '28px 24px',
+              textAlign: 'center',
+              boxShadow: '0 25px 50px -12px rgba(220, 38, 38, 0.35)',
+              border: `2.5px solid ${securityModal.color}`
+            }}>
+              <div style={{
+                width: 68,
+                height: 68,
+                borderRadius: '50%',
+                background: `${securityModal.color}15`,
+                color: securityModal.color,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.2rem',
+                margin: '0 auto 16px auto',
+                boxShadow: `0 0 24px ${securityModal.color}30`
+              }}>
+                {securityModal.strike === 3 ? '🛑' : '⚠️'}
+              </div>
+
+              <h3 style={{
+                margin: '0 0 10px 0',
+                color: securityModal.color,
+                fontSize: '1.28rem',
+                fontWeight: 900
+              }}>
+                {securityModal.title}
+              </h3>
+
+              <p style={{
+                color: '#334155',
+                fontSize: '0.94rem',
+                lineHeight: 1.6,
+                margin: '0 0 20px 0',
+                fontWeight: 600
+              }}>
+                {securityModal.message}
+              </p>
+
+              <div style={{
+                background: '#f8fafc',
+                border: '1px dashed #cbd5e1',
+                borderRadius: 12,
+                padding: '10px 14px',
+                marginBottom: 22,
+                fontSize: '0.84rem',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-around'
+              }}>
+                <span>નિયમભંગ: <strong style={{ color: securityModal.color }}>{securityModal.strike} / 3</strong></span>
+                <span>•</span>
+                <span>કુલ મંજૂર: <strong>2 પ્રયાસ</strong></span>
+              </div>
+
+              {securityModal.autoSubmit ? (
+                <div style={{
+                  padding: '14px',
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  fontSize: '0.94rem'
+                }}>
+                  ⏳ થોડી સેકન્ડમાં ટેસ્ટ સબમિટ થઈ રહી છે...
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSecurityModal(null)}
+                  className="btn-primary"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '14px',
+                    fontSize: '1.02rem',
+                    fontWeight: 900,
+                    borderRadius: 12,
+                    background: securityModal.strike === 2
+                      ? 'linear-gradient(135deg, #b91c1c, #dc2626)'
+                      : 'linear-gradient(135deg, #d97706, #f59e0b)',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  ✓ હું સમજી ગયો / ગઈ — કસોટી ચાલુ રાખો →
+                </button>
+              )}
+            </div>
           </div>
         )}
 

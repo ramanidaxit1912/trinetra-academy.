@@ -327,6 +327,30 @@ setInterval(async () => {
   } catch (e) {}
 }, 10000);
 
+// ─── Daily 9:30 PM IST WhatsApp Summary Report ───────────────
+const { sendWhatsAppDailyReport } = require('./services/whatsappService');
+let lastReportDateKey = '';
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // Convert to IST (UTC + 5:30)
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const hours = istTime.getUTCHours();
+    const minutes = istTime.getUTCMinutes();
+    const todayKey = istTime.toISOString().slice(0, 10);
+
+    // Check if it's 21:30 - 21:45 IST (9:30 PM - 9:45 PM) and hasn't dispatched today
+    if (hours === 21 && minutes >= 30 && minutes <= 45 && lastReportDateKey !== todayKey) {
+      lastReportDateKey = todayKey;
+      console.log('📢 [Cron] Dispatching Daily Academic Summary Report to Director via WhatsApp...');
+      const adminMobile = process.env.TEACHER_ADMIN_MOBILE || '8200405300';
+      await sendWhatsAppDailyReport(adminMobile);
+    }
+  } catch (err) {
+    console.warn('⚠️ [Daily Report Cron Error]:', err.message);
+  }
+}, 60 * 1000); // Check once per minute
+
 // ─── Start ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Trinetra Academy Backend started: http://localhost:${PORT}`);

@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
 } from '../services/api';
@@ -460,7 +460,19 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
   const [profileForm, setProfileForm] = useState(teacherProfile);
   const [showCleanModal, setShowCleanModal] = useState(false);
   const [cleaningLoading, setCleaningLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const handleSendDailyReport = async () => {
+    setReportLoading(true);
+    try {
+      const res = await sendDailyReport();
+      showToast(res.data?.message || 'દૈનિક અહેવાલ WhatsApp પર મોકલી દીધો છે!', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.error || err.message || 'અહેવાલ મોકલવામાં ભૂલ.', 'error');
+    }
+    setReportLoading(false);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -699,7 +711,33 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
               🧹 ડેટા સાફ કરો
             </button>
 
-            {/* 5. Profile Full Width Span 2 Button */}
+            {/* 5. Daily WhatsApp Summary Report Button */}
+            <button
+              onClick={handleSendDailyReport}
+              disabled={reportLoading}
+              style={{
+                gridColumn: 'span 2',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: 'white',
+                border: '1px solid rgba(52,211,153,0.4)',
+                padding: '11px 14px',
+                borderRadius: 12,
+                fontWeight: 900,
+                cursor: reportLoading ? 'not-allowed' : 'pointer',
+                fontSize: '0.85rem',
+                fontFamily: 'Hind Vadodara, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                minHeight: 44
+              }}
+            >
+              {reportLoading ? '⏳ અહેવાલ WhatsApp પર મોકલાઈ રહ્યો છે...' : '📊 આજનો દૈનિક WhatsApp અહેવાલ મેળવો (Send Now) ➔'}
+            </button>
+
+            {/* 6. Profile Full Width Span 2 Button */}
             <button onClick={() => setEditProfile(!editProfile)} style={{
               gridColumn: 'span 2',
               background: 'rgba(255,255,255,0.06)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)',

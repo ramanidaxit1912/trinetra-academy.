@@ -300,4 +300,23 @@ router.post('/clean-test-data', authMiddleware, teacherOnly, async (req, res) =>
   }
 });
 
+// ─── POST /api/teacher/send-daily-report ──────────────────────
+// 📊 On-demand manual trigger to send daily WhatsApp summary to director
+const { sendWhatsAppDailyReport } = require('../services/whatsappService');
+
+router.post('/send-daily-report', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const adminMobile = req.body?.mobile || process.env.TEACHER_ADMIN_MOBILE || '8200405300';
+    const result = await sendWhatsAppDailyReport(adminMobile);
+    if (result.success) {
+      return res.json({ success: true, message: result.message });
+    } else {
+      return res.status(400).json({ error: result.error || 'રિપોર્ટ મોકલવામાં ભૂલ.' });
+    }
+  } catch (err) {
+    console.error('Manual Daily Report error:', err);
+    res.status(500).json({ error: 'સર્વર એરર: ' + err.message });
+  }
+});
+
 module.exports = router;
