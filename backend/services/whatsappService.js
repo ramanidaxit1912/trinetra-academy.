@@ -132,9 +132,12 @@ async function initWhatsApp() {
       version,
       logger: pino({ level: 'silent' }),
       auth: state,
-      printQRInTerminal: true,
+      printQRInTerminal: false,
       browser: ['Trinetra Academy Portal', 'Chrome', '1.0.0'],
-      keepAliveIntervalMs: 30000,  // Ping WhatsApp server every 30s to keep connection alive
+      syncFullHistory: false,           // 🛑 Never sync phone's past chat history (saves 7+ GB bandwidth)
+      markOnlineOnConnect: false,       // Don't broadcast online presence
+      generateHighQualityLinkPreview: false,
+      keepAliveIntervalMs: 60000,       // Ping every 60s
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
     });
