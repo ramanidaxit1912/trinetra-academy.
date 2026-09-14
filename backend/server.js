@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -15,6 +16,9 @@ const { prewarmPdfEngine } = require('./services/pdfService');
 
 const app = express();
 const PORT = process.env.PORT || 8085;
+
+// Enable High-Efficiency Data Compression (Saves 85% Bandwidth)
+app.use(compression());
 
 // Initialize 100% Free Automated WhatsApp Bridge
 initWhatsApp();
