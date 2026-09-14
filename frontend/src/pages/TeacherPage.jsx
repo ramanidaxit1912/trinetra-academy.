@@ -48,7 +48,7 @@ export default function TeacherPage() {
   const [showWarpDashboard, setShowWarpDashboard] = useState(false);
 
   // ─── Step 1: Validate Credentials + PIN -> Request 2FA OTP ──
-  const handleRequestOTP = async (e, isRetry = false) => {
+  const handleRequestOTP = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setError('');
 
@@ -64,15 +64,31 @@ export default function TeacherPage() {
     const cleanPass = form.password.trim();
     const cleanPin  = form.masterPin.trim();
 
-    // 🔔 Wake-up ping — wait up to 8s for server to respond
-    if (!isRetry) {
-      try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 8000);
-        await fetch('/api/health', { signal: ctrl.signal });
-        clearTimeout(tid);
-      } catch (_) { /* server may be waking — proceed anyway */ }
+    // 🔔 Poll until server wakes up (Render free tier can take 30-90s cold start)
+    const serverReady = await (async () => {
+      for (let attempt = 1; attempt <= 18; attempt++) {
+        try {
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 5000);
+          const res = await fetch('/api/health', { signal: ctrl.signal });
+          clearTimeout(tid);
+          if (res.ok) return true; // ✅ Server is awake
+        } catch (_) {}
+        // Show countdown to user
+        const remaining = (18 - attempt) * 5;
+        setError(`⏳ સર્વર ચાલુ થઈ રહ્યું છે... ${remaining} સેકન્ડ રાહ જુઓ. (પ્રયાસ ${attempt}/18)`);
+        await new Promise(r => setTimeout(r, 5000)); // wait 5s between attempts
+      }
+      return false; // gave up after 90s
+    })();
+
+    if (!serverReady) {
+      setLoading(false);
+      setError('🔴 Server 90 સેકન્ડ પછી પણ ઉઠ્યો નહીં. Render dashboard ચેક કરો અથવા 2 min પછી ફરી try કરો.');
+      return;
     }
+
+    setError(''); // clear countdown message
 
     try {
       const res = await teacherRequestOTP(cleanUser, cleanPass, cleanPin);
@@ -82,22 +98,9 @@ export default function TeacherPage() {
       setOtpCooldown(60);
       setLoading(false);
     } catch (err) {
+      setLoading(false);
       const serverErr = err.response?.data?.error;
-      const isNetworkErr = !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED';
-      const isTimeout    = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
-
-      if ((isTimeout || isNetworkErr) && !isRetry) {
-        // 🔁 Auto-retry after 5 seconds — server is waking up
-        setError('⏳ સર્વર જાગી રહ્યું છે... 5 સેકન્ડ પછી આપોઆપ ફરી પ્રયાસ થશે.');
-        setTimeout(() => {
-          handleRequestOTP(null, true);
-        }, 5000);
-      } else {
-        setLoading(false);
-        setError(serverErr || (isNetworkErr
-          ? '🌐 ઇન્ટરનેટ ચેક કરો અને "Ctrl + F5" દબાવી ફરી પ્રયાસ કરો.'
-          : '❌ ખોટું Username, Password અથવા Master PIN!'));
-      }
+      setError(serverErr || '❌ ખોટું Username, Password અથવા Master PIN!');
     }
   };
 
