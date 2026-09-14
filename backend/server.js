@@ -20,8 +20,10 @@ const PORT = process.env.PORT || 8085;
 // Enable High-Efficiency Data Compression (Saves 85% Bandwidth)
 app.use(compression());
 
-// Initialize 100% Free Automated WhatsApp Bridge
-initWhatsApp();
+// Initialize WhatsApp Bridge on-demand (keeps server lightweight & saves bandwidth)
+if (process.env.ENABLE_WHATSAPP === 'true') {
+  initWhatsApp();
+}
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(cors({
@@ -54,6 +56,7 @@ app.use('/api/marketing', marketingRoutes);
 
 // ─── WhatsApp Live UI Portal & Management ─────────────────────
 app.get('/whatsapp', (req, res) => {
+  initWhatsApp();
   res.send(`<!DOCTYPE html>
 <html lang="gu">
 <head>

@@ -67,7 +67,12 @@ async function saveSessionToDb() {
   try {
     if (!fs.existsSync(sessionDir)) return;
     const files = fs.readdirSync(sessionDir);
+    let savedCount = 0;
     for (const file of files) {
+      // 🛡️ ONLY persist essential credentials ('creds.json') - NEVER persist thousands of contact/LID mapping files!
+      if (file !== 'creds.json' && !file.startsWith('app-state-sync-key-')) {
+        continue;
+      }
       if (file.endsWith('.json')) {
         const filePath = path.join(sessionDir, file);
         if (fs.existsSync(filePath)) {
@@ -77,10 +82,13 @@ async function saveSessionToDb() {
             VALUES ($1, $2, NOW())
             ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
           `, file, content);
+          savedCount++;
         }
       }
     }
-    console.log(`💾 [WhatsApp Session] Persisted ${files.length} session files to Database.`);
+    if (savedCount > 0) {
+      console.log(`💾 [WhatsApp Session] Persisted ${savedCount} essential auth files to Database.`);
+    }
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session Save Note]:', e.message);
   }
