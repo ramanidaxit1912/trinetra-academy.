@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { teacherRequestOTP, teacherVerifyOTP } from '../services/api';
 import TeacherDashboard from '../components/TeacherDashboard';
-import { ShieldCheck, Lock, Key, User, ArrowLeft, Smartphone, CheckCircle, Sparkles, Fingerprint, Award } from 'lucide-react';
+import { ShieldCheck, Lock, Key, User, ArrowLeft, Smartphone, CheckCircle, Sparkles, Fingerprint, Award, Eye, EyeOff } from 'lucide-react';
 
 export default function TeacherPage() {
   const { isTeacher, loginTeacher } = useStore();
   const [step, setStep] = useState('credentials'); // 'credentials' | 'otp'
   const [form, setForm] = useState({ username: '', password: '', masterPin: '', otp: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [devOtp, setDevOtp] = useState('');
@@ -58,13 +59,23 @@ export default function TeacherPage() {
 
     setLoading(true);
     try {
-      const res = await teacherRequestOTP(form.username, form.password, form.masterPin);
+      const cleanUser = form.username.trim();
+      const cleanPass = form.password.trim();
+      const cleanPin = form.masterPin.trim();
+      const res = await teacherRequestOTP(cleanUser, cleanPass, cleanPin);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
       if (res.data.adminMobile) setAdminMobile(res.data.adminMobile);
       setStep('otp');
       setOtpCooldown(60);
     } catch (err) {
-      setError(err.response?.data?.error || '❌ ખોટું Username, Password અથવા Master PIN!');
+      const serverErr = err.response?.data?.error;
+      const isNetworkErr = !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK';
+      setError(
+        serverErr ||
+        (isNetworkErr
+          ? '🌐 સર્વર કનેક્શન એરર. કૃપા કરીને Ctrl + F5 દબાવી પેજ રિફ્રેશ કરો.'
+          : '❌ ખોટું Username, Password અથવા Master PIN!')
+      );
     }
     setLoading(false);
   };
@@ -448,22 +459,43 @@ export default function TeacherPage() {
               <label style={{ fontWeight: 700, fontSize: '0.82rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <Lock size={14} color="#38bdf8" /> ગુપ્ત પાસવર્ડ (Password) *
               </label>
-              <input
-                className="input-dark"
-                type="password"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  fontSize: '0.94rem',
-                  background: 'rgba(2, 6, 23, 0.65)',
-                  border: '1.5px solid rgba(255,255,255,0.12)',
-                  color: 'white'
-                }}
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  className="input-dark"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px 42px 12px 16px',
+                    borderRadius: 12,
+                    fontSize: '0.94rem',
+                    background: 'rgba(2, 6, 23, 0.65)',
+                    border: '1.5px solid rgba(255,255,255,0.12)',
+                    color: 'white'
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 4
+                  }}
+                  title={showPassword ? "પાસવર્ડ છુપાવો" : "પાસવર્ડ જુઓ"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {/* 3. 6-Digit Master Security PIN Pods */}
@@ -534,7 +566,7 @@ export default function TeacherPage() {
                 alignItems: 'center',
                 gap: 8
               }}>
-                <span>❌</span> {error}
+                {error}
               </div>
             )}
 

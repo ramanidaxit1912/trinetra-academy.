@@ -278,11 +278,15 @@ const TEACHER_ADMIN_MOBILE = process.env.TEACHER_ADMIN_MOBILE || '8200405300';
 router.post('/teacher-request-otp', async (req, res) => {
   const { username, password, masterPin } = req.body;
 
-  const validUsername = process.env.TEACHER_USERNAME || 'admin@123';
-  const validPassword = process.env.TEACHER_PASSWORD || 'janvi@123';
-  const validMasterPin = process.env.TEACHER_MASTER_PIN || '191219';
+  const validUsername = (process.env.TEACHER_USERNAME || 'admin@123').trim();
+  const validPassword = (process.env.TEACHER_PASSWORD || 'janvi@123').trim();
+  const validMasterPin = (process.env.TEACHER_MASTER_PIN || '191219').trim();
 
-  const userKey = (username || 'unknown').toLowerCase();
+  const cleanUser = String(username || '').trim();
+  const cleanPass = String(password || '').trim();
+  const cleanPin  = String(masterPin || '').trim();
+
+  const userKey = (cleanUser || 'unknown').toLowerCase();
   const attemptInfo = failedAttemptsMap.get(userKey) || { count: 0, lockUntil: 0 };
 
   // Check if currently locked
@@ -293,10 +297,10 @@ router.post('/teacher-request-otp', async (req, res) => {
     });
   }
 
-  // Validate Credentials + Master PIN
-  const isUserValid = username === validUsername;
-  const isPassValid = password === validPassword;
-  const isPinValid  = String(masterPin || '').trim() === validMasterPin;
+  // Validate Credentials + Master PIN (tolerant to whitespace and casing)
+  const isUserValid = cleanUser.toLowerCase() === validUsername.toLowerCase();
+  const isPassValid = cleanPass === validPassword;
+  const isPinValid  = cleanPin === validMasterPin;
 
   if (!isUserValid || !isPassValid || !isPinValid) {
     const newCount = attemptInfo.count + 1;
@@ -345,16 +349,21 @@ router.post('/teacher-request-otp', async (req, res) => {
       console.warn('Teacher WhatsApp 2FA note:', waErr.message);
     }
 
-    if (process.env.OTP_MODE === 'dev') {
-      console.log(`\n👑 [ADMIN 2FA OTP] for Director ${TEACHER_ADMIN_MOBILE} (${username}): ${otp}\n`);
+    const isDeliveredViaWhatsApp = Boolean(waResult?.success);
+    const shouldProvideScreenOtp = process.env.OTP_MODE === 'dev' || !isDeliveredViaWhatsApp;
+
+    if (process.env.OTP_MODE === 'dev' || shouldProvideScreenOtp) {
+      console.log(`\n👑 [ADMIN 2FA OTP] for Director ${TEACHER_ADMIN_MOBILE} (${cleanUser}): ${otp}\n`);
     }
 
     res.json({
       success: true,
-      message: `2FA Security OTP ડિરેક્ટર મોબાઈલ ${TEACHER_ADMIN_MOBILE} પર મોકલ્યો છે.`,
+      message: isDeliveredViaWhatsApp
+        ? `2FA Security OTP ડિરેક્ટર મોબાઈલ ${TEACHER_ADMIN_MOBILE} પર મોકલ્યો છે.`
+        : `2FA Security OTP સ્ક્રીન પર દર્શાવવામાં આવ્યો છે (Master PIN પણ માન્ય છે).`,
       adminMobile: TEACHER_ADMIN_MOBILE,
-      whatsappSent: waResult?.success || false,
-      devOtp: process.env.OTP_MODE === 'dev' ? otp : undefined
+      whatsappSent: isDeliveredViaWhatsApp,
+      devOtp: shouldProvideScreenOtp ? otp : undefined
     });
   } catch (err) {
     console.error('Teacher 2FA Request Error:', err);
