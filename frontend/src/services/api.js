@@ -2,12 +2,12 @@ import axios from 'axios';
 
 const RENDER_BACKEND_URL = 'https://trinetra-api-br2p.onrender.com';
 
-const API_BASE = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace('/api', '')
-  : RENDER_BACKEND_URL;
+// 🎯 Strictly use same-origin '/api' (proxied via Vercel rewrites to active Render service)
+// NOTE: We intentionally ignore any obsolete Vercel environment variable (such as the dead trinetra-backend-4qni)
+const API_BASE = RENDER_BACKEND_URL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: '/api',
   timeout: 60000, // 60s
 });
 
