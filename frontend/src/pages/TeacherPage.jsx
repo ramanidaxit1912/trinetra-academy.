@@ -48,8 +48,8 @@ export default function TeacherPage() {
   const [showWarpDashboard, setShowWarpDashboard] = useState(false);
 
   // ─── Step 1: Validate Credentials + PIN -> Request 2FA OTP ──
-  const handleRequestOTP = async (e) => {
-    e.preventDefault();
+  const handleRequestOTP = async (e, isRetry = false) => {
+    if (e && e.preventDefault) e.preventDefault();
     setError('');
 
     if (form.masterPin.length !== 6) {
@@ -60,36 +60,45 @@ export default function TeacherPage() {
     setLoading(true);
     setError('');
 
-    try {
-      const cleanUser = form.username.trim();
-      const cleanPass = form.password.trim();
-      const cleanPin  = form.masterPin.trim();
+    const cleanUser = form.username.trim();
+    const cleanPass = form.password.trim();
+    const cleanPin  = form.masterPin.trim();
 
-      // 🔔 Step 0: Silent wake-up ping (Render free tier may be sleeping)
-      // This prevents timeout on the actual login call
+    // 🔔 Wake-up ping — wait up to 8s for server to respond
+    if (!isRetry) {
       try {
-        await fetch('/api/health', { method: 'GET', signal: AbortSignal.timeout(5000) });
-      } catch (_) { /* ignore, server may already be awake */ }
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 8000);
+        await fetch('/api/health', { signal: ctrl.signal });
+        clearTimeout(tid);
+      } catch (_) { /* server may be waking — proceed anyway */ }
+    }
 
-      // 🔑 Step 1: Actual login request (with higher timeout for slow wake)
+    try {
       const res = await teacherRequestOTP(cleanUser, cleanPass, cleanPin);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
       if (res.data.adminMobile) setAdminMobile(res.data.adminMobile);
       setStep('otp');
       setOtpCooldown(60);
+      setLoading(false);
     } catch (err) {
       const serverErr = err.response?.data?.error;
       const isNetworkErr = !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED';
-      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+      const isTimeout    = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
 
-      if (isTimeout || isNetworkErr) {
-        // 🔁 Auto-retry once after server wakeup
-        setError('⏳ સર્વર જાગી રહ્યું છે... 5 સેકન્ડ રાહ જુઓ અને ફરી પ્રયાસ કરો.');
+      if ((isTimeout || isNetworkErr) && !isRetry) {
+        // 🔁 Auto-retry after 5 seconds — server is waking up
+        setError('⏳ સર્વર જાગી રહ્યું છે... 5 સેકન્ડ પછી આપોઆપ ફરી પ્રયાસ થશે.');
+        setTimeout(() => {
+          handleRequestOTP(null, true);
+        }, 5000);
       } else {
-        setError(serverErr || '❌ ખોટું Username, Password અથવા Master PIN!');
+        setLoading(false);
+        setError(serverErr || (isNetworkErr
+          ? '🌐 ઇન્ટરનેટ ચેક કરો અને "Ctrl + F5" દબાવી ફરી પ્રયાસ કરો.'
+          : '❌ ખોટું Username, Password અથવા Master PIN!'));
       }
     }
-    setLoading(false);
   };
 
   // ─── Step 2: Verify 2FA OTP -> Trigger Vault Shatter & Dimensional Warp ───
