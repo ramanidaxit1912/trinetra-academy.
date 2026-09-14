@@ -467,25 +467,35 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [subRes, qRes] = await Promise.all([getSubmissions(), getAllQuestions()]);
-        const s = Array.isArray(subRes?.data) ? subRes.data : [];
-        const qList = Array.isArray(qRes?.data) ? qRes.data : [];
-        const today = s.filter(x => new Date(x.createdAt || x.submittedAt) > new Date(Date.now() - 86400000));
-        setSubs(s); setQs(qList);
-        setStats({
-          students: new Set(s.map(x => x.student?.mobile).filter(Boolean)).size,
-          tests: s.length,
-          today: today.length,
-          questions: qList.length,
-          avg: s.length ? (s.reduce((a, x) => a + (x.mcqScore ?? x.score ?? 0), 0) / s.length).toFixed(1) : 0,
-          pending: s.filter(x => (x.teacherMarks === null || x.teacherMarks === undefined) && (x.photoUrl || x.photoUrls?.length > 0)).length,
-        });
-      } catch { showToast('Stats load ન થઈ', 'error'); }
+  const loadDashboardStats = async (retryCount = 0) => {
+    try {
+      const [subRes, qRes] = await Promise.all([getSubmissions(), getAllQuestions()]);
+      const s = Array.isArray(subRes?.data) ? subRes.data : [];
+      const qList = Array.isArray(qRes?.data) ? qRes.data : [];
+      const today = s.filter(x => new Date(x.createdAt || x.submittedAt) > new Date(Date.now() - 86400000));
+      setSubs(s); setQs(qList);
+      setStats({
+        students: new Set(s.map(x => x.student?.mobile).filter(Boolean)).size,
+        tests: s.length,
+        today: today.length,
+        questions: qList.length,
+        avg: s.length ? (s.reduce((a, x) => a + (x.mcqScore ?? x.score ?? 0), 0) / s.length).toFixed(1) : 0,
+        pending: s.filter(x => (x.teacherMarks === null || x.teacherMarks === undefined) && (x.photoUrl || x.photoUrls?.length > 0)).length,
+      });
       setLoading(false);
-    })();
+    } catch (err) {
+      console.warn('Dashboard stats load attempt failed:', retryCount, err.message);
+      if (retryCount < 3) {
+        setTimeout(() => loadDashboardStats(retryCount + 1), 2500);
+      } else {
+        showToast('Stats load ન થઈ. પેજ રિફ્રેશ કરો.', 'error');
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardStats();
   }, []);
 
   const handleSaveProfile = () => {

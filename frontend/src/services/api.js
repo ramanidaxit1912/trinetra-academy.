@@ -1,21 +1,14 @@
 import axios from 'axios';
 
+const RENDER_BACKEND_URL = 'https://trinetra-api-br2p.onrender.com';
+
 const API_BASE = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace('/api', '')
-  : '';
+  : RENDER_BACKEND_URL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 30000, // 30s — handles Render free-tier cold start
-});
-
-// 🎯 Direct Render API — bypasses Vercel proxy (used for teacher login)
-// This prevents Vercel proxy timeout (Vercel can add 40-65s latency on cold Render starts)
-const RENDER_DIRECT_URL = 'https://trinetra-api-br2p.onrender.com/api';
-const directApi = axios.create({
-  baseURL: RENDER_DIRECT_URL,
-  timeout: 90000, // 90s — full Render cold-start budget
-  withCredentials: false,
+  baseURL: import.meta.env.VITE_API_URL || `${RENDER_BACKEND_URL}/api`,
+  timeout: 60000, // 60s
 });
 
 /**
@@ -81,9 +74,8 @@ api.interceptors.response.use(
 export const sendOTP        = (mobile, name)          => api.post('/auth/send-otp', { mobile, name });
 export const verifyOTP      = (mobile, name, otp)     => api.post('/auth/verify-otp', { mobile, name, otp });
 export const checkSession   = ()                      => api.get('/auth/check-session');
-// 🎯 Teacher login goes DIRECT to Render (bypasses Vercel proxy timeout)
-export const teacherRequestOTP = (username, password, masterPin) => directApi.post('/auth/teacher-request-otp', { username, password, masterPin });
-export const teacherVerifyOTP  = (username, otp) => directApi.post('/auth/teacher-verify-otp', { username, otp });
+export const teacherRequestOTP = (username, password, masterPin) => api.post('/auth/teacher-request-otp', { username, password, masterPin });
+export const teacherVerifyOTP  = (username, otp) => api.post('/auth/teacher-verify-otp', { username, otp });
 
 // ─── Questions ────────────────────────────────────────────────
 export const getQuestions     = ()      => api.get('/questions');
