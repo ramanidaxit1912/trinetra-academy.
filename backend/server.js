@@ -266,10 +266,12 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
 
 // ─── Health Check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
+  const { isCloudinaryConfigured } = require('./services/cloudinaryService');
   res.json({ 
     status: 'ok', 
     message: '🎓 Trinetra Online Academy API is running!',
     whatsapp: getWhatsAppStatus().status,
+    cloudinary: isCloudinaryConfigured() ? '✅ Configured' : '❌ NOT set — images go to local disk!',
     timestamp: new Date().toISOString()
   });
 });
