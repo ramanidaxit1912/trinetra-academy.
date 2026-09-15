@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
@@ -103,15 +103,16 @@ async function clearSessionFromDb() {
   }
 }
 
+let isInitializing = false;
 let reconnectAttempts = 0;
 let reconnectTimer = null;
 let sessionSaveInterval = null;
 let connectionWatchdog = null;
+let lastError = null;
 
-function scheduleReconnect() {
-  if (reconnectTimer) return; // already scheduled
-  // Exponential backoff: 4s, 8s, 16s, 32s, max 60s
-  const delay = Math.min(4000 * Math.pow(2, reconnectAttempts), 60000);
+function scheduleReconnect(forceDelay) {
+  if (reconnectTimer) return;
+  const delay = forceDelay !== undefined ? forceDelay : Math.min(3000 * Math.pow(1.5, reconnectAttempts), 30000);
   reconnectAttempts++;
   console.log(`🔄 [WhatsApp] Reconnecting in ${Math.round(delay/1000)}s (attempt #${reconnectAttempts})...`);
   reconnectTimer = setTimeout(() => {
@@ -120,15 +121,41 @@ function scheduleReconnect() {
   }, delay);
 }
 
-async function initWhatsApp() {
+async function initWhatsApp(forceFresh = false) {
+  if (isInitializing) {
+    console.log('ℹ️ [WhatsApp] Initialization already in progress, skipping duplicate call.');
+    return;
+  }
+  if (!forceFresh && (connectionStatus === 'CONNECTED' || (connectionStatus === 'SCAN_QR' && qrCodeDataUrl))) {
+    return;
+  }
+
+  isInitializing = true;
+  connectionStatus = 'CONNECTING';
+
   try {
-    // 1. Restore persistent session from Supabase Database to local disk
-    await restoreSessionFromDb();
+    if (forceFresh) {
+      if (fs.existsSync(sessionDir)) {
+        fs.rmSync(sessionDir, { recursive: true, force: true });
+        fs.mkdirSync(sessionDir, { recursive: true });
+      }
+      await clearSessionFromDb();
+      reconnectAttempts = 0;
+    } else {
+      // Restore persistent session from Database to local disk
+      await restoreSessionFromDb();
+    }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    const { version } = await fetchLatestBaileysVersion();
 
-    connectionStatus = 'CONNECTING';
+    // Fallback Baileys version if network fetch fails/hangs on cloud server
+    let version = [2, 3000, 1043857760];
+    try {
+      const v = await fetchLatestBaileysVersion();
+      if (v && v.version) version = v.version;
+    } catch (e) {
+      console.warn('⚠️ [WhatsApp] Could not fetch latest Baileys version, using fallback:', e.message);
+    }
 
     // Close old socket cleanly if re-initializing
     if (waSocket) {
@@ -141,11 +168,11 @@ async function initWhatsApp() {
       logger: pino({ level: 'silent' }),
       auth: state,
       printQRInTerminal: false,
-      browser: ['Trinetra Academy Portal', 'Chrome', '1.0.0'],
-      syncFullHistory: false,           // 🛑 Never sync phone's past chat history (saves 7+ GB bandwidth)
-      markOnlineOnConnect: false,       // Don't broadcast online presence
+      browser: Browsers.ubuntu('Chrome'),
+      syncFullHistory: false,           // 🛑 Never sync phone's past chat history (saves bandwidth)
+      markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
-      keepAliveIntervalMs: 60000,       // Ping every 60s
+      keepAliveIntervalMs: 30000,       // Ping every 30s
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
     });
@@ -160,67 +187,87 @@ async function initWhatsApp() {
 
       if (qr) {
         connectionStatus = 'SCAN_QR';
+        lastError = null;
         try {
-          qrCodeDataUrl = await QRCode.toDataURL(qr);
+          qrCodeDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 6 });
           console.log('\n🟢 [WhatsApp Bridge] Scan QR Code on screen or Teacher Dashboard to connect!\n');
-        } catch (e) {}
+        } catch (e) {
+          console.error('QR toDataURL error:', e);
+        }
       }
 
       if (connection === 'close') {
         const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        const errMsg = lastDisconnect?.error?.message || '';
+        lastError = `Closed (${statusCode}): ${errMsg}`;
+        
+        // Fatal auth errors: credentials expired, logged out, or replaced
+        const isAuthFailure = statusCode === DisconnectReason.loggedOut || 
+                              statusCode === DisconnectReason.forbidden ||
+                              statusCode === DisconnectReason.badSession ||
+                              statusCode === DisconnectReason.connectionReplaced ||
+                              statusCode === 401 || statusCode === 403;
+
+        const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+
         connectionStatus = 'DISCONNECTED';
         qrCodeDataUrl = null;
         connectedPhone = null;
-        console.log('🔴 [WhatsApp Bridge] Connection closed. StatusCode:', statusCode, 'LoggedOut:', isLoggedOut);
+        console.log('🔴 [WhatsApp Bridge] Connection closed. StatusCode:', statusCode, 'AuthFailure:', isAuthFailure);
 
-        // Stop periodic session save
         if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
         if (connectionWatchdog) { clearInterval(connectionWatchdog); connectionWatchdog = null; }
 
-        if (isLoggedOut) {
+        if (isAuthFailure) {
+          console.log('🧹 [WhatsApp] Session invalid/expired. Clearing DB & starting fresh QR scan...');
           await clearSessionFromDb();
-          reconnectAttempts = 0; // Reset for fresh QR scan
-          scheduleReconnect(); // Will show QR again
+          if (fs.existsSync(sessionDir)) {
+            fs.rmSync(sessionDir, { recursive: true, force: true });
+            fs.mkdirSync(sessionDir, { recursive: true });
+          }
+          reconnectAttempts = 0;
+          scheduleReconnect(1000); // Start fresh QR in 1 second
+        } else if (isRestartRequired) {
+          console.log('🔄 [WhatsApp] Restart required by WhatsApp. Reconnecting immediately...');
+          scheduleReconnect(1000);
         } else {
-          scheduleReconnect(); // Auto-reconnect with backoff
+          scheduleReconnect(); // Network blip: reconnect with backoff
         }
       } else if (connection === 'open') {
         connectionStatus = 'CONNECTED';
         qrCodeDataUrl = null;
+        lastError = null;
         connectedPhone = waSocket.user?.id?.split(':')[0] || 'Active';
-        reconnectAttempts = 0; // Reset backoff on successful connection
+        reconnectAttempts = 0;
         console.log('✅ [WhatsApp Bridge] 100% Connected successfully as:', connectedPhone);
 
-        // Persist full session to Database on successful connection
         setTimeout(saveSessionToDb, 2000);
 
-        // ── Periodic session save every 5 minutes (keeps session fresh in DB) ──
         if (sessionSaveInterval) clearInterval(sessionSaveInterval);
         sessionSaveInterval = setInterval(async () => {
           if (connectionStatus === 'CONNECTED') {
             await saveSessionToDb();
-            console.log('💾 [WhatsApp] Periodic session backup saved to DB.');
           }
-        }, 5 * 60 * 1000); // Every 5 minutes
+        }, 5 * 60 * 1000);
 
-        // ── Connection Watchdog: if socket goes stale, force reconnect ──
         if (connectionWatchdog) clearInterval(connectionWatchdog);
         connectionWatchdog = setInterval(() => {
           if (connectionStatus !== 'CONNECTED') {
-            console.log('🐕 [WhatsApp Watchdog] Status not CONNECTED, triggering reconnect...');
             clearInterval(connectionWatchdog);
             connectionWatchdog = null;
             scheduleReconnect();
           }
-        }, 60 * 1000); // Check every 60 seconds
+        }, 60 * 1000);
       }
     });
 
   } catch (err) {
     console.error('WhatsApp Init Error:', err);
+    lastError = err.message;
     connectionStatus = 'DISCONNECTED';
     scheduleReconnect();
+  } finally {
+    isInitializing = false;
   }
 }
 
@@ -468,7 +515,9 @@ function getWhatsAppStatus() {
   return {
     status: connectionStatus,
     qrCode: qrCodeDataUrl,
-    phone: connectedPhone
+    phone: connectedPhone,
+    lastError: lastError,
+    attempts: reconnectAttempts
   };
 }
 

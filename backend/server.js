@@ -217,12 +217,25 @@ app.get('/whatsapp', (req, res) => {
           content.innerHTML = \`
             <div class="badge badge-connecting">🔵 સર્વર સાથે જોડાણ થઈ રહ્યું છે...</div>
             <div class="spinner"></div>
-            <p style="color: #94a3b8; font-size: 0.85rem">કૃપા કરીને થોડી સેકન્ડ રાહ જુઓ...</p>
+            <p style="color: #94a3b8; font-size: 0.85rem">QR કોડ તૈયાર થઈ રહ્યો છે, કૃપા કરીને થોડી સેકન્ડ રાહ જુઓ...</p>
+            ${data.lastError ? `<div style="color:#f87171;font-size:0.75rem;margin-top:8px;padding:6px 10px;background:rgba(239,68,68,0.1);border-radius:8px">ℹ️ ${data.lastError}</div>` : ''}
+            <button class="btn" style="background:rgba(59,130,246,0.2);border:1px solid #3b82f6;color:#93c5fd;margin-top:16px" onclick="forceReset()">🔄 નવો QR કોડ લોડ કરો (Fresh QR)</button>
           \`;
         }
       } catch (err) {
         console.error('Fetch error:', err);
       }
+    }
+
+    async function forceReset() {
+      const content = document.getElementById('content');
+      if (content) {
+        content.innerHTML = '<div class="spinner"></div><p style="color:#94a3b8;font-size:0.85rem">નવો QR કોડ તૈયાર થઈ રહ્યો છે...</p>';
+      }
+      try {
+        await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+      } catch (e) {}
+      setTimeout(checkStatus, 1500);
     }
 
     async function disconnectWA() {
@@ -241,7 +254,11 @@ app.get('/whatsapp', (req, res) => {
 
 // ─── WhatsApp Status, Live QR Code & Disconnect/Switch API ────
 app.get('/api/whatsapp/status', (req, res) => {
-  res.json(getWhatsAppStatus());
+  const current = getWhatsAppStatus();
+  if (current.status === 'DISCONNECTED') {
+    initWhatsApp();
+  }
+  res.json(current);
 });
 
 app.post('/api/whatsapp/disconnect', async (req, res) => {
