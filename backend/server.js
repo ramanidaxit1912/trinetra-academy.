@@ -11,7 +11,7 @@ const uploadRoutes = require('./routes/upload');
 const teacherRoutes = require('./routes/teacher');
 const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
-const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp } = require('./services/whatsappService');
+const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp, hasSavedSession } = require('./services/whatsappService');
 const { prewarmPdfEngine } = require('./services/pdfService');
 
 const app = express();
@@ -20,10 +20,20 @@ const PORT = process.env.PORT || 8085;
 // Enable High-Efficiency Data Compression (Saves 85% Bandwidth)
 app.use(compression());
 
-// Initialize WhatsApp Bridge on-demand (keeps server lightweight & saves bandwidth)
-if (process.env.ENABLE_WHATSAPP === 'true') {
-  initWhatsApp();
-}
+// Auto-initialize WhatsApp Bridge 24/7 if previously paired
+(async () => {
+  try {
+    const saved = await hasSavedSession();
+    if (saved || process.env.ENABLE_WHATSAPP === 'true') {
+      console.log('📱 [WhatsApp] Saved session detected — Auto-connecting WhatsApp 24/7...');
+      initWhatsApp();
+    } else {
+      console.log('ℹ️ [WhatsApp] No saved session yet. Scan QR at /whatsapp to pair.');
+    }
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Startup]:', e.message);
+  }
+})();
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(cors({

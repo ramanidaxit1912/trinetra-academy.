@@ -1,22 +1,24 @@
 /**
  * whatsappService.js — Trinetra Online Academy
  * ─────────────────────────────────────────────
- * ✅ ZERO disk usage: All Baileys state kept IN MEMORY
- * ✅ Only creds.json backed to Supabase DB (~5KB total)
- * ✅ 24/7 auto-reconnect on network drops
- * ✅ Clean logout with no auto-restart
- * ✅ Render 5GB storage NOT consumed
+ * ✅ Rock-solid 24/7 WhatsApp connection using Baileys multi-file auth
+ * ✅ Automatic Supabase DB sync: all cryptographic session keys persisted
+ * ✅ Restores session on Render restart without requiring QR scan
+ * ✅ Minimal disk footprint (~300 KB total, 0.006% of Render 5GB)
+ * ✅ No accidental logouts on temporary network blips
+ * ✅ Clean manual logout
  */
 
 const {
   default: makeWASocket,
+  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  Browsers,
-  initAuthCreds,
-  BufferJSON
+  Browsers
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
+const path = require('path');
+const fs = require('fs');
 const QRCode = require('qrcode');
 const prisma = require('../prismaClient');
 
@@ -29,8 +31,12 @@ let isInitializing = false;
 let reconnectAttempts = 0;
 let reconnectTimer = null;
 let sessionSaveInterval = null;
-let connectionWatchdog = null;
 let lastError = null;
+
+const sessionDir = path.join(__dirname, '../whatsapp_session');
+if (!fs.existsSync(sessionDir)) {
+  fs.mkdirSync(sessionDir, { recursive: true });
+}
 
 // ─── Helper: Clean Indian Mobile ──────────────────────────────
 function cleanIndianMobile(rawMobile) {
@@ -40,7 +46,7 @@ function cleanIndianMobile(rawMobile) {
   return digits;
 }
 
-// ─── Supabase DB: creds.json only (~5KB) ──────────────────────
+// ─── Supabase DB Table Check ──────────────────────────────────
 async function ensureDbSessionTable() {
   try {
     await prisma.$executeRawUnsafe(`
@@ -50,84 +56,80 @@ async function ensureDbSessionTable() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-  } catch (e) { /* already exists */ }
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp] DB Table check note:', e.message);
+  }
 }
 
-async function loadCredsFromDb() {
+// Check if credentials exist in DB
+async function hasSavedSession() {
   try {
     await ensureDbSessionTable();
-    const rows = await prisma.$queryRawUnsafe(
-      `SELECT data FROM whatsapp_sessions WHERE id = 'creds.json' LIMIT 1`
-    );
-    if (rows && rows.length > 0 && rows[0].data) {
-      return JSON.parse(rows[0].data, BufferJSON.reviver);
+    const rows = await prisma.$queryRawUnsafe(`SELECT id FROM whatsapp_sessions WHERE id = 'creds.json' LIMIT 1`);
+    return Boolean(rows && rows.length > 0);
+  } catch (e) {
+    return false;
+  }
+}
+
+// Restore all session files from Supabase DB into sessionDir
+async function restoreSessionFromDb() {
+  try {
+    await ensureDbSessionTable();
+    const rows = await prisma.$queryRawUnsafe(`SELECT id, data FROM whatsapp_sessions`);
+    if (rows && rows.length > 0) {
+      if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      }
+      for (const row of rows) {
+        fs.writeFileSync(path.join(sessionDir, row.id), row.data, 'utf8');
+      }
+      console.log(`📥 [WhatsApp Session] Restored ${rows.length} session files from Supabase DB.`);
+      return true;
     }
   } catch (e) {
-    console.warn('⚠️ [WhatsApp] Could not load creds from DB:', e.message);
+    console.warn('⚠️ [WhatsApp Session] Restore error:', e.message);
   }
-  return null;
+  return false;
 }
 
-async function saveCredsToDb(creds) {
+// Backup all session files from sessionDir into Supabase DB
+async function saveSessionToDb() {
   try {
-    const data = JSON.stringify(creds, BufferJSON.replacer);
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO whatsapp_sessions (id, data, updated_at)
-      VALUES ('creds.json', $1, NOW())
-      ON CONFLICT (id) DO UPDATE SET data = $1, updated_at = NOW()
-    `, data);
-  } catch (e) {
-    console.warn('⚠️ [WhatsApp] Could not save creds to DB:', e.message);
-  }
-}
+    if (!fs.existsSync(sessionDir)) return;
+    const files = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json'));
+    if (files.length === 0) return;
 
-async function clearCredsFromDb() {
-  try {
-    await prisma.$executeRawUnsafe(`DELETE FROM whatsapp_sessions`);
-    console.log('🗑️ [WhatsApp] Session cleared from DB.');
-  } catch (e) {
-    console.warn('⚠️ [WhatsApp] Could not clear DB:', e.message);
-  }
-}
-
-// ─── Custom IN-MEMORY Auth State (ZERO disk writes) ───────────
-async function useDbAuthState() {
-  const savedCreds = await loadCredsFromDb();
-  let creds = savedCreds || initAuthCreds();
-
-  // In-memory signal key store — stays in RAM, never hits disk
-  const keys = {};
-
-  const state = {
-    creds,
-    keys: {
-      get: (type, ids) => {
-        const data = {};
-        for (const id of ids) {
-          const val = keys[`${type}-${id}`];
-          if (val) data[id] = val;
-        }
-        return data;
-      },
-      set: (data) => {
-        for (const [type, entries] of Object.entries(data)) {
-          for (const [id, val] of Object.entries(entries)) {
-            if (val != null) {
-              keys[`${type}-${id}`] = val;
-            } else {
-              delete keys[`${type}-${id}`];
-            }
-          }
-        }
+    for (const file of files) {
+      const filePath = path.join(sessionDir, file);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO whatsapp_sessions (id, data, updated_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
+        `, file, content);
       }
     }
-  };
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Session] Save error:', e.message);
+  }
+}
 
-  const saveCreds = async () => {
-    await saveCredsToDb(state.creds);
-  };
-
-  return { state, saveCreds };
+// Wipe session from DB and disk
+async function clearSessionFromDb() {
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM whatsapp_sessions`);
+    if (fs.existsSync(sessionDir)) {
+      const files = fs.readdirSync(sessionDir);
+      for (const f of files) {
+        try { fs.unlinkSync(path.join(sessionDir, f)); } catch (e) {}
+      }
+    }
+    console.log('🗑️ [WhatsApp Session] Cleared session from Database and disk.');
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Session] Clear error:', e.message);
+  }
 }
 
 // ─── Reconnect Scheduler ──────────────────────────────────────
@@ -135,9 +137,9 @@ function scheduleReconnect(forceDelay) {
   if (reconnectTimer) return;
   const delay = forceDelay !== undefined
     ? forceDelay
-    : Math.min(3000 * Math.pow(1.5, reconnectAttempts), 30000);
+    : Math.min(3000 * Math.pow(1.5, reconnectAttempts), 25000);
   reconnectAttempts++;
-  console.log(`🔄 [WhatsApp] Reconnecting in ${Math.round(delay / 1000)}s (attempt #${reconnectAttempts})...`);
+  console.log(`🔄 [WhatsApp] Auto-reconnecting in ${Math.round(delay / 1000)}s (attempt #${reconnectAttempts})...`);
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
     initWhatsApp();
@@ -158,21 +160,25 @@ async function initWhatsApp() {
   connectionStatus = 'CONNECTING';
 
   try {
-    const { state, saveCreds } = await useDbAuthState();
+    // 1. Restore persistent session keys from Supabase if disk is empty (e.g. after Render redeploy)
+    const diskFiles = fs.existsSync(sessionDir) ? fs.readdirSync(sessionDir).filter(f => f.endsWith('.json')) : [];
+    if (diskFiles.length === 0) {
+      await restoreSessionFromDb();
+    }
 
+    // 2. Load Multi-File Auth State from session directory
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+    // 3. Get latest Baileys version with fallback
     let version = [2, 3000, 1043857760];
     try {
       const v = await fetchLatestBaileysVersion();
-      if (v && v.version) version = v.version;
+      if (v?.version) version = v.version;
     } catch (e) {
-      console.warn('⚠️ [WhatsApp] Using fallback Baileys version.');
+      console.warn('⚠️ [WhatsApp] Could not fetch version, using default:', version.join('.'));
     }
 
-    if (waSocket) {
-      try { waSocket.end(); } catch (e) {}
-      waSocket = null;
-    }
-
+    // 4. Create WA Socket with optimal 24/7 keep-alive settings
     waSocket = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
@@ -182,15 +188,20 @@ async function initWhatsApp() {
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
-      keepAliveIntervalMs: 30000,
+      keepAliveIntervalMs: 25000,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
+      retryRequestDelayMs: 2000,
+      maxMsgRetryCount: 5,
     });
 
+    // 5. Creds update -> save immediately to disk and Supabase
     waSocket.ev.on('creds.update', async () => {
       await saveCreds();
+      await saveSessionToDb();
     });
 
+    // 6. Connection updates
     waSocket.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
@@ -199,9 +210,9 @@ async function initWhatsApp() {
         lastError = null;
         try {
           qrCodeDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 6 });
-          console.log('\n🟢 [WhatsApp] QR Code ready — scan to connect!\n');
+          console.log('\n🟢 [WhatsApp] QR Code ready — scan at /whatsapp to connect!\n');
         } catch (e) {
-          console.error('QR error:', e.message);
+          console.error('QR generation error:', e.message);
         }
       }
 
@@ -210,32 +221,27 @@ async function initWhatsApp() {
         const errMsg = lastDisconnect?.error?.message || '';
         lastError = `Closed (${statusCode}): ${errMsg}`;
 
-        const isAuthFailure =
-          statusCode === DisconnectReason.loggedOut ||
-          statusCode === DisconnectReason.forbidden ||
-          statusCode === DisconnectReason.badSession ||
-          statusCode === 401 || statusCode === 403;
-
-        const isRestartRequired =
-          statusCode === DisconnectReason.restartRequired || statusCode === 515;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
 
         connectionStatus = 'DISCONNECTED';
         qrCodeDataUrl = null;
         connectedPhone = null;
-        console.log(`🔴 [WhatsApp] Closed. Code: ${statusCode}, AuthFail: ${isAuthFailure}`);
+        console.log(`🔴 [WhatsApp] Connection closed. StatusCode: ${statusCode} (${errMsg})`);
 
         if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
-        if (connectionWatchdog) { clearInterval(connectionWatchdog); connectionWatchdog = null; }
 
-        if (isAuthFailure) {
-          console.log('🧹 [WhatsApp] Auth failure — clearing DB session, fresh QR needed.');
-          await clearCredsFromDb();
+        if (isLoggedOut) {
+          console.log('🧹 [WhatsApp] Explicitly logged out from phone — clearing session.');
+          await clearSessionFromDb();
           reconnectAttempts = 0;
-          scheduleReconnect(1500);
+          scheduleReconnect(2000);
         } else if (isRestartRequired) {
+          console.log('🔄 [WhatsApp] Restart required (515) — reconnecting immediately...');
           scheduleReconnect(1000);
         } else {
-          // Network drop — 24/7 auto-reconnect
+          // Normal network drop, Render keep-alive blip, or WhatsApp ping timeout:
+          // DO NOT delete DB! Just reconnect with existing valid keys!
           scheduleReconnect();
         }
       } else if (connection === 'open') {
@@ -244,23 +250,18 @@ async function initWhatsApp() {
         lastError = null;
         connectedPhone = waSocket.user?.id?.split(':')[0] || 'Active';
         reconnectAttempts = 0;
-        console.log('✅ [WhatsApp] Connected as:', connectedPhone);
+        console.log('✅ [WhatsApp] Connected successfully as:', connectedPhone);
 
-        // Periodic creds backup to DB every 5 minutes
+        // Immediately backup all handshake session keys to Supabase
+        await saveSessionToDb();
+
+        // Periodic session backup every 2 minutes
         if (sessionSaveInterval) clearInterval(sessionSaveInterval);
         sessionSaveInterval = setInterval(async () => {
-          if (connectionStatus === 'CONNECTED') await saveCreds();
-        }, 5 * 60 * 1000);
-
-        // Watchdog
-        if (connectionWatchdog) clearInterval(connectionWatchdog);
-        connectionWatchdog = setInterval(() => {
-          if (connectionStatus !== 'CONNECTED') {
-            clearInterval(connectionWatchdog);
-            connectionWatchdog = null;
-            scheduleReconnect();
+          if (connectionStatus === 'CONNECTED') {
+            await saveSessionToDb();
           }
-        }, 60 * 1000);
+        }, 2 * 60 * 1000);
       }
     });
 
@@ -279,7 +280,6 @@ async function logoutWhatsApp() {
   try {
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
-    if (connectionWatchdog) { clearInterval(connectionWatchdog); connectionWatchdog = null; }
 
     if (waSocket) {
       try { await waSocket.logout(); } catch (e) {}
@@ -287,7 +287,7 @@ async function logoutWhatsApp() {
       waSocket = null;
     }
 
-    await clearCredsFromDb();
+    await clearSessionFromDb();
 
     connectionStatus = 'DISCONNECTED';
     qrCodeDataUrl = null;
@@ -312,11 +312,11 @@ function getWhatsAppStatus() {
 async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર્થી') {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
-  const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n🔑 OTP: *${otp.split('').join(' ')}*\n\n⏱️ OTP 5 મિનિટ માટે. 🔒 OTP share ન કરશો.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraacademy.in  📞 8200405300`;
+  const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n🔑 OTP: *${otp.split('').join(' ')}*\n\n⏱️ OTP 5 મિનિટ માટે માન્ય છે. 🔒 કોઈ સાથે શેર ન કરશો.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraacademy.in  📞 8200405300`;
   if (waSocket && connectionStatus === 'CONNECTED') {
     try {
       await waSocket.sendMessage(jid, { text: textMessage });
-      console.log(`✅ [OTP] Sent to +91${cleanMobile}`);
+      console.log(`✅ [OTP] Sent via WhatsApp to +91${cleanMobile}`);
       return { success: true, method: 'BAILEYS_WHATSAPP' };
     } catch (err) {
       return { success: false, error: err.message };
@@ -332,7 +332,7 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ' : pct >= 60 ? '🟢 પાસ' : '🔴 સુધારો';
-  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 ${testName} — ${score}/${totalMarks} (${pct}%) — ${resultStatus}\n\n📄 PDF ઉપર છે. ✨ 🌐 https://trinetraacademy.in`;
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 ${testName} — ${score}/${totalMarks} (${pct}%) — ${resultStatus}\n\n📄 તમારું સ્કોરકાર્ડ PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
   if (waSocket && connectionStatus === 'CONNECTED') {
     try {
       const safeName = String(testName || 'Test').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
@@ -347,12 +347,12 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
 async function sendWhatsAppPragatiPDF(mobile, studentName, pdfBuffer) {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
-  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*, 📊 પ્રગતિ રિપોર્ટ PDF ઉપર. ✨ 🌐 https://trinetraacademy.in`;
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n📊 તમારો સર્વગ્રાહી પ્રગતિ અહેવાલ (Progress Certificate) PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
   if (waSocket && connectionStatus === 'CONNECTED') {
     try {
       const safeName = String(studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
       await waSocket.sendMessage(jid, { document: pdfBuffer, mimetype: 'application/pdf', fileName: `Trinetra_Pragati_${safeName}.pdf`, caption });
-      return { success: true, message: `📊 PDF (+91${cleanMobile}) WhatsApp પર!` };
+      return { success: true, message: `📊 PDF (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` };
     } catch (err) { return { success: false, error: err.message }; }
   }
   return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
@@ -361,7 +361,7 @@ async function sendWhatsAppPragatiPDF(mobile, studentName, pdfBuffer) {
 // ─── Send Daily Report ────────────────────────────────────────
 async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
   if (!waSocket || connectionStatus !== 'CONNECTED') {
-    return { success: false, isOffline: true, error: 'WhatsApp ડિસ્કનેક્ટ. QR સ્કેન કરો.' };
+    return { success: false, isOffline: true, error: 'WhatsApp ડિસ્કનેક્ટ છે. QR સ્કેન કરો.' };
   }
   try {
     const cleanMobile = cleanIndianMobile(targetMobile);
@@ -384,11 +384,20 @@ async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
     const message = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી - દૈનિક અહેવાલ* 📊\n━━━━━━━━━━━━━━━━━━━━━━\n📅 *તારીખ:* ${istDate} (${istTime})\n👨‍🏫 *ડિરેક્ટર:* સુનિલ સર\n\n📈 *છેલ્લા ૨૪ કલાક:*\n👥 *વિદ્યાર્થીઓ:* ${uniqueStudents}\n📝 *કસોટીઓ:* ${totalSubs}\n🎯 *સરેરાશ:* ${avgScore} ગુણ\n${cheatingCount > 0 ? `⚠️ *ઉલ્લંઘન:* ${cheatingCount}\n` : ''}${topScorers ? `🏆 *ટોપ:*\n${topScorers}\n` : 'ℹ️ આજે કોઈ કસોટી નથી.\n'}\n━━━━━━━━━━━━━━━━━━━━━━\n✅ Render & DB Active\n🌐 https://www.trinetraonline.in/teacher`;
     await waSocket.sendMessage(jid, { text: message });
     console.log(`✅ [Daily Report] Sent to +91${cleanMobile}`);
-    return { success: true, message: `અહેવાલ (+91${cleanMobile}) WhatsApp પર!` };
+    return { success: true, message: `અહેવાલ (+91${cleanMobile}) WhatsApp પર મોકલાયો!` };
   } catch (err) {
     console.error('❌ [Daily Report]:', err.message);
     return { success: false, error: err.message };
   }
 }
 
-module.exports = { initWhatsApp, sendWhatsAppOTP, sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppDailyReport, getWhatsAppStatus, logoutWhatsApp };
+module.exports = {
+  initWhatsApp,
+  hasSavedSession,
+  sendWhatsAppOTP,
+  sendWhatsAppScorecardPDF,
+  sendWhatsAppPragatiPDF,
+  sendWhatsAppDailyReport,
+  getWhatsAppStatus,
+  logoutWhatsApp
+};
