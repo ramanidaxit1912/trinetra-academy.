@@ -274,6 +274,85 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ─── Disk Usage Diagnostic ────────────────────────────────────
+app.get('/api/disk-usage', async (req, res) => {
+  const { execSync } = require('child_process');
+  const os = require('os');
+  const path = require('path');
+  const fs = require('fs');
+
+  const result = {
+    platform: process.platform,
+    nodeEnv: process.env.NODE_ENV,
+    memoryUsageMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    heapUsedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    uptime: `${Math.round(process.uptime() / 60)} minutes`,
+    disk: {},
+    uploads: {},
+    whatsappSession: {},
+    nodeModules: {}
+  };
+
+  try {
+    // Overall disk usage (Linux/Render)
+    const dfOut = execSync('df -h / 2>/dev/null || df -h .', { encoding: 'utf8', timeout: 5000 });
+    const dfLines = dfOut.trim().split('\n');
+    if (dfLines.length >= 2) {
+      const parts = dfLines[1].split(/\s+/);
+      result.disk = {
+        total: parts[1],
+        used: parts[2],
+        available: parts[3],
+        usePercent: parts[4]
+      };
+    }
+  } catch (e) {
+    result.disk.error = e.message;
+  }
+
+  try {
+    // uploads folder
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const duOut = execSync(`du -sh "${uploadsDir}" 2>/dev/null`, { encoding: 'utf8', timeout: 5000 });
+      result.uploads.size = duOut.trim().split('\t')[0];
+      result.uploads.fileCount = fs.readdirSync(uploadsDir).length;
+    } else {
+      result.uploads.size = '0';
+      result.uploads.fileCount = 0;
+    }
+  } catch (e) {
+    result.uploads.error = e.message;
+  }
+
+  try {
+    // whatsapp_session folder
+    const waDir = path.join(__dirname, 'whatsapp_session');
+    if (fs.existsSync(waDir)) {
+      const files = fs.readdirSync(waDir);
+      const duOut = execSync(`du -sh "${waDir}" 2>/dev/null`, { encoding: 'utf8', timeout: 5000 });
+      result.whatsappSession = { size: duOut.trim().split('\t')[0], fileCount: files.length, files };
+    } else {
+      result.whatsappSession = { size: '0', fileCount: 0, note: 'Directory does not exist (good! zero-disk mode)' };
+    }
+  } catch (e) {
+    result.whatsappSession.error = e.message;
+  }
+
+  try {
+    // node_modules size
+    const nmDir = path.join(__dirname, 'node_modules');
+    if (fs.existsSync(nmDir)) {
+      const duOut = execSync(`du -sh "${nmDir}" 2>/dev/null`, { encoding: 'utf8', timeout: 8000 });
+      result.nodeModules.size = duOut.trim().split('\t')[0];
+    }
+  } catch (e) {
+    result.nodeModules.size = 'Could not measure';
+  }
+
+  res.json(result);
+});
+
 // ─── Test PDF Diagnostic Route ────────────────────────────────
 app.get('/api/test-pdf', async (req, res) => {
   const diag = {
