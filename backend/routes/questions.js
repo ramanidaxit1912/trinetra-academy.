@@ -24,25 +24,54 @@ const uploadOcr = multer({ storage: ocrStorage, limits: { fileSize: 15 * 1024 * 
 
 const router = express.Router();
 
+// Helper to parse scheduled time in Indian Standard Time (IST) or UTC
+function parseScheduledTime(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  if (s.includes('Z') || /[+-]\d{2}:\d{2}$/.test(s)) {
+    const t = new Date(s).getTime();
+    return isNaN(t) ? null : t;
+  }
+  const withSec = s.length === 16 ? `${s}:00` : s;
+  const t = new Date(`${withSec}+05:30`).getTime();
+  return isNaN(t) ? null : t;
+}
+
 // Helper to auto-activate scheduled tests whose time has arrived
 async function autoActivateScheduledTests() {
   try {
-    const now = new Date();
-    const nowIso = now.toISOString();
-    const nowLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
-    // Auto-activate tests where scheduledAt <= now (matching either UTC ISO or Local datetime-local format)
-    await prisma.question.updateMany({
+    const scheduledQuestions = await prisma.question.findMany({
       where: {
         isActive: false,
-        scheduledAt: { not: null },
-        OR: [
-          { scheduledAt: { lte: nowIso } },
-          { scheduledAt: { lte: nowLocal } }
-        ]
+        scheduledAt: { not: null }
       },
-      data: { isActive: true, scheduledAt: null }
+      select: {
+        testCode: true,
+        scheduledAt: true
+      },
+      distinct: ['testCode']
     });
+
+    if (!scheduledQuestions || scheduledQuestions.length === 0) return;
+
+    const nowTime = Date.now();
+    const testCodesToActivate = [];
+
+    for (const item of scheduledQuestions) {
+      const scheduledTime = parseScheduledTime(item.scheduledAt);
+      if (scheduledTime && nowTime >= scheduledTime) {
+        if (item.testCode) testCodesToActivate.push(item.testCode);
+      }
+    }
+
+    if (testCodesToActivate.length > 0) {
+      console.log(`⏰ [Auto-Activate] Scheduled time reached! Activating tests:`, testCodesToActivate);
+      await prisma.question.updateMany({
+        where: { testCode: { in: testCodesToActivate } },
+        data: { isActive: true, scheduledAt: null }
+      });
+      invalidateQuestionsCache();
+    }
   } catch (err) {
     console.error('Auto-activate Scheduled Tests Error:', err);
   }
@@ -275,13 +304,43 @@ router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
     if (targets.length === 0) {
       return res.status(400).json({ error: 'Test code(s) required.' });
     }
+
+    if (!scheduledAt) {
+      // Clear schedule
+      await prisma.question.updateMany({
+        where: { testCode: { in: targets } },
+        data: { scheduledAt: null }
+      });
+      return res.json({
+        success: true,
+        message: 'શિડ્યુલ દૂર કરવામાં આવ્યું.'
+      });
+    }
+
+    const scheduledTime = parseScheduledTime(scheduledAt);
+    const nowTime = Date.now();
+
+    if (scheduledTime && nowTime >= scheduledTime) {
+      // Scheduled time is already reached or in the past -> activate immediately
+      await prisma.question.updateMany({
+        where: { testCode: { in: targets } },
+        data: { isActive: true, scheduledAt: null }
+      });
+      return res.json({
+        success: true,
+        message: `${targets.length} કસોટી(ઓ)નો શિડ્યુલ સમય થઈ ગયો હોવાથી તરત જ લાઈવ કરવામાં આવી!`
+      });
+    }
+
+    // Future scheduled test: must be inactive until that time arrives
     await prisma.question.updateMany({
       where: { testCode: { in: targets } },
-      data: { scheduledAt: scheduledAt || null }
+      data: { scheduledAt: scheduledAt, isActive: false }
     });
+
     res.json({
       success: true,
-      message: scheduledAt ? `${targets.length} કસોટી(ઓ)નો સમય સફળતાપૂર્વક શિડ્યુલ થયો!` : 'શિડ્યુલ દૂર કરવામાં આવ્યું.'
+      message: `${targets.length} કસોટી(ઓ)નો સમય સફળતાપૂર્વક શિડ્યુલ થયો!`
     });
   } catch (err) {
     console.error('Schedule Test Error:', err);
@@ -631,5 +690,7 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
   }
 });
 
+
+router.autoActivateScheduledTests = autoActivateScheduledTests;
 
 module.exports = router;

@@ -401,25 +401,11 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Background Job: Auto-activate Scheduled Tests Every 10 Seconds ──
-const cronPrisma = require('./prismaClient');
-
 setInterval(async () => {
   try {
-    const now = new Date();
-    const nowIso = now.toISOString();
-    const nowLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
-    await cronPrisma.question.updateMany({
-      where: {
-        isActive: false,
-        scheduledAt: { not: null },
-        OR: [
-          { scheduledAt: { lte: nowIso } },
-          { scheduledAt: { lte: nowLocal } }
-        ]
-      },
-      data: { isActive: true, scheduledAt: null }
-    });
+    if (questionsRoutes && typeof questionsRoutes.autoActivateScheduledTests === 'function') {
+      await questionsRoutes.autoActivateScheduledTests();
+    }
   } catch (e) {}
 }, 10000);
 
