@@ -253,12 +253,10 @@ app.get('/whatsapp', (req, res) => {
 });
 
 // ─── WhatsApp Status, Live QR Code & Disconnect/Switch API ────
+// NOTE: /api/whatsapp/status is polled every 2.5s by the portal UI.
+// We do NOT auto-start WhatsApp here - only the /whatsapp portal page triggers init.
 app.get('/api/whatsapp/status', (req, res) => {
-  const current = getWhatsAppStatus();
-  if (current.status === 'DISCONNECTED') {
-    initWhatsApp();
-  }
-  res.json(current);
+  res.json(getWhatsAppStatus());
 });
 
 app.post('/api/whatsapp/disconnect', async (req, res) => {

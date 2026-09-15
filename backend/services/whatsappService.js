@@ -67,14 +67,12 @@ async function saveSessionToDb() {
   try {
     if (!fs.existsSync(sessionDir)) return;
     const files = fs.readdirSync(sessionDir);
-    let savedCount = 0;
+
     for (const file of files) {
-      // 🛡️ ONLY persist essential credentials ('creds.json') - NEVER persist thousands of contact/LID mapping files!
-      if (file !== 'creds.json' && !file.startsWith('app-state-sync-key-')) {
-        continue;
-      }
-      if (file.endsWith('.json')) {
-        const filePath = path.join(sessionDir, file);
+      const filePath = path.join(sessionDir, file);
+
+      // 🛡️ ONLY save creds.json to DB - everything else is ephemeral noise
+      if (file === 'creds.json') {
         if (fs.existsSync(filePath)) {
           const content = fs.readFileSync(filePath, 'utf8');
           await prisma.$executeRawUnsafe(`
@@ -82,12 +80,12 @@ async function saveSessionToDb() {
             VALUES ($1, $2, NOW())
             ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
           `, file, content);
-          savedCount++;
+          console.log(`💾 [WhatsApp Session] creds.json saved to DB.`);
         }
+      } else {
+        // 🗑️ DELETE all other files (app-state-sync, signal keys, etc.) from Render disk to prevent fill-up
+        try { fs.rmSync(filePath, { force: true }); } catch (e) {}
       }
-    }
-    if (savedCount > 0) {
-      console.log(`💾 [WhatsApp Session] Persisted ${savedCount} essential auth files to Database.`);
     }
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session Save Note]:', e.message);
@@ -417,19 +415,37 @@ async function sendWhatsAppPragatiPDF(mobile, studentName, totalTests, avgScore,
 
 async function logoutWhatsApp() {
   try {
+    // Stop all background timers/watchdogs first
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
+    if (connectionWatchdog) { clearInterval(connectionWatchdog); connectionWatchdog = null; }
+
+    // Gracefully close the WA socket
     if (waSocket) {
-      await waSocket.logout().catch(() => {});
+      try { await waSocket.logout(); } catch (e) {}
+      try { waSocket.end(); } catch (e) {}
+      waSocket = null;
     }
+
+    // Clear Render local session files (prevents disk fill-up)
     if (fs.existsSync(sessionDir)) {
       fs.rmSync(sessionDir, { recursive: true, force: true });
+      fs.mkdirSync(sessionDir, { recursive: true }); // recreate empty dir
     }
+
+    // Clear session from Supabase DB
     await clearSessionFromDb();
+
     connectionStatus = 'DISCONNECTED';
     qrCodeDataUrl = null;
     connectedPhone = null;
-    console.log('🔄 [WhatsApp Bridge] Logged out. Starting new fresh session...');
-    setTimeout(initWhatsApp, 1500);
-    return { success: true, message: 'WhatsApp ડિસ્કનેક્ટ થયું. નવો નંબર લિંક કરવા QR Code સ્કેન કરો.' };
+    lastError = null;
+    reconnectAttempts = 0;
+    isInitializing = false;
+
+    console.log('✅ [WhatsApp Bridge] Logged out cleanly. No auto-restart. Call initWhatsApp() to reconnect.');
+    // ❌ Do NOT call initWhatsApp() here - only restart when user explicitly asks for QR
+    return { success: true, message: 'WhatsApp ડિસ્કનેક્ટ થઈ ગઈ. નવો QR Code સ્કેન કરવા /whatsapp ખોલો.' };
   } catch (e) {
     console.error('Logout error:', e);
     return { success: false, error: e.message };
