@@ -135,7 +135,7 @@ router.post('/grant-master-by-mobile', authMiddleware, teacherOnly, async (req, 
 });
 
 // ─── POST /api/teacher/student/:id/reset-session ────────────
-// Unlock student session (fixes single-device stuck login)
+// Unlock student session (fixes single-device stuck login + clears OTP lock)
 router.post('/student/:id/reset-session', authMiddleware, teacherOnly, async (req, res) => {
   const studentId = parseInt(req.params.id);
   try {
@@ -143,13 +143,61 @@ router.post('/student/:id/reset-session', authMiddleware, teacherOnly, async (re
       where: { id: studentId },
       data: { currentSessionId: null }
     });
+    // Also clear old OTP rate-limiting records so student can request OTP immediately
+    const cleanMob = String(updated.mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    await prisma.oTPSession.deleteMany({
+      where: { mobile: { in: [updated.mobile, cleanMob] } }
+    });
     res.json({
       success: true,
-      message: `✅ વિદ્યાર્થી (${updated.name}) નું સેશન રીસેટ / અનલોક થઈ ગયું છે. હવે વિદ્યાર્થી તરત જ લોગિન કરી શકશે.`
+      message: `✅ વિદ્યાર્થી (${updated.name}) નું સેશન અને OTP લિમિટ અનલોક થઈ ગઈ છે. હવે વિદ્યાર્થી તરત જ લોગિન કરી શકશે.`
     });
   } catch (err) {
     console.error('Reset Session Error:', err);
     res.status(500).json({ error: 'સેશન રીસેટ કરવામાં ભૂલ આવી.' });
+  }
+});
+
+// ─── POST /api/teacher/student/:id/reset-otp ────────────────
+// Explicitly clear OTP attempt limit for student by ID
+router.post('/student/:id/reset-otp', authMiddleware, teacherOnly, async (req, res) => {
+  const studentId = parseInt(req.params.id);
+  try {
+    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) return res.status(404).json({ error: 'વિદ્યાર્થી મળ્યો નથી.' });
+
+    const cleanMob = String(student.mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const deleted = await prisma.oTPSession.deleteMany({
+      where: { mobile: { in: [student.mobile, cleanMob] } }
+    });
+
+    res.json({
+      success: true,
+      message: `🔄 વિદ્યાર્થી (${student.name}) ની OTP મર્યાદા રીસેટ થઈ ગઈ છે (${deleted.count} OTP રેકોર્ડ્સ ક્લિયર થયા). હવે વિદ્યાર્થી તરત નવો OTP મેળવી શકશે.`
+    });
+  } catch (err) {
+    console.error('Reset OTP Error:', err);
+    res.status(500).json({ error: 'OTP રીસેટ કરવામાં ક્ષતિ આવી.' });
+  }
+});
+
+// ─── POST /api/teacher/reset-otp-by-mobile ──────────────────
+// Explicitly clear OTP attempt limit by raw mobile number
+router.post('/reset-otp-by-mobile', authMiddleware, teacherOnly, async (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile) return res.status(400).json({ error: 'મોબાઈલ નંબર જરૂરી છે.' });
+  try {
+    const cleanMob = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const deleted = await prisma.oTPSession.deleteMany({
+      where: { mobile: { in: [String(mobile).trim(), cleanMob] } }
+    });
+    res.json({
+      success: true,
+      message: `🔄 મોબાઈલ (+91 ${cleanMob}) ની OTP મર્યાદા રીસેટ થઈ ગઈ છે. હવે નવો OTP તરત જ જશે.`
+    });
+  } catch (err) {
+    console.error('Reset OTP By Mobile Error:', err);
+    res.status(500).json({ error: 'OTP રીસેટ કરવામાં ક્ષતિ આવી.' });
   }
 });
 

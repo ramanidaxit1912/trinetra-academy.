@@ -116,6 +116,8 @@ export const uploadPhoto = (formData) =>
 export const getTeacherStats        = ()   => api.get('/teacher/stats');
 export const getStudents            = ()   => api.get('/teacher/students');
 export const resetStudentSession    = (id) => api.post(`/teacher/student/${id}/reset-session`);
+export const resetStudentOtp        = (id) => api.post(`/teacher/student/${id}/reset-otp`);
+export const resetOtpByMobile       = (data) => api.post('/teacher/reset-otp-by-mobile', data);
 export const deleteStudent          = (id) => api.delete(`/teacher/student/${id}`);
 export const grantMasterAccess      = (id, data) => api.post(`/teacher/student/${id}/grant-master-access`, data);
 export const grantMasterByMobile    = (data) => api.post('/teacher/grant-master-by-mobile', data);

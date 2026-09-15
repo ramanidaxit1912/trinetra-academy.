@@ -2151,7 +2151,38 @@ export default function StudentDashboard() {
                     )}
                   </div>
 
-                  {authError && <p style={{ color: '#ef4444', fontSize: '0.86rem', marginBottom: 14, fontWeight: 700 }}>{authError}</p>}
+                  {authError && (
+                    <div style={{ marginBottom: 14 }}>
+                      <p style={{ color: '#ef4444', fontSize: '0.86rem', margin: '0 0 10px 0', fontWeight: 700 }}>{authError}</p>
+                      {(authError.includes('મર્યાદા') || authError.includes('Master PIN') || authError.includes('શિક્ષક')) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAuthMode('otp');
+                            setOtpDeliveryMsg('🔑 શિક્ષક દ્વારા આપવામાં આવેલ 6-અંકનો Master PIN દાખલ કરો:');
+                          }}
+                          style={{
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '10px 14px',
+                            borderRadius: 10,
+                            fontSize: '0.84rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            width: '100%',
+                            boxShadow: '0 4px 12px rgba(245,158,11,0.3)',
+                            fontFamily: 'Hind Vadodara, sans-serif'
+                          }}>
+                          🔑 શિક્ષકના Master PIN વડે સીધું લૉગિન કરો →
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <button type="submit" className="btn-primary btn-shimmer-effect" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem', borderRadius: 10, boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }} disabled={authLoading}>
                     {authLoading ? '⏳ મોકલી રહ્યું છે...' : '📱 OTP મેળવો અને પ્રવેશ કરો →'}

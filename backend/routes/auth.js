@@ -81,29 +81,44 @@ router.post('/send-otp', async (req, res) => {
 
   const cleanMobile = validation.cleaned;
 
-  // 1. Cooldown Rate Limiting: Check if an OTP was sent in last 45 seconds to this mobile
-  const recentOtp = await prisma.oTPSession.findFirst({
+  // Check if student has active Master PIN Access granted by teacher
+  const studentRecord = await prisma.student.findFirst({
     where: {
       mobile: cleanMobile,
-      createdAt: { gt: new Date(Date.now() - 45 * 1000) }
+      OR: [
+        { masterAccessAllowed: true },
+        { masterAccessExpiresAt: { gt: new Date() } }
+      ]
     }
   });
+  const hasMasterAccess = Boolean(studentRecord);
 
-  if (recentOtp) {
-    return res.status(429).json({ error: 'થોડીવાર રાહ જુઓ. તમે 45 સેકન્ડ પછી જ નવો OTP મંગાવી શકો છો.' });
+  // 1. Cooldown Rate Limiting: 30 seconds cooldown between OTP requests (bypassed if Master Access granted)
+  if (!hasMasterAccess) {
+    const recentOtp = await prisma.oTPSession.findFirst({
+      where: {
+        mobile: cleanMobile,
+        createdAt: { gt: new Date(Date.now() - 30 * 1000) }
+      }
+    });
+
+    if (recentOtp) {
+      return res.status(429).json({ error: 'થોડીવાર રાહ જુઓ. તમે 30 સેકન્ડ પછી જ નવો OTP મંગાવી શકો છો.' });
+    }
   }
 
-  // 2. Daily Security Guard: Maximum 6 OTPs per mobile in 24 hours to prevent spam/abuse
-  const dailyOtpCount = await prisma.oTPSession.count({
+  // 2. Hourly Security Guard: Maximum 8 OTPs per mobile in 1 hour (down from strict 24 hours)
+  const hourlyOtpCount = await prisma.oTPSession.count({
     where: {
       mobile: cleanMobile,
-      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) }
     }
   });
 
-  if (dailyOtpCount >= 6) {
+  if (!hasMasterAccess && hourlyOtpCount >= 8) {
     return res.status(429).json({
-      error: '⚠️ તમારી દૈનિક OTP મર્યાદા (૬ OTP) પૂર્ણ થઈ ગઈ છે. સુરક્ષા માટે કૃપા કરીને આવતીકાલે પ્રયાસ કરો અથવા હેલ્પલાઇન 8200405300 પર સંપર્ક કરો.'
+      error: '⚠️ ૧ કલાકમાં ૮ OTP ની મર્યાદા પૂર્ણ થઈ ગઈ છે. કૃપા કરીને શિક્ષકનો સંપર્ક કરી Master PIN મેળવો અથવા થોડીવાર પછી પ્રયાસ કરો.',
+      canUseMasterPin: true
     });
   }
 
@@ -113,13 +128,13 @@ router.post('/send-otp', async (req, res) => {
 
     // Invalidate old OTPs for this mobile
     await prisma.oTPSession.updateMany({
-      where: { mobile, used: false },
+      where: { mobile: cleanMobile, used: false },
       data: { used: true }
     });
 
     // Create new OTP session
     await prisma.oTPSession.create({
-      data: { mobile, otp, expiresAt }
+      data: { mobile: cleanMobile, otp, expiresAt }
     });
 
     // 🟢 100% Automated Free WhatsApp OTP Delivery
@@ -158,6 +173,8 @@ router.post('/verify-otp', async (req, res) => {
   }
 
   try {
+    const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+
     // Check Master PIN (191219) or Find valid OTP Session
     const MASTER_PIN = process.env.MASTER_PIN || '191219';
     const isMasterOTP = String(otp).trim() === MASTER_PIN;
@@ -167,7 +184,7 @@ router.post('/verify-otp', async (req, res) => {
       // Check if teacher has granted Master PIN access to this student mobile
       const allowedStudent = await prisma.student.findFirst({
         where: {
-          mobile,
+          mobile: { in: [cleanMobile, mobile] },
           OR: [
             { masterAccessAllowed: true },
             { masterAccessExpiresAt: { gt: new Date() } }
@@ -183,13 +200,13 @@ router.post('/verify-otp', async (req, res) => {
 
       // Automatically consume / reset one-time master access after successful login
       await prisma.student.update({
-        where: { mobile },
+        where: { id: allowedStudent.id },
         data: { masterAccessAllowed: false, masterAccessExpiresAt: null }
       });
     } else {
       otpSession = await prisma.oTPSession.findFirst({
         where: {
-          mobile,
+          mobile: { in: [cleanMobile, mobile] },
           otp,
           used: false,
           expiresAt: { gt: new Date() }
@@ -212,9 +229,9 @@ router.post('/verify-otp', async (req, res) => {
 
     // Upsert student (create if not exists) with new sessionId & login timestamp
     const student = await prisma.student.upsert({
-      where: { mobile },
+      where: { mobile: cleanMobile },
       update: { name, currentSessionId: sessionId, lastLoginAt: new Date() },
-      create: { mobile, name, currentSessionId: sessionId, lastLoginAt: new Date() }
+      create: { mobile: cleanMobile, name, currentSessionId: sessionId, lastLoginAt: new Date() }
     });
 
     // Generate JWT with embedded sessionId (8-hour student session)

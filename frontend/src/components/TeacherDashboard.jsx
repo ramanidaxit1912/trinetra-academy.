@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
 } from '../services/api';
@@ -8379,10 +8379,42 @@ function StudentLogins({ showToast }) {
   const [liveOtps, setLiveOtps] = useState([]);
   const [showLiveOtps, setShowLiveOtps] = useState(false);
   const [resettingId, setResettingId] = useState(null);
+  const [resettingOtpId, setResettingOtpId] = useState(null);
   const [grantingId, setGrantingId] = useState(null);
   const [quickMobile, setQuickMobile] = useState('');
   const [quickName, setQuickName] = useState('');
   const [grantingQuick, setGrantingQuick] = useState(false);
+  const [resettingQuickOtp, setResettingQuickOtp] = useState(false);
+
+  const handleResetOtp = async (student) => {
+    if (!window.confirm(`શું તમે ${student.name} (${student.mobile}) ની OTP મર્યાદા રીસેટ કરવા માંગો છો?\nઆનાથી વિદ્યાર્થી તરત જ નવો OTP મંગાવી શકશે.`)) return;
+    setResettingOtpId(student.id);
+    try {
+      const res = await resetStudentOtp(student.id);
+      showToast(res.data?.message || '✅ OTP મર્યાદા સફળતાપૂર્વક રીસેટ થઈ ગઈ!', 'success');
+    } catch {
+      showToast('OTP રીસેટ કરવામાં ભૂલ આવી.', 'error');
+    } finally {
+      setResettingOtpId(null);
+    }
+  };
+
+  const handleResetQuickOtpMobile = async () => {
+    if (!quickMobile || quickMobile.replace(/\D/g, '').length < 10) {
+      return showToast('કૃપા કરીને ૧૦ આંકડાનો સાચો મોબાઈલ નંબર લખો.', 'error');
+    }
+    setResettingQuickOtp(true);
+    try {
+      const res = await resetOtpByMobile({ mobile: quickMobile.trim() });
+      showToast(res.data?.message || '✅ OTP મર્યાદા સફળતાપૂર્વક રીસેટ થઈ ગઈ!', 'success');
+      setQuickMobile('');
+      setQuickName('');
+    } catch {
+      showToast('OTP રીસેટ કરવામાં ભૂલ આવી.', 'error');
+    } finally {
+      setResettingQuickOtp(false);
+    }
+  };
 
   // 🟢 Free WhatsApp Cloud Bridge State
   const [waBridge, setWaBridge] = useState({ status: 'DISCONNECTED', qrCode: null, phone: null });
@@ -8702,6 +8734,11 @@ function StudentLogins({ showToast }) {
           style={{ background: 'linear-gradient(135deg,#eab308,#ca8a04)', color: '#0f172a', border: 'none', padding: '7px 14px', borderRadius: 8, fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif' }}>
           {grantingQuick ? 'મંજૂર થાય છે...' : '⚡ Master Access આપો (1 કલાક)'}
         </button>
+        <button type="button" onClick={handleResetQuickOtpMobile} disabled={resettingQuickOtp}
+          style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.4)', padding: '7px 14px', borderRadius: 8, fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <RefreshCw size={13} className={resettingQuickOtp ? 'animate-spin' : ''} />
+          {resettingQuickOtp ? 'રીસેટ થાય છે...' : '🔄 Reset OTP (અનબ્લોક)'}
+        </button>
       </form>
 
       {/* 📱 Free WhatsApp Link QR Code Modal */}
@@ -8855,6 +8892,29 @@ function StudentLogins({ showToast }) {
                       fontFamily: 'Hind Vadodara, sans-serif'
                     }}>
                     <Unlock size={13} /> {resettingId === s.id ? 'અનલોક થાય છે...' : '🔓 સેશન અનલોક'}
+                  </button>
+
+                  {/* Reset OTP Limit Button */}
+                  <button
+                    onClick={() => handleResetOtp(s)}
+                    disabled={resettingOtpId === s.id}
+                    title="જો વિદ્યાર્થી ૬ વાર OTP નાખીને બ્લોક થયો હોય તો અહીંથી OTP મર્યાદા રીસેટ કરો"
+                    style={{
+                      background: 'rgba(56,189,248,0.15)',
+                      border: '1px solid rgba(56,189,248,0.35)',
+                      color: '#7dd3fc',
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontFamily: 'Hind Vadodara, sans-serif'
+                    }}>
+                    <RefreshCw size={13} className={resettingOtpId === s.id ? 'animate-spin' : ''} />
+                    {resettingOtpId === s.id ? 'રીસેટ થાય છે...' : '🔄 Reset OTP'}
                   </button>
 
                   <span style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', fontWeight: 800, padding: '5px 12px', borderRadius: 20, fontSize: '0.8rem', border: '1px solid rgba(59,130,246,0.2)' }}>
