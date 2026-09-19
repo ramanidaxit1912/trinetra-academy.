@@ -188,6 +188,13 @@ app.get('/whatsapp', (req, res) => {
   </div>
 
   <script>
+    // Smart polling: polls every 5s only until CONNECTED, then stops completely (zero bandwidth!)
+    let pollingInterval = null;
+
+    async function smartCheckStatus() {
+      await checkStatus();
+    }
+
     async function checkStatus() {
       try {
         const res = await fetch('/api/whatsapp/status');
@@ -195,6 +202,8 @@ app.get('/whatsapp', (req, res) => {
         const content = document.getElementById('content');
 
         if (data.status === 'CONNECTED') {
+          // ✅ CONNECTED — stop all polling immediately (zero further bandwidth!)
+          if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
           content.innerHTML = \`
             <div class="badge badge-connected">🟢 સફળતાપૂર્વક જોડાયેલ છે</div>
             <div style="font-size: 1.1rem; font-weight: 800; color: #f8fafc; margin-bottom: 8px;">
@@ -228,7 +237,7 @@ app.get('/whatsapp', (req, res) => {
             <div class="badge badge-connecting">🔵 સર્વર સાથે જોડાણ થઈ રહ્યું છે...</div>
             <div class="spinner"></div>
             <p style="color: #94a3b8; font-size: 0.85rem">QR કોડ તૈયાર થઈ રહ્યો છે, કૃપા કરીને થોડી સેકન્ડ રાહ જુઓ...</p>
-            ${data.lastError ? `<div style="color:#f87171;font-size:0.75rem;margin-top:8px;padding:6px 10px;background:rgba(239,68,68,0.1);border-radius:8px">ℹ️ ${data.lastError}</div>` : ''}
+            \${data.lastError ? \`<div style="color:#f87171;font-size:0.75rem;margin-top:8px;padding:6px 10px;background:rgba(239,68,68,0.1);border-radius:8px">ℹ️ \${data.lastError}</div>\` : ''}
             <button class="btn" style="background:rgba(59,130,246,0.2);border:1px solid #3b82f6;color:#93c5fd;margin-top:16px" onclick="forceReset()">🔄 નવો QR કોડ લોડ કરો (Fresh QR)</button>
           \`;
         }
@@ -255,8 +264,9 @@ app.get('/whatsapp', (req, res) => {
       }
     }
 
-    checkStatus();
-    setInterval(checkStatus, 5000); // Poll every 5s (was 2.5s) — saves bandwidth when portal is open
+    // Start smart polling — auto-stops when CONNECTED (zero bandwidth after QR scan!)
+    smartCheckStatus();
+    pollingInterval = setInterval(smartCheckStatus, 5000);
   </script>
 </body>
 </html>`);
