@@ -451,7 +451,7 @@ app.listen(PORT, '0.0.0.0', () => {
   setTimeout(prewarmPdfEngine, 5000);
 
   // ── Self-ping every 12 minutes to prevent Render free tier from sleeping ──
-  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-api-br2p.onrender.com`;
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
   if (process.env.NODE_ENV === 'production') {
     setInterval(async () => {
       try {
