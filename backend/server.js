@@ -256,7 +256,7 @@ app.get('/whatsapp', (req, res) => {
     }
 
     checkStatus();
-    setInterval(checkStatus, 2500);
+    setInterval(checkStatus, 5000); // Poll every 5s (was 2.5s) — saves bandwidth when portal is open
   </script>
 </body>
 </html>`);

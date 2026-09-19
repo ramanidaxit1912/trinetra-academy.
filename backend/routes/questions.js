@@ -80,7 +80,7 @@ async function autoActivateScheduledTests() {
 // ─── ⚡ Ultra-Fast In-Memory Cache for Live Questions (0% Database Load) ───
 let questionsCache = null;
 let questionsCacheTime = 0;
-const CACHE_TTL_MS = 15 * 1000; // 15 seconds cache
+const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache (was 15s) — saves Supabase bandwidth
 
 function invalidateQuestionsCache() {
   questionsCache = null;
