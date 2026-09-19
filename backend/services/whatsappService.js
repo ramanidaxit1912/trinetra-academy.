@@ -255,13 +255,13 @@ async function initWhatsApp() {
         // Immediately backup all handshake session keys to Supabase
         await saveSessionToDb();
 
-        // Periodic session backup every 10 minutes (saves Render + Supabase bandwidth)
+        // Periodic session backup every 13 minutes (saves Render + Supabase bandwidth)
         if (sessionSaveInterval) clearInterval(sessionSaveInterval);
         sessionSaveInterval = setInterval(async () => {
           if (connectionStatus === 'CONNECTED') {
             await saveSessionToDb();
           }
-        }, 10 * 60 * 1000);
+        }, 13 * 60 * 1000);
       }
     });
 
