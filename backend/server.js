@@ -410,14 +410,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-// ─── Background Job: Auto-activate Scheduled Tests Every 10 Seconds ──
+// ─── Background Job: Auto-activate Scheduled Tests Every 60 Seconds ──
 setInterval(async () => {
   try {
     if (questionsRoutes && typeof questionsRoutes.autoActivateScheduledTests === 'function') {
       await questionsRoutes.autoActivateScheduledTests();
     }
   } catch (e) {}
-}, 10000);
+}, 60 * 1000);
 
 // ─── Daily 9:30 PM IST WhatsApp Summary Report ───────────────
 const { sendWhatsAppDailyReport } = require('./services/whatsappService');
@@ -450,7 +450,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
 
-  // ── Self-ping every 4 minutes to prevent Render free tier from sleeping ──
+  // ── Self-ping every 9 minutes to prevent Render free tier from sleeping ──
   const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-api-br2p.onrender.com`;
   if (process.env.NODE_ENV === 'production') {
     setInterval(async () => {
@@ -462,7 +462,7 @@ app.listen(PORT, '0.0.0.0', () => {
           console.warn(`⚠️ [Keep-Alive] Self-ping failed: ${e.message}`);
         });
       } catch (e) {}
-    }, 4 * 60 * 1000); // Every 4 minutes (Render sleeps after 15 min inactivity)
-    console.log(`💓 [Keep-Alive] Self-ping scheduled every 4 min → ${SELF_URL}/api/health`);
+    }, 9 * 60 * 1000); // Every 9 minutes (Render sleeps after 15 min inactivity)
+    console.log(`💓 [Keep-Alive] Self-ping scheduled every 9 min → ${SELF_URL}/api/health`);
   }
 });
