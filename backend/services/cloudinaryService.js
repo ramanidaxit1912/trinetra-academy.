@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Cloudinary Service — Permanent Cloud Image Storage
  * Replaces local /uploads/ which gets wiped on Render restart
  */
@@ -29,6 +29,28 @@ async function uploadToCloudinary(buffer, folder = 'trinetra/posters', filename 
   });
 }
 
+async function uploadPdfToCloudinary(buffer, filename = 'document.pdf') {
+  return new Promise((resolve, reject) => {
+    const safeName = (filename || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'trinetra/scorecards',
+        resource_type: 'raw',
+        public_id: `${safeName}_${Date.now()}.pdf`,
+        type: 'upload'
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve({ url: result.secure_url, public_id: result.public_id });
+      }
+    );
+    const s = new Readable();
+    s.push(buffer);
+    s.push(null);
+    s.pipe(uploadStream);
+  });
+}
+
 async function deleteFromCloudinary(urlOrPublicId) {
   try {
     let publicId = urlOrPublicId;
@@ -44,4 +66,4 @@ function isCloudinaryConfigured() {
   return !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 }
 
-module.exports = { uploadToCloudinary, deleteFromCloudinary, isCloudinaryConfigured };
+module.exports = { uploadToCloudinary, uploadPdfToCloudinary, deleteFromCloudinary, isCloudinaryConfigured };

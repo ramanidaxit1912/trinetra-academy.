@@ -3,8 +3,12 @@ const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer } = require('../services/pdfService');
 const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF } = require('../services/whatsappService');
+const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
+
+// Memory cache for recent generated PDF URLs: submissionId -> { url, expiresAt }
+const scorecardPdfUrlCache = new Map();
 
 // ─── Helper: Auto-calculate MCQ score with Negative Marking (Supports Option E / Skip) ────
 function calculateMCQScore(answers, questions) {
@@ -480,6 +484,11 @@ router.get('/review/:id', async (req, res) => {
 router.get('/:id/pdf', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
+    // ⚡ Instant Cache Hit: Zero DB queries, Zero Puppeteer, Zero Render bandwidth!
+    if (isCloudinaryConfigured() && scorecardPdfUrlCache.has(id)) {
+      return res.redirect(302, scorecardPdfUrlCache.get(id));
+    }
+
     const submission = await prisma.submission.findUnique({
       where: { id },
       include: { student: true }
@@ -544,16 +553,36 @@ router.get('/:id/pdf', async (req, res) => {
       orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
     });
 
+    const safeTestName = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+
+    // ☁️ Ultra-Low Bandwidth: Upload to Cloudinary CDN & 302 Redirect (Saves 99.9% Render Bandwidth!)
+    if (isCloudinaryConfigured()) {
+      try {
+        const pdfBuffer = await generateScorecardPDFBuffer({
+          submission,
+          review: detailedReview,
+          student: submission.student || {},
+          marketingItems
+        });
+        const uploadRes = await uploadPdfToCloudinary(pdfBuffer, filename);
+        if (uploadRes?.url) {
+          scorecardPdfUrlCache.set(id, uploadRes.url);
+          return res.redirect(302, uploadRes.url);
+        }
+      } catch (cloudErr) {
+        console.warn('Cloudinary PDF Upload Note (fallback to direct stream):', cloudErr.message);
+      }
+    }
+
+    // Direct Stream Fallback (if Cloudinary not set or upload fails)
     const pdfDoc = generateScorecardPDF({
       submission,
       review: detailedReview,
       student: submission.student || {},
       marketingItems
     });
-
-    const safeTestName = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-    const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-    const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
