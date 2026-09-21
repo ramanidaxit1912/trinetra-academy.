@@ -135,11 +135,32 @@ async function seedDefaultMarketingItems() {
 // Run initial seed on load
 seedDefaultMarketingItems();
 
+// ─── ⚡ Ultra-Fast In-Memory Cache for Marketing Items (Saves Supabase DB Egress) ───
+const marketingCache = new Map();
+const MARKETING_CACHE_TTL = 60 * 1000; // 60 seconds
+
+function invalidateMarketingCache() {
+  marketingCache.clear();
+}
+
 // ─── GET /api/marketing ──────────────────────────────────────
 // Fetch all marketing items with optional filter (?category=CAROUSEL / ?category=DHAMAKA_OFFER / ?target=home / ?target=pdf / ?all=true)
 router.get('/', async (req, res) => {
   try {
     const { category, all, target } = req.query;
+
+    // Cache active items for public students/visitors
+    const isPublic = all !== 'true';
+    const cacheKey = `${category || 'ALL'}_${target || 'ALL'}`;
+    const now = Date.now();
+
+    if (isPublic && marketingCache.has(cacheKey)) {
+      const cached = marketingCache.get(cacheKey);
+      if (now - cached.time < MARKETING_CACHE_TTL) {
+        return res.json(cached.data);
+      }
+    }
+
     const where = {};
     
     // Only return active items for public home page unless all=true (for teacher dashboard)
@@ -161,11 +182,17 @@ router.get('/', async (req, res) => {
       orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       data: items,
       total: items.length
-    });
+    };
+
+    if (isPublic) {
+      marketingCache.set(cacheKey, { time: now, data: responsePayload });
+    }
+
+    res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching marketing items:', err);
     res.status(500).json({ error: 'પોસ્ટર્સ લોડ કરવામાં ક્ષતિ.' });
@@ -242,6 +269,8 @@ router.post('/', upload.single('posterFile'), async (req, res) => {
         orderIndex: Number(orderIndex) || 0
       }
     });
+
+    invalidateMarketingCache();
 
     res.json({
       success: true,
@@ -334,6 +363,8 @@ router.put('/:id', upload.single('posterFile'), async (req, res) => {
       }
     });
 
+    invalidateMarketingCache();
+
     res.json({
       success: true,
       message: '✅ પોસ્ટર / ઑફર અપડેટ થઈ ગયું!',
@@ -345,17 +376,19 @@ router.put('/:id', upload.single('posterFile'), async (req, res) => {
   }
 });
 
-// ─── DELETE /api/marketing/:id ───────────────────────────────
-// Delete marketing poster
 router.delete('/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const existing = await prisma.marketingItem.findUnique({ where: { id } });
-    if (!existing) {
-      return res.status(404).json({ error: 'પોસ્ટર મળ્યું નથી.' });
+    if (!existing) return res.status(404).json({ error: 'પોસ્ટર મળ્યું નથી.' });
+
+    // Delete image from Cloudinary if hosted there
+    if (existing.imageUrl && existing.imageUrl.includes('cloudinary.com')) {
+      const { deleteFromCloudinary } = require('../services/cloudinaryService');
+      await deleteFromCloudinary(existing.imageUrl).catch(() => {});
     }
 
-    // Optionally delete uploaded image file if exists in uploads/posters
+    // Delete local file if stored on disk
     if (existing.imageUrl && existing.imageUrl.startsWith('/uploads/posters/')) {
       const filePath = path.join(__dirname, '..', existing.imageUrl);
       if (fs.existsSync(filePath)) {
@@ -365,10 +398,9 @@ router.delete('/:id', async (req, res) => {
 
     await prisma.marketingItem.delete({ where: { id } });
 
-    res.json({
-      success: true,
-      message: '🗑️ પોસ્ટર સફળતાપૂર્વક ડિલીટ થયું.'
-    });
+    invalidateMarketingCache();
+
+    res.json({ success: true, message: '🗑️ પોસ્ટર સફળતાપૂર્વક ડિલીટ થયું.' });
   } catch (err) {
     console.error('Error deleting marketing item:', err);
     res.status(500).json({ error: 'પોસ્ટર ડિલીટ કરવામાં ક્ષતિ.' });

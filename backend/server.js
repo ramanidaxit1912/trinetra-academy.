@@ -503,6 +503,33 @@ setInterval(async () => {
   }
 }, 60 * 1000);
 
+// ─── OTP Auto-Cleanup: Delete expired OTPs older than 24h (runs 3:01 AM IST) ──
+// Keeps Supabase DB Storage clean — removes hundreds of stale OTP rows monthly!
+let lastOtpCleanupKey = '';
+setInterval(async () => {
+  try {
+    const now = new Date();
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const hours = istTime.getUTCHours();
+    const minutes = istTime.getUTCMinutes();
+    const todayKey = istTime.toISOString().slice(0, 10);
+
+    if (hours === 3 && minutes === 1 && lastOtpCleanupKey !== todayKey) {
+      lastOtpCleanupKey = todayKey;
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const { count } = await prisma.oTP.deleteMany({
+        where: {
+          createdAt: { lt: cutoff },
+          isUsed: true
+        }
+      });
+      console.log(`🧹 [OTP Cleanup] Deleted ${count} expired OTP records from DB.`);
+    }
+  } catch (err) {
+    console.warn('⚠️ [OTP Cleanup Cron Error]:', err.message);
+  }
+}, 60 * 1000);
+
 // ─── Start ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Trinetra Academy Backend started: http://localhost:${PORT}`);

@@ -37,11 +37,29 @@ function formatBytes(bytes, decimals = 1) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
+// ─── ⚡ Ultra-Fast In-Memory Cache for Study Materials (Saves Supabase DB Egress) ───
+const materialsCache = new Map();
+const MATERIALS_CACHE_TTL = 60 * 1000; // 60 seconds
+
+function invalidateMaterialsCache() {
+  materialsCache.clear();
+}
+
 // ─── GET /api/materials ──────────────────────────────────────
 // Fetch all study materials
 router.get('/', async (req, res) => {
   try {
     const { subject, type } = req.query;
+    const cacheKey = `${subject || 'ALL'}_${type || 'ALL'}`;
+    const now = Date.now();
+
+    if (materialsCache.has(cacheKey)) {
+      const cached = materialsCache.get(cacheKey);
+      if (now - cached.time < MATERIALS_CACHE_TTL) {
+        return res.json(cached.data);
+      }
+    }
+
     const where = {};
     if (subject && subject !== 'ALL') {
       where.subject = subject;
@@ -55,11 +73,14 @@ router.get('/', async (req, res) => {
       orderBy: { id: 'desc' }
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       data: materials,
       total: materials.length
-    });
+    };
+
+    materialsCache.set(cacheKey, { time: now, data: responsePayload });
+    res.json(responsePayload);
   } catch (err) {
     console.error('Error fetching materials:', err);
     res.status(500).json({ error: 'મટીરીયલ લોડ કરવામાં ક્ષતિ.' });
@@ -102,6 +123,8 @@ router.post('/', upload.single('file'), async (req, res) => {
         linkUrl: linkUrl ? linkUrl.trim() : null
       }
     });
+
+    invalidateMaterialsCache();
 
     res.status(201).json({
       success: true,
@@ -161,6 +184,8 @@ router.put('/:id', upload.single('file'), async (req, res) => {
       }
     });
 
+    invalidateMaterialsCache();
+
     res.json({
       success: true,
       data: updated,
@@ -192,6 +217,8 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.material.delete({ where: { id } });
+
+    invalidateMaterialsCache();
 
     res.json({
       success: true,

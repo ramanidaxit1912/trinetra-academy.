@@ -843,7 +843,7 @@ let leaderboardCache = null;
 let leaderboardCacheTime = 0;
 let testWiseLeaderboardCache = null;
 let testWiseLeaderboardCacheTime = 0;
-const LB_CACHE_TTL = 10 * 1000; // 10 seconds cache
+const LB_CACHE_TTL = 60 * 1000; // 60 seconds cache (was 10s) — saves Supabase egress
 
 // ─── GET /api/submissions/leaderboard ────────────────────────
 // Top students by MCQ score (public) - overall with RAM Caching
