@@ -36,7 +36,6 @@ async function uploadPdfToCloudinary(buffer, filename = 'document.pdf') {
       {
         folder: 'trinetra/scorecards',
         resource_type: 'auto',
-        format: 'pdf',
         public_id: `${safeName}_${Date.now()}`
       },
       (error, result) => {

@@ -588,10 +588,9 @@ router.get('/:id/pdf', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
 
     pdfDoc.pipe(res);
-    pdfDoc.end();
   } catch (err) {
     console.error('PDF Generation Error:', err);
-    res.status(500).json({ error: 'PDF જનરેટ કરવામાં ભૂલ આવી.' });
+    res.status(500).json({ error: 'PDF જનરેટ કરવામાં ભૂલ આવી.', details: err.message });
   }
 });
 
