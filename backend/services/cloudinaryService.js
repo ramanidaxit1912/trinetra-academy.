@@ -31,16 +31,20 @@ async function uploadToCloudinary(buffer, folder = 'trinetra/posters', filename 
 
 async function uploadPdfToCloudinary(buffer, filename = 'document.pdf') {
   return new Promise((resolve, reject) => {
-    const safeName = (filename || 'doc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+    const safeName = (filename || 'doc').replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: 'trinetra/scorecards',
-        resource_type: 'raw',
-        public_id: `${safeName}_${Date.now()}.pdf`,
-        type: 'upload'
+        resource_type: 'auto',
+        format: 'pdf',
+        public_id: `${safeName}_${Date.now()}`
       },
       (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          console.error('❌ [Cloudinary PDF Upload Error]:', error);
+          return reject(error);
+        }
+        console.log('✅ [Cloudinary PDF Uploaded]:', result.secure_url);
         resolve({ url: result.secure_url, public_id: result.public_id });
       }
     );

@@ -683,6 +683,21 @@ router.post('/:id/send-whatsapp', async (req, res) => {
       marketingItems
     });
 
+    // ☁️ Save to Cloudinary CDN & cache for instant future downloads
+    if (isCloudinaryConfigured()) {
+      const safeTest = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const safeStudent = (studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const filename = `Trinetra_${safeTest}_${safeStudent}.pdf`;
+      uploadPdfToCloudinary(pdfBuffer, filename)
+        .then(res => {
+          if (res?.url) {
+            scorecardPdfUrlCache.set(id, res.url);
+            console.log(`☁️ [Cloudinary] Scorecard #${id} saved: ${res.url}`);
+          }
+        })
+        .catch(err => console.warn('Cloudinary async upload note:', err.message));
+    }
+
     const totalMarks = Number(submission.totalMarks) > 0 
       ? Number(submission.totalMarks) 
       : Number(submission.totalMCQ) > 0 
@@ -769,6 +784,13 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
       submissions,
       marketingItems
     });
+
+    // ☁️ Save Pragati PDF to Cloudinary CDN
+    if (isCloudinaryConfigured()) {
+      const safeName = effectiveName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      uploadPdfToCloudinary(pdfBuffer, `Trinetra_Pragati_${safeName}.pdf`)
+        .catch(err => console.warn('Pragati Cloudinary upload note:', err.message));
+    }
 
     let sumScore = 0, sumTotal = 0;
     submissions.forEach(s => {
