@@ -11,7 +11,7 @@ const uploadRoutes = require('./routes/upload');
 const teacherRoutes = require('./routes/teacher');
 const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
-const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp, hasSavedSession } = require('./services/whatsappService');
+const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp, hasSavedSession, pauseWhatsApp } = require('./services/whatsappService');
 const { prewarmPdfEngine } = require('./services/pdfService');
 
 const app = express();
@@ -450,6 +450,35 @@ setInterval(async () => {
     }
   } catch (err) {
     console.warn('⚠️ [Daily Report Cron Error]:', err.message);
+  }
+}, 60 * 1000); // Check once per minute
+
+// ─── Night Mode Cron: Pause 12 AM, Resume 6 AM IST (saves ~600 MB/month!) ──
+let nightPausedToday = '';
+let nightResumedToday = '';
+setInterval(async () => {
+  try {
+    const now = new Date();
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const hours = istTime.getUTCHours();
+    const minutes = istTime.getUTCMinutes();
+    const todayKey = istTime.toISOString().slice(0, 10);
+
+    // ⏸️ Pause WhatsApp at 12:00 AM IST (Midnight)
+    if (hours === 0 && minutes === 0 && nightPausedToday !== todayKey) {
+      nightPausedToday = todayKey;
+      console.log('🌙 [Night Mode] Pausing WhatsApp at midnight to save bandwidth...');
+      await pauseWhatsApp();
+    }
+
+    // ▶️ Resume WhatsApp at 6:00 AM IST
+    if (hours === 6 && minutes === 0 && nightResumedToday !== todayKey) {
+      nightResumedToday = todayKey;
+      console.log('☀️ [Night Mode] Resuming WhatsApp at 6 AM IST...');
+      initWhatsApp();
+    }
+  } catch (err) {
+    console.warn('⚠️ [Night Mode Cron Error]:', err.message);
   }
 }, 60 * 1000); // Check once per minute
 

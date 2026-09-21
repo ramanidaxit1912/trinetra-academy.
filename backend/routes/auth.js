@@ -74,6 +74,15 @@ router.post('/send-otp', async (req, res) => {
   if (!validation.isValid) {
     return res.status(400).json({ error: validation.message });
   }
+
+  // ─── Night Time Block: 12:00 AM - 6:00 AM IST ──────────────
+  const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const istHour = nowIST.getUTCHours();
+  if (istHour >= 0 && istHour < 6) {
+    return res.status(403).json({
+      error: '🌙 રાત્રે ૧૨:૦૦ થી સવારે ૬:૦૦ સુધી Portal બંધ રહે છે. સવારે ૬:૦૦ વાગ્યે ફરી Login કરો. 🙏'
+    });
+  }
   const nameVal = validateStudentName(name);
   if (!nameVal.isValid) {
     return res.status(400).json({ error: nameVal.message });

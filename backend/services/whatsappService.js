@@ -303,6 +303,35 @@ async function logoutWhatsApp() {
   }
 }
 
+// ─── Pause (Night Mode: Session SAFE in DB, No QR needed on resume) ──
+async function pauseWhatsApp() {
+  try {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (sessionSaveInterval) { clearInterval(sessionSaveInterval); sessionSaveInterval = null; }
+
+    // Save session before pausing (so 6 AM resume needs no QR scan!)
+    await saveSessionToDb();
+
+    if (waSocket) {
+      try { waSocket.end(); } catch (e) {}
+      waSocket = null;
+    }
+
+    connectionStatus = 'DISCONNECTED';
+    qrCodeDataUrl = null;
+    connectedPhone = null;
+    lastError = null;
+    reconnectAttempts = 0;
+    isInitializing = false;
+
+    console.log('⏸️ [WhatsApp] Night Mode: Paused. Session saved. Auto-resume at 6 AM IST.');
+    return { success: true };
+  } catch (e) {
+    console.warn('⚠️ [WhatsApp Pause]:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // ─── Status ───────────────────────────────────────────────────
 function getWhatsAppStatus() {
   return { status: connectionStatus, qrCode: qrCodeDataUrl, phone: connectedPhone, lastError, attempts: reconnectAttempts };
@@ -394,6 +423,7 @@ async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
 module.exports = {
   initWhatsApp,
   hasSavedSession,
+  pauseWhatsApp,
   sendWhatsAppOTP,
   sendWhatsAppScorecardPDF,
   sendWhatsAppPragatiPDF,
