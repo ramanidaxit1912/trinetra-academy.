@@ -408,7 +408,7 @@ export default function ExamPage() {
           <!-- Question Image if present -->
           ${qImg ? `
             <div style="text-align:center;margin:10px 0 14px 0;">
-              <img src="${qImg}" alt="Question Diagram" style="max-height:160px;max-width:100%;border-radius:8px;border:1px solid #cbd5e1;display:inline-block;" />
+              <img src="${qImg}" alt="Question Diagram" loading="lazy" style="max-height:160px;max-width:100%;border-radius:8px;border:1px solid #cbd5e1;display:inline-block;" />
             </div>
           ` : ''}
 
@@ -430,7 +430,7 @@ export default function ExamPage() {
                   </div>
                   ${o.img ? `
                     <div style="text-align:center;margin-top:4px;">
-                      <img src="${o.img}" alt="Option ${o.key}" style="max-height:80px;max-width:100%;border-radius:6px;border:1px solid #cbd5e1;display:inline-block;" />
+                      <img src="${o.img}" alt="Option ${o.key}" loading="lazy" style="max-height:80px;max-width:100%;border-radius:6px;border:1px solid #cbd5e1;display:inline-block;" />
                     </div>
                   ` : ''}
                 </div>

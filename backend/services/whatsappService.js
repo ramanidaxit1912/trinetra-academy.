@@ -33,6 +33,31 @@ let reconnectTimer = null;
 let sessionSaveInterval = null;
 let lastError = null;
 
+// ─── ⚡ WhatsApp Message Queue (Prevents WA crash when 50+ students finish simultaneously) ───
+const waMessageQueue = [];
+let waQueueProcessing = false;
+
+async function processWAQueue() {
+  if (waQueueProcessing || waMessageQueue.length === 0) return;
+  waQueueProcessing = true;
+  while (waMessageQueue.length > 0) {
+    const task = waMessageQueue.shift();
+    try {
+      await task();
+    } catch (e) {
+      console.warn('[WA Queue] Task error:', e.message);
+    }
+    // 800ms delay between messages (Meta rate limit safe zone)
+    await new Promise(r => setTimeout(r, 800));
+  }
+  waQueueProcessing = false;
+}
+
+function enqueueWAMessage(taskFn) {
+  waMessageQueue.push(taskFn);
+  processWAQueue();
+}
+
 const sessionDir = path.join(__dirname, '../whatsapp_session');
 if (!fs.existsSync(sessionDir)) {
   fs.mkdirSync(sessionDir, { recursive: true });
@@ -355,36 +380,48 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
   return { success: false, isOffline: true, otp };
 }
 
-// ─── Send Scorecard PDF ───────────────────────────────────────
+// ─── Send Scorecard PDF (via Queue — prevents crash when 50+ students finish at once) ──────
 async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, totalMarks, pdfBuffer) {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ' : pct >= 60 ? '🟢 પાસ' : '🔴 સુધારો';
   const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 ${testName} — ${score}/${totalMarks} (${pct}%) — ${resultStatus}\n\n📄 તમારું સ્કોરકાર્ડ PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
-  if (waSocket && connectionStatus === 'CONNECTED') {
-    try {
-      const safeName = String(testName || 'Test').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-      await waSocket.sendMessage(jid, { document: pdfBuffer, mimetype: 'application/pdf', fileName: `Trinetra_${safeName}.pdf`, caption });
-      return { success: true };
-    } catch (err) { return { success: false, error: err.message }; }
+  if (!waSocket || connectionStatus !== 'CONNECTED') {
+    return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
   }
-  return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
+  return new Promise(resolve => {
+    enqueueWAMessage(async () => {
+      try {
+        const safeName = String(testName || 'Test').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+        await waSocket.sendMessage(jid, { document: pdfBuffer, mimetype: 'application/pdf', fileName: `Trinetra_${safeName}.pdf`, caption });
+        resolve({ success: true });
+      } catch (err) {
+        resolve({ success: false, error: err.message });
+      }
+    });
+  });
 }
 
-// ─── Send Pragati PDF ─────────────────────────────────────────
+// ─── Send Pragati PDF (via Queue) ─────────────────────────────
 async function sendWhatsAppPragatiPDF(mobile, studentName, pdfBuffer) {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n📊 તમારો સર્વગ્રાહી પ્રગતિ અહેવાલ (Progress Certificate) PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
-  if (waSocket && connectionStatus === 'CONNECTED') {
-    try {
-      const safeName = String(studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-      await waSocket.sendMessage(jid, { document: pdfBuffer, mimetype: 'application/pdf', fileName: `Trinetra_Pragati_${safeName}.pdf`, caption });
-      return { success: true, message: `📊 PDF (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` };
-    } catch (err) { return { success: false, error: err.message }; }
+  if (!waSocket || connectionStatus !== 'CONNECTED') {
+    return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
   }
-  return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
+  return new Promise(resolve => {
+    enqueueWAMessage(async () => {
+      try {
+        const safeName = String(studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+        await waSocket.sendMessage(jid, { document: pdfBuffer, mimetype: 'application/pdf', fileName: `Trinetra_Pragati_${safeName}.pdf`, caption });
+        resolve({ success: true, message: `📊 PDF (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` });
+      } catch (err) {
+        resolve({ success: false, error: err.message });
+      }
+    });
+  });
 }
 
 // ─── Send Daily Report ────────────────────────────────────────
