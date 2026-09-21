@@ -566,7 +566,7 @@ router.get('/:id/pdf', async (req, res) => {
           student: submission.student || {},
           marketingItems
         });
-        const uploadRes = await uploadPdfToCloudinary(pdfBuffer, filename);
+        const uploadRes = await uploadPdfToCloudinary(pdfBuffer, filename, `scorecard_${id}`);
         if (uploadRes?.url) {
           scorecardPdfUrlCache.set(id, uploadRes.url);
           return res.redirect(302, uploadRes.url);
@@ -687,7 +687,7 @@ router.post('/:id/send-whatsapp', async (req, res) => {
       const safeTest = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
       const safeStudent = (studentName || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
       const filename = `Trinetra_${safeTest}_${safeStudent}.pdf`;
-      uploadPdfToCloudinary(pdfBuffer, filename)
+      uploadPdfToCloudinary(pdfBuffer, filename, `scorecard_${id}`)
         .then(res => {
           if (res?.url) {
             scorecardPdfUrlCache.set(id, res.url);
@@ -787,7 +787,7 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
     // ☁️ Save Pragati PDF to Cloudinary CDN
     if (isCloudinaryConfigured()) {
       const safeName = effectiveName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-      uploadPdfToCloudinary(pdfBuffer, `Trinetra_Pragati_${safeName}.pdf`)
+      uploadPdfToCloudinary(pdfBuffer, `Trinetra_Pragati_${safeName}.pdf`, `pragati_${cleanMobile}`)
         .catch(err => console.warn('Pragati Cloudinary upload note:', err.message));
     }
 

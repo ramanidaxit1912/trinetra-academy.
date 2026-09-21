@@ -29,14 +29,18 @@ async function uploadToCloudinary(buffer, folder = 'trinetra/posters', filename 
   });
 }
 
-async function uploadPdfToCloudinary(buffer, filename = 'document.pdf') {
+async function uploadPdfToCloudinary(buffer, filename = 'document.pdf', customPublicId = null) {
   return new Promise((resolve, reject) => {
     const safeName = (filename || 'doc').replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+    // Deterministic public_id prevents duplicate uploads when user clicks repeatedly (0% extra storage!)
+    const public_id = customPublicId ? String(customPublicId).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50) : `${safeName}`;
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: 'trinetra/scorecards',
         resource_type: 'auto',
-        public_id: `${safeName}_${Date.now()}`
+        public_id,
+        overwrite: true,
+        invalidate: true
       },
       (error, result) => {
         if (error) {
@@ -54,6 +58,30 @@ async function uploadPdfToCloudinary(buffer, filename = 'document.pdf') {
   });
 }
 
+/**
+ * Auto-cleanup: Delete scorecards older than maxDays (default 45 days)
+ * Keeps Cloudinary storage permanently under ~500 MB (98% free forever!)
+ */
+async function cleanupOldCloudinaryPdfs(maxDays = 45) {
+  if (!isCloudinaryConfigured()) return;
+  try {
+    const cutoffDate = new Date(Date.now() - maxDays * 24 * 60 * 60 * 1000).toISOString();
+    if (cloudinary.search) {
+      const searchRes = await cloudinary.search
+        .expression(`folder:trinetra/scorecards AND created_at<${cutoffDate}`)
+        .max_results(100)
+        .execute();
+      if (searchRes && Array.isArray(searchRes.resources) && searchRes.resources.length > 0) {
+        const publicIds = searchRes.resources.map(r => r.public_id);
+        await cloudinary.api.delete_resources(publicIds);
+        console.log(`🧹 [Cloudinary Auto-Clean] Deleted ${publicIds.length} old scorecard PDFs (> ${maxDays} days).`);
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ [Cloudinary Auto-Clean Note]:', err.message);
+  }
+}
+
 async function deleteFromCloudinary(urlOrPublicId) {
   try {
     let publicId = urlOrPublicId;
@@ -69,4 +97,10 @@ function isCloudinaryConfigured() {
   return !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 }
 
-module.exports = { uploadToCloudinary, uploadPdfToCloudinary, deleteFromCloudinary, isCloudinaryConfigured };
+module.exports = { 
+  uploadToCloudinary, 
+  uploadPdfToCloudinary, 
+  cleanupOldCloudinaryPdfs,
+  deleteFromCloudinary, 
+  isCloudinaryConfigured 
+};

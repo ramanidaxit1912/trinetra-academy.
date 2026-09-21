@@ -13,6 +13,7 @@ const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
 const { initWhatsApp, getWhatsAppStatus, logoutWhatsApp, hasSavedSession, pauseWhatsApp } = require('./services/whatsappService');
 const { prewarmPdfEngine } = require('./services/pdfService');
+const { cleanupOldCloudinaryPdfs } = require('./services/cloudinaryService');
 
 const app = express();
 const PORT = process.env.PORT || 8085;
@@ -481,6 +482,26 @@ setInterval(async () => {
     console.warn('⚠️ [Night Mode Cron Error]:', err.message);
   }
 }, 60 * 1000); // Check once per minute
+
+// ─── Cloudinary Auto-Cleanup: Purge scorecards older than 45 days (runs 3:00 AM IST) ──
+let lastCleanupDateKey = '';
+setInterval(async () => {
+  try {
+    const now = new Date();
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const hours = istTime.getUTCHours();
+    const minutes = istTime.getUTCMinutes();
+    const todayKey = istTime.toISOString().slice(0, 10);
+
+    if (hours === 3 && minutes === 0 && lastCleanupDateKey !== todayKey) {
+      lastCleanupDateKey = todayKey;
+      console.log('🧹 [Cron] Running daily Cloudinary scorecard cleanup (> 45 days)...');
+      await cleanupOldCloudinaryPdfs(45);
+    }
+  } catch (err) {
+    console.warn('⚠️ [Cloudinary Cleanup Cron Error]:', err.message);
+  }
+}, 60 * 1000);
 
 // ─── Start ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
