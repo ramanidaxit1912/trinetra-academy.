@@ -3381,37 +3381,6 @@ export default function StudentDashboard() {
                         </button>
 
                         <button 
-                          onClick={() => handlePrintScorecard(sub)}
-                          disabled={downloadingScorecardId === sub.id}
-                          style={{
-                            flex: 1,
-                            background: downloadingScorecardId === sub.id ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' : 'linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%)',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '10px 12px',
-                            borderRadius: 10,
-                            fontWeight: 800,
-                            cursor: downloadingScorecardId === sub.id ? 'not-allowed' : 'pointer',
-                            fontSize: '0.82rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6,
-                            boxShadow: '0 2px 8px rgba(14,165,233,0.3)',
-                            transition: 'all 0.15s ease'
-                          }}>
-                          {downloadingScorecardId === sub.id ? (
-                            <>
-                              <RefreshCw size={15} className="animate-spin" /> ડાઉનલોડ...
-                            </>
-                          ) : (
-                            <>
-                              <Download size={15} /> PDF ડાઉનલોડ
-                            </>
-                          )}
-                        </button>
-
-                        <button 
                           onClick={() => handleInitiateWhatsAppSend(sub)}
                           disabled={sendingWaSubId === sub.id}
                           style={{
