@@ -178,7 +178,7 @@ async function initWhatsApp() {
       console.warn('⚠️ [WhatsApp] Could not fetch version, using default:', version.join('.'));
     }
 
-    // 4. Create WA Socket with optimal 24/7 keep-alive settings
+    // 4. Create WA Socket with optimal bandwidth-saving settings
     waSocket = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
@@ -188,11 +188,11 @@ async function initWhatsApp() {
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
-      keepAliveIntervalMs: 25000,
+      keepAliveIntervalMs: 60000,   // 60s (was 25s) — 60% less WhatsApp bandwidth
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       retryRequestDelayMs: 2000,
-      maxMsgRetryCount: 5,
+      maxMsgRetryCount: 3,          // was 5 — less retry traffic
     });
 
     // 5. Creds update -> save immediately to disk and Supabase
