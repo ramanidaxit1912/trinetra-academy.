@@ -454,7 +454,7 @@ setInterval(async () => {
   }
 }, 60 * 1000); // Check once per minute
 
-// ─── Night Mode Cron: Pause 12 AM, Resume 6 AM IST (saves ~600 MB/month!) ──
+// ─── Night Mode Cron: Pause 12 AM, Resume 7 AM IST (saves ~800 MB/month!) ──
 let nightPausedToday = '';
 let nightResumedToday = '';
 setInterval(async () => {
@@ -468,14 +468,27 @@ setInterval(async () => {
     // ⏸️ Pause WhatsApp at 12:00 AM IST (Midnight)
     if (hours === 0 && minutes === 0 && nightPausedToday !== todayKey) {
       nightPausedToday = todayKey;
-      console.log('🌙 [Night Mode] Pausing WhatsApp at midnight to save bandwidth...');
+      console.log('🌙 [Night Mode] Pausing WhatsApp at midnight (12 AM) to save bandwidth...');
       await pauseWhatsApp();
     }
 
-    // ▶️ Resume WhatsApp at 6:00 AM IST
-    if (hours === 6 && minutes === 0 && nightResumedToday !== todayKey) {
+    // ▶️ Resume WhatsApp & Wakeup Server at 7:00 AM IST
+    if (hours === 7 && minutes === 0 && nightResumedToday !== todayKey) {
       nightResumedToday = todayKey;
-      console.log('☀️ [Night Mode] Resuming WhatsApp at 6 AM IST...');
+      console.log('☀️ [Night Mode] 7:00 AM IST reached! Sending Wakeup Ping & starting WhatsApp...');
+
+      // 🔔 7:00 AM Wakeup Ping to keep Render warm
+      const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
+      try {
+        const https = require('https');
+        https.get(`${SELF_URL}/api/health`, (res) => {
+          console.log(`⏰ [7 AM Wakeup Ping] Self-ping status: ${res.statusCode} — Server is fully awake!`);
+        }).on('error', (e) => {
+          console.warn(`⚠️ [7 AM Wakeup Ping] note: ${e.message}`);
+        });
+      } catch (e) {}
+
+      // Re-initialize WhatsApp connection
       initWhatsApp();
     }
   } catch (err) {

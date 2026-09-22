@@ -281,13 +281,13 @@ async function initWhatsApp() {
         await saveSessionToDb();
 
         // Periodic session backup every 2 hours (saves ~4.5 GB/month Supabase bandwidth)
-        // Automatically skips saving during Night Mode (12 AM - 6 AM IST)
+        // Automatically skips saving during Night Mode (12 AM - 7 AM IST)
         if (sessionSaveInterval) clearInterval(sessionSaveInterval);
         sessionSaveInterval = setInterval(async () => {
           if (connectionStatus === 'CONNECTED') {
             const istHour = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCHours();
-            // Skip saving between 12 AM and 6 AM IST
-            if (istHour >= 0 && istHour < 6) {
+            // Skip saving between 12 AM and 7 AM IST
+            if (istHour >= 0 && istHour < 7) {
               return;
             }
             await saveSessionToDb();
