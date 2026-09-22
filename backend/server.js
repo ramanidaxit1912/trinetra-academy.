@@ -550,11 +550,18 @@ app.listen(PORT, '0.0.0.0', () => {
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
 
-  // ── Self-ping every 12 minutes to prevent Render free tier from sleeping ──
+  // ── Self-ping every 12 minutes (Active daytime only: 7 AM - 12 AM IST) ──
+  // Paused between 12 AM and 7 AM IST so Render sleeps completely, saving free hours & bandwidth!
   const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
   if (process.env.NODE_ENV === 'production') {
     setInterval(async () => {
       try {
+        const istHour = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCHours();
+        // Skip pinging during night (12 AM - 7 AM IST) to let server sleep
+        if (istHour >= 0 && istHour < 7) {
+          return;
+        }
+
         const http = require('https');
         http.get(`${SELF_URL}/api/health`, (res) => {
           console.log(`💓 [Keep-Alive] Self-ping OK (${res.statusCode}) - Server staying awake`);
@@ -562,7 +569,7 @@ app.listen(PORT, '0.0.0.0', () => {
           console.warn(`⚠️ [Keep-Alive] Self-ping failed: ${e.message}`);
         });
       } catch (e) {}
-    }, 12 * 60 * 1000); // Every 12 minutes (Render sleeps after 15 min inactivity)
-    console.log(`💓 [Keep-Alive] Self-ping scheduled every 12 min → ${SELF_URL}/api/health`);
+    }, 12 * 60 * 1000); // Every 12 minutes during daytime
+    console.log(`💓 [Keep-Alive] Daytime self-ping scheduled (7 AM - 12 AM IST) → ${SELF_URL}/api/health`);
   }
 });
