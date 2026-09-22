@@ -1451,30 +1451,85 @@ async function prewarmPdfEngine() {
   }
 }
 
+// ─── ⚡ Shared Browser + PDF Queue (Max 1 PDF at a time = RAM always safe!) ──
+// Prevents: 5 students click PDF = 5×300MB = 1500MB = CRASH!
+// Fixed:    5 students click PDF = Queue = 1×300MB = 300MB = SAFE!
+
+let sharedBrowser = null;
+let sharedBrowserBusy = false;
+const pdfQueue = [];
+let pdfQueueProcessing = false;
+
+async function getSharedBrowser() {
+  if (sharedBrowser) {
+    try {
+      // Check if still alive
+      const pages = await sharedBrowser.pages();
+      if (pages) return sharedBrowser;
+    } catch (e) {
+      sharedBrowser = null;
+    }
+  }
+  sharedBrowser = await launchPdfBrowser();
+  return sharedBrowser;
+}
+
+async function runInPdfQueue(taskFn) {
+  return new Promise((resolve, reject) => {
+    pdfQueue.push({ taskFn, resolve, reject });
+    processPdfQueue();
+  });
+}
+
+async function processPdfQueue() {
+  if (pdfQueueProcessing || pdfQueue.length === 0) return;
+  pdfQueueProcessing = true;
+  while (pdfQueue.length > 0) {
+    const { taskFn, resolve, reject } = pdfQueue.shift();
+    try {
+      const result = await taskFn();
+      resolve(result);
+    } catch (err) {
+      reject(err);
+    }
+  }
+  // Close browser after queue empty to free RAM
+  if (sharedBrowser) {
+    try { await sharedBrowser.close(); } catch (e) {}
+    sharedBrowser = null;
+  }
+  pdfQueueProcessing = false;
+}
+
 /**
- * Generate Scorecard PDF Buffer (simple reliable per-request launch)
+ * Generate Scorecard PDF Buffer — via Queue (1 at a time, RAM safe!)
  */
 async function generateScorecardPDFBuffer(data) {
-  let browser = null;
-  try {
-    const html = await buildScorecardHTML(data);
-    browser = await launchPdfBrowser();
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '12mm', bottom: '12mm', left: '10mm', right: '10mm' }
-    });
-    await browser.close();
-    browser = null;
-    return Buffer.from(pdfBuffer);
-  } catch (err) {
-    if (browser) { try { await browser.close(); } catch (e) {} }
-    console.error('Puppeteer Scorecard PDF Error:', err);
-    throw err;
-  }
+  return runInPdfQueue(async () => {
+    let browser = null;
+    try {
+      const html = await buildScorecardHTML(data);
+      browser = await getSharedBrowser();
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '12mm', bottom: '12mm', left: '10mm', right: '10mm' }
+      });
+      await page.close();
+      return Buffer.from(pdfBuffer);
+    } catch (err) {
+      // On error close browser so next request gets fresh one
+      if (sharedBrowser) {
+        try { await sharedBrowser.close(); } catch (e) {}
+        sharedBrowser = null;
+      }
+      console.error('Puppeteer Scorecard PDF Error:', err);
+      throw err;
+    }
+  });
 }
 
 /**
@@ -2121,31 +2176,32 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
 }
 
 /**
- * Generate Pragati Report (Progress Certificate) PDF buffer using Persistent Puppeteer (Ultra-fast)
+ * Generate Pragati Report PDF buffer — via Queue (RAM safe!)
  */
 async function generatePragatiReportPDFBuffer(data) {
-  let browser = null;
-  try {
-    const html = await buildPragatiReportHTML(data);
-    browser = await launchPdfBrowser();
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
-    });
-
-    await browser.close();
-    browser = null;
-    return Buffer.from(pdfBuffer);
-  } catch (err) {
-    if (browser) { try { await browser.close(); } catch(e) {} }
-    console.error('Pragati Report PDF Error:', err);
-    throw err;
-  }
+  return runInPdfQueue(async () => {
+    try {
+      const html = await buildPragatiReportHTML(data);
+      const browser = await getSharedBrowser();
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      try { await page.evaluateHandle('document.fonts.ready'); } catch (e) {}
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
+      });
+      await page.close();
+      return Buffer.from(pdfBuffer);
+    } catch (err) {
+      if (sharedBrowser) {
+        try { await sharedBrowser.close(); } catch (e) {}
+        sharedBrowser = null;
+      }
+      console.error('Pragati Report PDF Error:', err);
+      throw err;
+    }
+  });
 }
 
 
