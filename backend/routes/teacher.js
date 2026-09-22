@@ -27,6 +27,25 @@ router.get('/stats', authMiddleware, teacherOnly, async (req, res) => {
   }
 });
 
+// ─── POST /api/teacher/send-test-summary ───────────────────────
+// Manually or automatically trigger WhatsApp Test Completion Summary
+router.post('/send-test-summary', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { testCode, mobile } = req.body;
+    if (!testCode) {
+      return res.status(400).json({ error: 'Test code આપવો જરૂરી છે.' });
+    }
+    const { sendWhatsAppTestCompletionSummary } = require('../services/whatsappService');
+    const result = await sendWhatsAppTestCompletionSummary(testCode, mobile || '8200405300');
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'WhatsApp સમરી મોકલી શકાઈ નથી.' });
+    }
+    res.json({ success: true, message: `✅ ટેસ્ટ (${testCode}) ની WhatsApp સમરી સફળતાપૂર્વક મોકલાઈ ગઈ!` });
+  } catch (err) {
+    res.status(500).json({ error: 'ટેસ્ટ સમરી મોકલવામાં ક્ષતિ: ' + err.message });
+  }
+});
+
 // ─── GET /api/teacher/students ───────────────────────────────
 // All students list
 router.get('/students', authMiddleware, teacherOnly, async (req, res) => {

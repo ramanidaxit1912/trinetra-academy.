@@ -65,9 +65,54 @@ function validateStudentName(rawName) {
   return { isValid: true, cleanName: rawName.trim() };
 }
 
+// ─── IP-based Rate Limiter (In-Memory, Zero DB Query, Saves Supabase & WhatsApp) ───
+const ipOtpRequests = new Map(); // ip -> [timestamps]
+
+function checkIpRateLimit(ip) {
+  const now = Date.now();
+  const windowMs = 5 * 60 * 1000; // 5 minutes
+  const maxRequests = 5; // Max 5 OTPs per IP in 5 minutes
+
+  let timestamps = ipOtpRequests.get(ip) || [];
+  // Keep only requests within the last 5 minutes
+  timestamps = timestamps.filter(t => now - t < windowMs);
+
+  if (timestamps.length >= maxRequests) {
+    ipOtpRequests.set(ip, timestamps);
+    return { allowed: false, retryAfterSeconds: Math.ceil((windowMs - (now - timestamps[0])) / 1000) };
+  }
+
+  timestamps.push(now);
+  ipOtpRequests.set(ip, timestamps);
+  return { allowed: true };
+}
+
+// Auto cleanup stale IP records every 10 minutes to keep RAM free
+setInterval(() => {
+  const now = Date.now();
+  const windowMs = 5 * 60 * 1000;
+  for (const [ip, timestamps] of ipOtpRequests.entries()) {
+    const fresh = timestamps.filter(t => now - t < windowMs);
+    if (fresh.length === 0) {
+      ipOtpRequests.delete(ip);
+    } else {
+      ipOtpRequests.set(ip, fresh);
+    }
+  }
+}, 10 * 60 * 1000);
+
 // ─── POST /api/auth/send-otp ──────────────────────────────────
 // Send OTP to student mobile with strict validation and 60s cooldown
 router.post('/send-otp', async (req, res) => {
+  // 🛡️ 1. IP-Based Anti-Spam Gate: Blocks bots before touching DB or WhatsApp
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const ipCheck = checkIpRateLimit(clientIp);
+  if (!ipCheck.allowed) {
+    return res.status(429).json({
+      error: `⚠️ ઘણા પ્રયાસો! સુરક્ષા ખાતર આ ઉપકરણ પરથી ૫ મિનિટમાં ૫ થી વધુ OTP મોકલી શકાતા નથી. કૃપા કરીને ${ipCheck.retryAfterSeconds} સેકન્ડ પછી પ્રયત્ન કરો.`
+    });
+  }
+
   const { mobile, name } = req.body;
 
   const validation = validateIndianMobile(mobile);

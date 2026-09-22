@@ -457,6 +457,49 @@ async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
   }
 }
 
+// ─── Send Test Completion Summary (Auto Test Summary) ──────────
+async function sendWhatsAppTestCompletionSummary(testCode, targetMobile = '8200405300') {
+  if (!waSocket || connectionStatus !== 'CONNECTED') {
+    return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન છે.' };
+  }
+  try {
+    const cleanMobile = cleanIndianMobile(targetMobile);
+    const jid = `91${cleanMobile}@s.whatsapp.net`;
+
+    const submissions = await prisma.submission.findMany({
+      where: { testCode, status: 'COMPLETED' },
+      include: { student: true },
+      orderBy: { mcqScore: 'desc' }
+    });
+
+    if (!submissions || submissions.length === 0) {
+      return { success: false, error: 'આ ટેસ્ટ માટે કોઈ સબમિશન નથી મળ્યા.' };
+    }
+
+    const testName = submissions[0].testName || testCode;
+    const totalMarks = submissions[0].totalMarks || 100;
+    const totalStudents = submissions.length;
+
+    const avgScore = (submissions.reduce((acc, s) => acc + (s.mcqScore ?? 0), 0) / totalStudents).toFixed(1);
+    const top3 = submissions.slice(0, 3).map((s, i) => {
+      const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+      return `${rankEmoji} *${s.student?.name || 'વિદ્યાર્થી'}* — ${s.mcqScore}/${totalMarks}`;
+    }).join('\n');
+
+    const istNow = new Date(Date.now() + (5.5 * 60 * 60 * 1000));
+    const timeStr = istNow.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const summaryMsg = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી — ટેસ્ટ પરિણામ સમરી* 📝\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *ટેસ્ટ:* ${testName}\n⏰ *પૂર્ણ સમય:* ${timeStr}\n\n👥 *કુલ સબમિશન:* ${totalStudents} વિદ્યાર્થીઓ\n🎯 *સરેરાશ સ્કોર:* ${avgScore} / ${totalMarks}\n\n🏆 *ટોપ ૩ વિદ્યાર્થીઓ:*\n${top3}\n━━━━━━━━━━━━━━━━━━━━━━\nસંપૂર્ણ પરિણામ ટીચર પોર્ટલ પર ઉપલબ્ધ છે.\n🌐 https://trinetraacademy.in/teacher`;
+
+    await waSocket.sendMessage(jid, { text: summaryMsg });
+    console.log(`✅ [Test Summary] WhatsApp sent to +91${cleanMobile} for test: ${testCode}`);
+    return { success: true };
+  } catch (err) {
+    console.error('Test completion WhatsApp summary error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   initWhatsApp,
   hasSavedSession,
@@ -465,6 +508,7 @@ module.exports = {
   sendWhatsAppScorecardPDF,
   sendWhatsAppPragatiPDF,
   sendWhatsAppDailyReport,
+  sendWhatsAppTestCompletionSummary,
   getWhatsAppStatus,
   logoutWhatsApp
 };
