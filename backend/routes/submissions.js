@@ -808,9 +808,6 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
     const result = await sendWhatsAppPragatiPDF(
       cleanMobile,
       effectiveName,
-      submissions.length,
-      avgPct,
-      overallGrade,
       pdfBuffer
     );
 
