@@ -7292,8 +7292,13 @@ function StudentAnswers({ showToast }) {
                               </span>
                             )}
                           </div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 3 }}>
-                            📞 {sub.student?.mobile} • 📚 {sub.testName || sub.subject || 'સામાન્ય કસોટી'} • 📅 {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+                            <span>📞 {sub.student?.mobile} • 📚 {sub.testName || sub.subject || 'સામાન્ય કસોટી'} • 📅 {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            {(sub.ipAddress || (sub.remarks && sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1])) && (
+                              <span style={{ color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 7px', borderRadius: 6, fontSize: '0.74rem', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 600 }}>
+                                🌐 {sub.ipAddress || sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1]}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

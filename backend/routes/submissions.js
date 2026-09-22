@@ -272,9 +272,13 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     const violations = Number(tabSwitchCount || 0);
-    const antiCheatRemark = violations > 0
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    const ipTag = clientIp ? `[IP: ${clientIp}]` : '';
+
+    let baseRemark = violations > 0
       ? `⚠️ વિદ્યાર્થીએ કસોટી દરમિયાન ${violations} વાર સ્ક્રીન સ્વિચ કરી હતી${violations >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`
-      : null;
+      : '';
+    const finalRemark = baseRemark ? `${baseRemark} ${ipTag}`.trim() : (ipTag || null);
 
     let submission;
     if (existingInProgress) {
@@ -291,7 +295,7 @@ router.post('/', authMiddleware, async (req, res) => {
           correctCount:  correctCount,
           wrongCount:    wrongCount,
           negativeMarks: negativeMarks,
-          remarks:       antiCheatRemark || existingInProgress.remarks || null,
+          remarks:       finalRemark || existingInProgress.remarks || null,
           status:        'COMPLETED',
           submittedAt:   new Date()
         },
@@ -312,7 +316,7 @@ router.post('/', authMiddleware, async (req, res) => {
           correctCount:  correctCount,
           wrongCount:    wrongCount,
           negativeMarks: negativeMarks,
-          remarks:       antiCheatRemark,
+          remarks:       finalRemark,
           status:        'COMPLETED',
           submittedAt:   new Date()
         },
@@ -832,7 +836,14 @@ router.get('/', authMiddleware, teacherOnly, async (req, res) => {
         student: { select: { id: true, name: true, mobile: true } }
       }
     });
-    res.json(submissions);
+    const enhancedSubmissions = submissions.map(sub => {
+      const match = sub.remarks ? sub.remarks.match(/\[IP:\s*([^\]]+)\]/) : null;
+      return {
+        ...sub,
+        ipAddress: match ? match[1] : null
+      };
+    });
+    res.json(enhancedSubmissions);
   } catch (err) {
     res.status(500).json({ error: 'Submissions fetch કરવામાં ભૂલ.' });
   }
