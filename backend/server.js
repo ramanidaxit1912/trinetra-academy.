@@ -38,7 +38,13 @@ app.use(compression());
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(cors({
-  origin: true,
+  origin: [
+    'https://trinetraonline.in',
+    'https://www.trinetraonline.in',
+    'https://trinetra-class.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));

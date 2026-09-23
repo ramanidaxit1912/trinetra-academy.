@@ -110,6 +110,8 @@ async function restoreSessionFromDb() {
         fs.writeFileSync(path.join(sessionDir, row.id), row.data, 'utf8');
       }
       console.log(`📥 [WhatsApp Session] Restored ${rows.length} session files from Supabase DB.`);
+      // 🧹 Immediately cleanup old files after restore (trims 11000+ → 50 files!)
+      await cleanupOldSessionFiles();
       return true;
     }
   } catch (e) {

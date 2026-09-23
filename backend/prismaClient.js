@@ -1,12 +1,11 @@
-﻿const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 
-// Prisma Client Singleton to prevent connection pool exhaustion on Supabase
-const prisma = global.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error']
-});
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+// Prisma Client Singleton — prevents multiple connection pools on Render
+// (Node.js module cache handles this, global ensures hot-reload safety)
+if (!global.prisma) {
+  global.prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error']
+  });
 }
 
-module.exports = prisma;
+module.exports = global.prisma;
