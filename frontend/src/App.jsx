@@ -7,6 +7,7 @@ import ResultPage from './pages/ResultPage';
 import TeacherPage from './pages/TeacherPage';
 import StudentDashboard from './pages/StudentDashboard';
 import ScorecardPage from './pages/ScorecardPage';
+import PragatiPage from './pages/PragatiPage';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -73,6 +74,8 @@ export default function App() {
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/result"  element={<ResultPage />} />
             <Route path="/scorecard/:id" element={<ScorecardPage />} />
+            <Route path="/pragati/:mobile" element={<PragatiPage />} />
+            <Route path="/pragati" element={<PragatiPage />} />
             <Route path="/teacher" element={<TeacherPage />} />
             <Route path="/trinetra-secure-desk" element={<TeacherPage />} />
             <Route path="*"        element={<HomePage />} />

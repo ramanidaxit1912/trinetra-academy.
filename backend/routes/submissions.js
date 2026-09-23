@@ -1,8 +1,8 @@
 const express = require('express');
 const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
-const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer, buildScorecardHTML } = require('../services/pdfService');
-const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardSummary } = require('../services/whatsappService');
+const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer, buildScorecardHTML, buildPragatiReportHTML } = require('../services/pdfService');
+const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardSummary, sendWhatsAppPragatiSummary } = require('../services/whatsappService');
 const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
@@ -831,8 +831,108 @@ router.post('/:id/send-whatsapp', async (req, res) => {
   }
 });
 
+// ─── GET /api/submissions/pragati/:mobile/html ───────────────────
+// Direct HTML view matching the Pragati Report PDF exactly (0% Puppeteer, instant!)
+router.get('/pragati/:mobile/html', async (req, res) => {
+  try {
+    const rawMobile = req.params.mobile || '';
+    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    if (!cleanMobile) {
+      return res.status(400).send('<h2>Mobile number is required</h2>');
+    }
+
+    const student = await prisma.student.findFirst({ where: { mobile: cleanMobile } });
+    const effectiveName = student?.name || 'વિદ્યાર્થી';
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        OR: [
+          ...(student?.id ? [{ studentId: student.id }] : []),
+          { student: { mobile: cleanMobile } }
+        ],
+        status: { not: 'IN_PROGRESS' },
+        mcqScore: { not: null }
+      },
+      orderBy: { submittedAt: 'desc' }
+    });
+
+    if (submissions.length === 0) {
+      return res.status(404).send('<h2>કોઈ કસોટી પરિણામ મળ્યું નથી.</h2>');
+    }
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { isActive: true, showInPdf: true },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const html = await buildPragatiReportHTML({
+      student: { name: effectiveName, mobile: cleanMobile },
+      submissions,
+      marketingItems
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Pragati HTML Error:', err);
+    res.status(500).send('<h2>Error loading pragati report</h2>');
+  }
+});
+
+// ─── GET /api/submissions/pragati/:mobile/pdf ────────────────────
+// Direct binary PDF stream of student's Pragati Report
+router.get('/pragati/:mobile/pdf', async (req, res) => {
+  try {
+    const rawMobile = req.params.mobile || '';
+    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    if (!cleanMobile) {
+      return res.status(400).json({ error: 'Mobile number required' });
+    }
+
+    const student = await prisma.student.findFirst({ where: { mobile: cleanMobile } });
+    const effectiveName = student?.name || 'વિદ્યાર્થી';
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        OR: [
+          ...(student?.id ? [{ studentId: student.id }] : []),
+          { student: { mobile: cleanMobile } }
+        ],
+        status: { not: 'IN_PROGRESS' },
+        mcqScore: { not: null }
+      },
+      orderBy: { submittedAt: 'desc' }
+    });
+
+    if (submissions.length === 0) {
+      return res.status(404).json({ error: 'કોઈ કસોટી પરિણામ મળ્યું નથી.' });
+    }
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { isActive: true, showInPdf: true },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const pdfBuffer = await generatePragatiReportPDFBuffer({
+      student: { name: effectiveName, mobile: cleanMobile },
+      submissions,
+      marketingItems
+    });
+
+    const safeName = effectiveName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const filename = `Trinetra_Pragati_${safeName}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Pragati PDF Error:', err);
+    res.status(500).json({ error: 'Pragati PDF Error: ' + err.message });
+  }
+});
+
 // ─── POST /api/submissions/send-pragati-whatsapp ─────────────
-// Generate Pragati (Progress Report) PDF and send to student's WhatsApp
+// Generate Pragati (Progress Report) and send to student's WhatsApp
 router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
   try {
     const { studentId, studentName, mobile } = req.body;
@@ -877,6 +977,35 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'આ વિદ્યાર્થીએ હજુ કોઈ કસોટી આપી નથી.' });
     }
 
+    let sumScore = 0, sumTotal = 0;
+    submissions.forEach(s => {
+      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
+      const totalM = Number(s.totalMarks) > 0 ? Number(s.totalMarks) : Number(s.totalMCQ) > 0 ? Number(s.totalMCQ) : 20;
+      sumScore += Math.min(totalM, Math.max(0, score));
+      sumTotal += totalM;
+    });
+    const avgPct = sumTotal > 0 ? Math.min(100, Math.round((sumScore / sumTotal) * 100)) : 0;
+    const overallGrade = avgPct >= 90 ? '👑 A+ (ટોપર)' : avgPct >= 75 ? '⭐ A (ઉત્કૃષ્ટ)' : avgPct >= 60 ? '🟢 B (સક્ષમ)' : '🔴 C (સુધારણા)';
+
+    const mode = req.query.mode || req.body?.mode || 'summary';
+
+    // ⚡ Fast 1-Second WhatsApp Delivery (0% RAM / 0% Puppeteer load)
+    if (mode !== 'pdf') {
+      const result = await sendWhatsAppPragatiSummary(
+        cleanMobile,
+        effectiveName,
+        submissions.length,
+        avgPct,
+        overallGrade
+      );
+      if (result.success) {
+        return res.json({ success: true, message: result.message || 'પ્રગતિ અહેવાલ લિંક WhatsApp પર મોકલાઈ ગઈ!' });
+      } else {
+        return res.status(result.isOffline ? 503 : 500).json({ error: result.error, isOffline: result.isOffline });
+      }
+    }
+
+    // Heavy PDF generation (Only when mode=pdf explicitly requested)
     const marketingItems = await prisma.marketingItem.findMany({
       where: { isActive: true, showInPdf: true },
       orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
@@ -887,23 +1016,6 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
       submissions,
       marketingItems
     });
-
-    // ☁️ Save Pragati PDF to Cloudinary CDN
-    if (isCloudinaryConfigured()) {
-      const safeName = effectiveName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-      uploadPdfToCloudinary(pdfBuffer, `Trinetra_Pragati_${safeName}.pdf`, `pragati_${cleanMobile}`)
-        .catch(err => console.warn('Pragati Cloudinary upload note:', err.message));
-    }
-
-    let sumScore = 0, sumTotal = 0;
-    submissions.forEach(s => {
-      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
-      const totalM = Number(s.totalMarks) > 0 ? Number(s.totalMarks) : Number(s.totalMCQ) > 0 ? Number(s.totalMCQ) : 20;
-      sumScore += Math.min(totalM, Math.max(0, score));
-      sumTotal += totalM;
-    });
-    const avgPct = sumTotal > 0 ? Math.min(100, Math.round((sumScore / sumTotal) * 100)) : 0;
-    const overallGrade = avgPct >= 90 ? 'A+ (ટોપર)' : avgPct >= 75 ? 'A (ઉત્કૃષ્ટ)' : avgPct >= 60 ? 'B (સક્ષમ)' : 'C (સુધારણા)';
 
     const result = await sendWhatsAppPragatiPDF(
       cleanMobile,

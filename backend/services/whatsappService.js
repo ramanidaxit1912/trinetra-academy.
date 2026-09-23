@@ -487,6 +487,32 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
   });
 }
 
+// ─── Send Pragati Summary Link (Instant 1-second delivery, 0% Puppeteer/RAM load) ──
+async function sendWhatsAppPragatiSummary(mobile, studentName, totalTests, avgPct, overallGrade) {
+  const cleanMobile = cleanIndianMobile(mobile);
+  const jid = `91${cleanMobile}@s.whatsapp.net`;
+  const pragatiUrl = `https://trinetraonline.in/pragati/${cleanMobile}`;
+
+  const messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 *સર્વગ્રાહી પ્રગતિ અહેવાલ (PROGRESS REPORT)*\n📝 આપેલ કુલ કસોટીઓ: *${totalTests}*\n🎯 સરેરાશ સ્કોર: *${avgPct}%*\n🏅 ઓવરઓલ ગ્રેડ: *${overallGrade}*\n\n📄 *તમારો સત્તાવાર પ્રગતિ અહેવાલ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${pragatiUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+
+  if (!waSocket || connectionStatus !== 'CONNECTED') {
+    return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન છે.' };
+  }
+
+  return new Promise(resolve => {
+    enqueueWAMessage(async () => {
+      try {
+        await waSocket.sendMessage(jid, { text: messageText });
+        console.log(`✅ [WhatsApp Pragati Link] Sent to +91${cleanMobile}`);
+        resolve({ success: true, message: `પ્રગતિ અહેવાલની લિંક (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` });
+      } catch (err) {
+        console.warn('⚠️ [WhatsApp Pragati Link Error]:', err.message);
+        resolve({ success: false, error: err.message });
+      }
+    });
+  });
+}
+
 // ─── Send Pragati PDF (via Queue) ─────────────────────────────
 async function sendWhatsAppPragatiPDF(mobile, studentName, pdfBuffer) {
   const cleanMobile = cleanIndianMobile(mobile);
@@ -591,6 +617,7 @@ module.exports = {
   sendWhatsAppOTP,
   sendWhatsAppScorecardSummary,
   sendWhatsAppScorecardPDF,
+  sendWhatsAppPragatiSummary,
   sendWhatsAppPragatiPDF,
   sendWhatsAppDailyReport,
   sendWhatsAppTestCompletionSummary,
