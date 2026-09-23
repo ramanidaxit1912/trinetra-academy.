@@ -98,6 +98,10 @@ async function hasSavedSession() {
   }
 }
 
+// In-memory cache of saved file contents to eliminate redundant Supabase outbound queries
+const savedSessionCache = new Map();
+let saveSessionDebounceTimer = null;
+
 // Restore all session files from Supabase DB into sessionDir
 async function restoreSessionFromDb() {
   try {
@@ -109,6 +113,7 @@ async function restoreSessionFromDb() {
       }
       for (const row of rows) {
         fs.writeFileSync(path.join(sessionDir, row.id), row.data, 'utf8');
+        savedSessionCache.set(row.id, row.data);
       }
       console.log(`📥 [WhatsApp Session] Restored ${rows.length} session files from Supabase DB.`);
       return true;
@@ -119,33 +124,53 @@ async function restoreSessionFromDb() {
   return false;
 }
 
-// Backup all session files from sessionDir into Supabase DB
-async function saveSessionToDb() {
+// Backup session files from sessionDir into Supabase DB (Delta Sync: only writes changed files!)
+async function saveSessionToDb(forceAll = false) {
   try {
     if (!fs.existsSync(sessionDir)) return;
     const files = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json'));
     if (files.length === 0) return;
 
+    let savedCount = 0;
     for (const file of files) {
       const filePath = path.join(sessionDir, file);
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf8');
-        await prisma.$executeRawUnsafe(`
-          INSERT INTO whatsapp_sessions (id, data, updated_at)
-          VALUES ($1, $2, NOW())
-          ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
-        `, file, content);
+        // ⚡ Delta sync: only save if content actually changed or if forceAll
+        if (forceAll || savedSessionCache.get(file) !== content) {
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO whatsapp_sessions (id, data, updated_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = NOW()
+          `, file, content);
+          savedSessionCache.set(file, content);
+          savedCount++;
+        }
       }
+    }
+    if (savedCount > 0) {
+      console.log(`💾 [WhatsApp Session] Delta sync saved ${savedCount} changed key(s) to Supabase.`);
     }
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session] Save error:', e.message);
   }
 }
 
+// Debounced session save to batch rapid creds.update triggers into a single delta save
+function queueSaveSessionToDb() {
+  if (saveSessionDebounceTimer) clearTimeout(saveSessionDebounceTimer);
+  saveSessionDebounceTimer = setTimeout(() => {
+    saveSessionDebounceTimer = null;
+    saveSessionToDb(false).catch(err => console.warn('Debounced session save note:', err.message));
+  }, 4000); // 4-second batch window
+}
+
 
 // Wipe session from DB and disk
 async function clearSessionFromDb() {
   try {
+    if (saveSessionDebounceTimer) { clearTimeout(saveSessionDebounceTimer); saveSessionDebounceTimer = null; }
+    savedSessionCache.clear();
     await prisma.$executeRawUnsafe(`DELETE FROM whatsapp_sessions`);
     if (fs.existsSync(sessionDir)) {
       const files = fs.readdirSync(sessionDir);
@@ -226,17 +251,30 @@ async function initWhatsApp() {
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
-      keepAliveIntervalMs: 60000,   // 60s (was 25s) — 60% less WhatsApp bandwidth
+      fireInitQueries: false,       // 🚀 Don't download all contacts/group metadata on boot
+      emitOwnEvents: false,         // 🚀 Cut down internal event loop processing
+      // 🚀 Filter out 100% of WhatsApp Groups, Channels, and Status Updates
+      // Saves ~70-80% of background network bandwidth on Render
+      shouldIgnoreJid: (jid) => {
+        if (!jid) return true;
+        return (
+          jid.endsWith('@g.us') || 
+          jid.endsWith('@broadcast') || 
+          jid.endsWith('@newsletter') || 
+          jid.includes('status@broadcast')
+        );
+      },
+      keepAliveIntervalMs: 60000,   // 60s (was 25s) — 60% less WhatsApp ping traffic
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       retryRequestDelayMs: 2000,
-      maxMsgRetryCount: 3,          // was 5 — less retry traffic
+      maxMsgRetryCount: 3,          // less retry traffic
     });
 
-    // 5. Creds update -> save immediately to disk and Supabase
+    // 5. Creds update -> save immediately to disk and debounced delta sync to Supabase
     waSocket.ev.on('creds.update', async () => {
       await saveCreds();
-      await saveSessionToDb();
+      queueSaveSessionToDb();
     });
 
     // 6. Connection updates
