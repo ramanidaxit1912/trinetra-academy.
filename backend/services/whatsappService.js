@@ -442,10 +442,9 @@ async function sendWhatsAppScorecardSummary(mobile, studentName, testName, score
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ (PASS)' : pct >= 60 ? '🟢 પાસ (PASS)' : '🔴 સુધારો જરૂરી';
-  const pdfDirectUrl = `https://trinetraonline.in/api/submissions/${submissionId}/pdf`;
   const scorecardUrl = `https://trinetraonline.in/scorecard/${submissionId}`;
 
-  const messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સત્તાવાર સ્કોરકાર્ડ PDF જોવા અને ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n\n📥 *સીધી PDF ફાઈલ ડાઉનલોડ કરવા:*\n👉 ${pdfDirectUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+  const messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સત્તાવાર સ્કોરકાર્ડ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
 
   if (!waSocket || connectionStatus !== 'CONNECTED') {
     return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન છે.' };
