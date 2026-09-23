@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const RENDER_BACKEND_URL = 'https://trinetra-academy.onrender.com';
+const RENDER_BACKEND_URL = 'https://trinetra-class.onrender.com';
 
 // 🎯 Strictly use same-origin '/api' (proxied via Vercel rewrites to active Render service)
 // NOTE: We intentionally ignore any obsolete Vercel environment variable (such as the dead trinetra-backend-4qni)

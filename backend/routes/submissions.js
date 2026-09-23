@@ -2,7 +2,7 @@ const express = require('express');
 const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer } = require('../services/pdfService');
-const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF } = require('../services/whatsappService');
+const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardSummary } = require('../services/whatsappService');
 const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
@@ -321,6 +321,17 @@ router.post('/', authMiddleware, async (req, res) => {
           submittedAt:   new Date()
         },
         include: { student: true }
+      });
+    }
+
+    // ⚡ Instant WhatsApp Scorecard Notification (Background, Non-blocking)
+    if (submission?.student?.mobile) {
+      const cleanMob = submission.student.mobile;
+      const sName = submission.student.name || 'વિદ્યાર્થી';
+      const tName = submission.testName || 'કસોટી';
+      const totalMarksVal = calculatedTotalMarks || total;
+      sendWhatsAppScorecardSummary(cleanMob, sName, tName, score, totalMarksVal, submission.id).catch(err => {
+        console.warn('⚠️ [Auto WhatsApp Scorecard Note]:', err.message);
       });
     }
 
@@ -679,6 +690,37 @@ router.post('/:id/send-whatsapp', async (req, res) => {
       orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
     });
 
+    const totalMarks = Number(submission.totalMarks) > 0 
+      ? Number(submission.totalMarks) 
+      : Number(submission.totalMCQ) > 0 
+        ? Number(submission.totalMCQ) 
+        : detailedReview.length;
+    const score = Number((submission.mcqScore || 0) + (submission.teacherMarks || 0)) || 0;
+
+    const mode = req.query.mode || req.body?.mode || 'summary';
+
+    // ⚡ Instant 1-Second WhatsApp Delivery (0% RAM / 0% Puppeteer load)
+    if (mode !== 'pdf') {
+      const result = await sendWhatsAppScorecardSummary(
+        studentMobile,
+        studentName,
+        submission.testName || 'કસોટી',
+        score,
+        totalMarks,
+        id
+      );
+
+      if (result.success) {
+        return res.json({ success: true, message: result.message });
+      } else {
+        return res.status(result.isOffline ? 503 : 500).json({
+          error: result.error || 'WhatsApp પર મેસેજ મોકલવામાં ભૂલ આવી.',
+          isOffline: result.isOffline
+        });
+      }
+    }
+
+    // Heavy PDF generation (Only when explicitly requested with mode=pdf)
     const pdfBuffer = await generateScorecardPDFBuffer({
       submission,
       review: detailedReview,
@@ -700,13 +742,6 @@ router.post('/:id/send-whatsapp', async (req, res) => {
         })
         .catch(err => console.warn('Cloudinary async upload note:', err.message));
     }
-
-    const totalMarks = Number(submission.totalMarks) > 0 
-      ? Number(submission.totalMarks) 
-      : Number(submission.totalMCQ) > 0 
-        ? Number(submission.totalMCQ) 
-        : detailedReview.length;
-    const score = Number((submission.mcqScore || 0) + (submission.teacherMarks || 0)) || 0;
 
     const result = await sendWhatsAppScorecardPDF(
       studentMobile,
