@@ -147,34 +147,37 @@ router.post('/send-otp', async (req, res) => {
   });
   const hasMasterAccess = Boolean(studentRecord);
 
-  // 1. Cooldown Rate Limiting: 30 seconds cooldown between OTP requests (bypassed if Master Access granted)
+  // ⚡ Parallel DB Checks: Cooldown + Hourly limit simultaneously (saves ~300ms!)
   if (!hasMasterAccess) {
-    const recentOtp = await prisma.oTPSession.findFirst({
-      where: {
-        mobile: cleanMobile,
-        createdAt: { gt: new Date(Date.now() - 30 * 1000) }
-      }
-    });
+    const [recentOtp, hourlyOtpCount] = await Promise.all([
+      // 1. Cooldown Rate Limiting: 30 seconds cooldown between OTP requests
+      prisma.oTPSession.findFirst({
+        where: {
+          mobile: cleanMobile,
+          createdAt: { gt: new Date(Date.now() - 30 * 1000) }
+        }
+      }),
+      // 2. Hourly Security Guard: Maximum 8 OTPs per mobile in 1 hour
+      prisma.oTPSession.count({
+        where: {
+          mobile: cleanMobile,
+          createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) }
+        }
+      })
+    ]);
 
     if (recentOtp) {
       return res.status(429).json({ error: 'થોડીવાર રાહ જુઓ. તમે 30 સેકન્ડ પછી જ નવો OTP મંગાવી શકો છો.' });
     }
-  }
 
-  // 2. Hourly Security Guard: Maximum 8 OTPs per mobile in 1 hour (down from strict 24 hours)
-  const hourlyOtpCount = await prisma.oTPSession.count({
-    where: {
-      mobile: cleanMobile,
-      createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) }
+    if (hourlyOtpCount >= 8) {
+      return res.status(429).json({
+        error: '⚠️ ૧ કલાકમાં ૮ OTP ની મર્યાદા પૂર્ણ થઈ ગઈ છે. કૃપા કરીને શિક્ષકનો સંપર્ક કરી Master PIN મેળવો અથવા થોડીવાર પછી પ્રયાસ કરો.',
+        canUseMasterPin: true
+      });
     }
-  });
-
-  if (!hasMasterAccess && hourlyOtpCount >= 8) {
-    return res.status(429).json({
-      error: '⚠️ ૧ કલાકમાં ૮ OTP ની મર્યાદા પૂર્ણ થઈ ગઈ છે. કૃપા કરીને શિક્ષકનો સંપર્ક કરી Master PIN મેળવો અથવા થોડીવાર પછી પ્રયાસ કરો.',
-      canUseMasterPin: true
-    });
   }
+
 
   try {
     const otp = generateOTP();
