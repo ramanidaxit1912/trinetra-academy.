@@ -32,6 +32,7 @@ let reconnectAttempts = 0;
 let reconnectTimer = null;
 let sessionSaveInterval = null;
 let lastError = null;
+let conflictCount = 0;
 
 // ─── ⚡ WhatsApp Message Queue (Prevents WA crash when 50+ students finish simultaneously) ───
 const waMessageQueue = [];
@@ -110,57 +111,12 @@ async function restoreSessionFromDb() {
         fs.writeFileSync(path.join(sessionDir, row.id), row.data, 'utf8');
       }
       console.log(`📥 [WhatsApp Session] Restored ${rows.length} session files from Supabase DB.`);
-      // 🧹 Immediately cleanup old files after restore (trims 11000+ → 50 files!)
-      await cleanupOldSessionFiles();
       return true;
     }
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session] Restore error:', e.message);
   }
   return false;
-}
-
-// ─── Smart Session Cleanup: Keep max 50 files (creds.json + 49 newest keys) ──
-const MAX_SESSION_FILES = 50;
-
-async function cleanupOldSessionFiles() {
-  try {
-    if (!fs.existsSync(sessionDir)) return;
-    const allFiles = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json'));
-    if (allFiles.length <= MAX_SESSION_FILES) return;
-
-    // Always keep creds.json (main credential — never delete!)
-    const credsFile = allFiles.filter(f => f === 'creds.json');
-    const otherFiles = allFiles.filter(f => f !== 'creds.json');
-
-    // Sort other files by modification time (newest first)
-    const sorted = otherFiles
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(sessionDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-
-    // Keep newest (MAX_SESSION_FILES - 1) files + creds.json
-    const keepCount = MAX_SESSION_FILES - credsFile.length;
-    const toKeep = new Set([...credsFile, ...sorted.slice(0, keepCount).map(f => f.name)]);
-    const toDelete = sorted.slice(keepCount).map(f => f.name);
-
-    if (toDelete.length === 0) return;
-
-    // Delete old files from disk
-    for (const file of toDelete) {
-      try { fs.unlinkSync(path.join(sessionDir, file)); } catch (e) {}
-    }
-
-    // Delete old files from Supabase DB in one batch query
-    const placeholders = toDelete.map((_, i) => `$${i + 1}`).join(', ');
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM whatsapp_sessions WHERE id IN (${placeholders})`,
-      ...toDelete
-    );
-
-    console.log(`🧹 [Session Cleanup] Removed ${toDelete.length} old key files. Kept ${toKeep.size} essential files.`);
-  } catch (e) {
-    console.warn('⚠️ [Session Cleanup] Error:', e.message);
-  }
 }
 
 // Backup all session files from sessionDir into Supabase DB
@@ -181,13 +137,11 @@ async function saveSessionToDb() {
         `, file, content);
       }
     }
-
-    // 🧹 Auto-cleanup: Remove old files after every save (keeps max 50)
-    await cleanupOldSessionFiles();
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session] Save error:', e.message);
   }
 }
+
 
 // Wipe session from DB and disk
 async function clearSessionFromDb() {
@@ -255,7 +209,14 @@ async function initWhatsApp() {
       console.warn('⚠️ [WhatsApp] Could not fetch version, using default:', version.join('.'));
     }
 
-    // 4. Create WA Socket with optimal bandwidth-saving settings
+    // 4. Clean up any existing socket before creating a new one (prevents duplicate sockets)
+    if (waSocket) {
+      try { waSocket.ev.removeAllListeners(); } catch (e) {}
+      try { waSocket.end(); } catch (e) {}
+      waSocket = null;
+    }
+
+    // Create WA Socket with optimal bandwidth-saving settings
     waSocket = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
@@ -300,6 +261,7 @@ async function initWhatsApp() {
 
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
         const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
+        const isConflict = statusCode === 440;
 
         connectionStatus = 'DISCONNECTED';
         qrCodeDataUrl = null;
@@ -316,12 +278,25 @@ async function initWhatsApp() {
         } else if (isRestartRequired) {
           console.log('🔄 [WhatsApp] Restart required (515) — reconnecting immediately...');
           scheduleReconnect(1000);
+        } else if (isConflict) {
+          conflictCount++;
+          console.warn(`⚠️ [WhatsApp] Session conflict (440) #${conflictCount}...`);
+          if (conflictCount >= 3) {
+            console.error('❌ [WhatsApp] Session keys corrupted or conflicting. Clearing session for fresh QR...');
+            await clearSessionFromDb();
+            conflictCount = 0;
+            reconnectAttempts = 0;
+            scheduleReconnect(3000);
+          } else {
+            // Wait 10 seconds on conflict to allow previous instance or socket to release connection
+            scheduleReconnect(10000);
+          }
         } else {
           // Normal network drop, Render keep-alive blip, or WhatsApp ping timeout:
-          // DO NOT delete DB! Just reconnect with existing valid keys!
           scheduleReconnect();
         }
       } else if (connection === 'open') {
+        conflictCount = 0;
         connectionStatus = 'CONNECTED';
         qrCodeDataUrl = null;
         lastError = null;
