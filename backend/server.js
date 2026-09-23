@@ -478,7 +478,7 @@ setInterval(async () => {
       console.log('☀️ [Night Mode] 7:00 AM IST reached! Sending Wakeup Ping & starting WhatsApp...');
 
       // 🔔 7:00 AM Wakeup Ping to keep Render warm
-      const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
+      const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-class.onrender.com`;
       try {
         const https = require('https');
         https.get(`${SELF_URL}/api/health`, (res) => {
@@ -553,7 +553,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // ── Bulletproof Self-ping every 9 minutes 24/7 (Keeps Render instance ALWAYS awake) ──
   // 9-minute interval ensures Render's 15-minute inactivity timer NEVER triggers!
   // Ultra-lightweight (1 KB HTTP ping), while heavy tasks (WhatsApp & DB backup) pause at night.
-  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-class.onrender.com`;
   setInterval(async () => {
     try {
       const http = require('https');

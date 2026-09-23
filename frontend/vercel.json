@@ -2,15 +2,15 @@
   "rewrites": [
     {
       "source": "/whatsapp",
-      "destination": "https://trinetra-academy.onrender.com/whatsapp"
+      "destination": "https://trinetra-class.onrender.com/whatsapp"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://trinetra-academy.onrender.com/api/:path*"
+      "destination": "https://trinetra-class.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://trinetra-academy.onrender.com/uploads/:path*"
+      "destination": "https://trinetra-class.onrender.com/uploads/:path*"
     },
     {
       "source": "/(.*)",
