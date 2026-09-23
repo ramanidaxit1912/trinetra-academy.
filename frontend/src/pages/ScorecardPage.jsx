@@ -11,6 +11,7 @@ export default function ScorecardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewMode, setViewMode] = useState('PDF'); // 'PDF' (Official Scorecard) | 'REVIEW' (Question-by-Question)
   const [filter, setFilter] = useState('ALL'); // 'ALL' | 'CORRECT' | 'WRONG' | 'SKIPPED'
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
@@ -34,7 +35,6 @@ export default function ScorecardPage() {
   const handleDownloadPdf = async () => {
     try {
       setDownloadingPdf(true);
-      // Trigger direct download from the backend /api/submissions/:id/pdf
       window.open(`/api/submissions/${id}/pdf`, '_blank');
     } catch (e) {
       console.warn('PDF download note:', e);
@@ -44,7 +44,13 @@ export default function ScorecardPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    const iframe = document.getElementById('scorecard-iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } else {
+      window.print();
+    }
   };
 
   if (loading) {
@@ -55,7 +61,7 @@ export default function ScorecardPage() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '3rem', marginBottom: 16 }} className="animate-bounce">📊</div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8', marginBottom: 8 }}>
-              સ્કોરકાર્ડ લોડ થઈ રહ્યું છે...
+              સત્તાવાર સ્કોરકાર્ડ લોડ થઈ રહ્યું છે...
             </h3>
             <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>કૃપા કરીને થોડી ક્ષણો રાહ જુઓ ✨</p>
           </div>
@@ -99,12 +105,6 @@ export default function ScorecardPage() {
   const skippedCount = review.filter(r => r.isSkipped).length;
   const negativeMarks = submission.negativeMarks || 0;
 
-  const formattedDate = submission.submittedAt
-    ? new Date(submission.submittedAt).toLocaleDateString('gu-IN', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-      })
-    : 'તાજેતરમાં';
-
   const filteredReview = review.filter(r => {
     if (filter === 'CORRECT') return r.isCorrect === true;
     if (filter === 'WRONG') return r.isCorrect === false && !r.isSkipped;
@@ -119,106 +119,103 @@ export default function ScorecardPage() {
       {/* 🎉 Confetti Burst on Good Score */}
       {isPassing && <ConfettiCanvas duration={4000} />}
 
-      <div style={{ maxWidth: 880, margin: '24px auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: 940, margin: '20px auto', padding: '0 12px' }}>
 
-        {/* ── Top Bar with Actions ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+        {/* ── Top Bar with Actions & Mode Switcher ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#94a3b8', textDecoration: 'none', fontSize: '0.88rem', fontWeight: 600 }}>
             ← હોમ પેજ
           </Link>
-          <div style={{ display: 'flex', gap: 10 }}>
+
+          {/* View Mode Toggle: [📄 અધિકૃત PDF સ્કોરકાર્ડ] vs [📝 પ્રશ્નવાર રિવ્યુ] */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', padding: 3, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setViewMode('PDF')}
+              style={{
+                background: viewMode === 'PDF' ? '#2563eb' : 'transparent',
+                color: viewMode === 'PDF' ? '#ffffff' : '#cbd5e1',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: 9,
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              📄 સત્તાવાર PDF માર્કશીટ
+            </button>
+            <button
+              onClick={() => setViewMode('REVIEW')}
+              style={{
+                background: viewMode === 'REVIEW' ? '#2563eb' : 'transparent',
+                color: viewMode === 'REVIEW' ? '#ffffff' : '#cbd5e1',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: 9,
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              📝 પ્રશ્નવાર સોલ્યુશન
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handlePrint}
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#e2e8f0', padding: '8px 16px', borderRadius: 10, fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer' }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#e2e8f0', padding: '8px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
             >
-              🖨️ પ્રિન્ટ / સેવ
+              🖨️ પ્રિન્ટ
             </button>
             <button
               onClick={handleDownloadPdf}
               disabled={downloadingPdf}
-              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', padding: '8px 20px', borderRadius: 10, fontSize: '0.88rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', padding: '8px 18px', borderRadius: 10, fontSize: '0.86rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
             >
-              {downloadingPdf ? '⏳ PDF તૈયાર થઈ રહી છે...' : '📥 PDF ડાઉનલોડ કરો'}
+              {downloadingPdf ? '⏳ PDF ડાઉનલોડ થાય છે...' : '📥 Download PDF'}
             </button>
           </div>
         </div>
 
-        {/* ── Main Scorecard Container ── */}
-        <div style={{ background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', border: '1.5px solid rgba(255,255,255,0.12)', borderRadius: 24, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)' }}>
-          
-          {/* Header Banner */}
-          <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)', padding: '24px 20px', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: 4 }}>🏛️</div>
-            <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-              ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)
-            </h1>
-            <p style={{ color: '#38bdf8', fontSize: '0.86rem', fontWeight: 700, margin: 0 }}>
-              અધિકૃત સ્કોરકાર્ડ અને પરિણામ પત્રક (OFFICIAL SCORECARD)
-            </p>
+        {/* ── Mode 1: OFFICIAL ROYAL SCORECARD (Exact 100% PDF Formation) ── */}
+        {viewMode === 'PDF' && (
+          <div style={{ background: '#ffffff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <iframe
+              id="scorecard-iframe"
+              title="Official Trinetra Scorecard"
+              src={`/api/submissions/${id}/html`}
+              style={{
+                width: '100%',
+                height: '820px',
+                border: 'none',
+                display: 'block',
+                background: '#ffffff'
+              }}
+            />
           </div>
+        )}
 
-          {/* Student & Test Meta Info Card */}
-          <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-              <div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>વિદ્યાર્થીનું નામ:</span>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f8fafc', marginTop: 2 }}>{student.name || 'વિદ્યાર્થી'}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>મોબાઈલ નંબર:</span>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#38bdf8', marginTop: 2 }}>+91 {student.mobile || '-'}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>કસોટીનું નામ:</span>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc', marginTop: 2 }}>{submission.testName || 'મોક ટેસ્ટ'}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>તારીખ & સમય:</span>
-                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#cbd5e1', marginTop: 2 }}>{formattedDate}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Score Highlight Display ── */}
-          <div style={{ padding: '32px 20px', textAlign: 'center', background: isPassing ? 'linear-gradient(180deg, rgba(16,185,129,0.08) 0%, transparent 100%)' : 'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, transparent 100%)' }}>
-            <div style={{ display: 'inline-block', padding: '6px 16px', borderRadius: 20, background: isPassing ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)', border: isPassing ? '1px solid #10b981' : '1px solid #ef4444', color: isPassing ? '#34d399' : '#f87171', fontSize: '0.85rem', fontWeight: 800, marginBottom: 16 }}>
-              {pct >= 90 ? '👑 A+ ઉત્કૃષ્ટ પરિણામ' : pct >= 75 ? '⭐ A ઉત્કૃષ્ટ (PASS)' : pct >= 60 ? '🟢 B પાસ (PASS)' : '🔴 C વધુ મહેનત જરૂરી'}
-            </div>
+        {/* ── Mode 2: INTERACTIVE SOLUTION REVIEW ── */}
+        {viewMode === 'REVIEW' && (
+          <div style={{ background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', border: '1.5px solid rgba(255,255,255,0.12)', borderRadius: 24, overflow: 'hidden', padding: '24px 20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)' }}>
             
-            <div style={{ fontSize: '3.6rem', fontWeight: 900, color: isPassing ? '#34d399' : '#f87171', lineHeight: 1.1, marginBottom: 6 }}>
-              {score} <span style={{ fontSize: '1.8rem', color: '#94a3b8', fontWeight: 700 }}>/ {totalMarks}</span>
-            </div>
-            <div style={{ fontSize: '1.15rem', color: '#cbd5e1', fontWeight: 800 }}>
-              ટકાવારી: <span style={{ color: isPassing ? '#34d399' : '#f87171' }}>{pct}%</span>
-            </div>
-
-            {/* 4 Stat Badges Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, maxWidth: 650, margin: '28px auto 0 auto' }}>
-              <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 14, padding: '14px 10px' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>{correctCount}</div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>✓ સાચા જવાબો</div>
+            {/* Quick Summary Strip */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 4px 0' }}>
+                  {submission.testName || 'કસોટી'}
+                </h3>
+                <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: 0 }}>
+                  વિદ્યાર્થી: <strong style={{ color: '#38bdf8' }}>{student.name || 'વિદ્યાર્થી'}</strong> • સ્કોર: <strong style={{ color: isPassing ? '#34d399' : '#f87171' }}>{score}/{totalMarks} ({pct}%)</strong>
+                </p>
               </div>
-              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 14, padding: '14px 10px' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f87171' }}>{wrongCount}</div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>✗ ખોટા જવાબો</div>
-              </div>
-              <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: '14px 10px' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24' }}>{skippedCount}</div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>⏭️ છોડેલા (Option E)</div>
-              </div>
-              <div style={{ background: 'rgba(148,163,184,0.12)', border: '1px solid rgba(148,163,184,0.25)', borderRadius: 14, padding: '14px 10px' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#cbd5e1' }}>{negativeMarks > 0 ? `-${negativeMarks}` : '0'}</div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>📉 નેગેટિવ ગુણ</div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Question by Question Solution Review ── */}
-          <div style={{ padding: '24px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                📝 વિગતવાર પ્રશ્ન-જવાબ અને સોલ્યુશન ({review.length} પ્રશ્નો)
-              </h2>
 
               {/* Filter Tabs */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -281,19 +278,16 @@ export default function ScorecardPage() {
                       </span>
                     </div>
 
-                    {/* Question Text */}
                     <div style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.6, marginBottom: 12 }}>
                       {formatMathText(q.questionText || '')}
                     </div>
 
-                    {/* Question Image if present */}
                     {isImg(q.questionImage || q.imageUrl) && (
                       <div style={{ marginBottom: 12, maxWidth: 360 }}>
                         <img src={extractImgSrc(q.questionImage || q.imageUrl)} alt="Question illustration" style={{ width: '100%', borderRadius: 8 }} />
                       </div>
                     )}
 
-                    {/* Options list */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 10 }}>
                       {['A', 'B', 'C', 'D', 'E'].map(optKey => {
                         const optText = q[`option${optKey}`];
@@ -342,7 +336,6 @@ export default function ScorecardPage() {
                       })}
                     </div>
 
-                    {/* Explanation if present */}
                     {q.explanation && (
                       <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(56,189,248,0.08)', borderLeft: '3px solid #38bdf8', borderRadius: '0 8px 8px 0', fontSize: '0.84rem', color: '#93c5fd' }}>
                         <span style={{ fontWeight: 800 }}>💡 સમજૂતી (Explanation):</span> {formatMathText(q.explanation)}
@@ -353,25 +346,8 @@ export default function ScorecardPage() {
               })}
             </div>
           </div>
+        )}
 
-          {/* Footer Card */}
-          <div style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '0 0 14px 0' }}>
-              ત્રિનેત્ર ઓનલાઇન એકેડેમી • TET, TAT, GPSC, CCE સ્પર્ધાત્મક પરીક્ષા પોર્ટલ • Helpline: 8200405300
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button
-                onClick={handleDownloadPdf}
-                style={{ background: '#10b981', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.88rem' }}
-              >
-                📥 Download PDF Scorecard
-              </button>
-              <Link to="/" style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.15)', padding: '10px 20px', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
-                🏠 હોમ પેજ
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

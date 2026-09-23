@@ -1569,6 +1569,7 @@ function generateScorecardPDF(data) {
 }
 
 module.exports = {
+  buildScorecardHTML,
   generateScorecardPDF,
   generateScorecardPDFBuffer,
   generatePragatiReportPDFBuffer,

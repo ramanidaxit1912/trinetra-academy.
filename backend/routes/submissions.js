@@ -1,7 +1,7 @@
 const express = require('express');
 const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
-const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer } = require('../services/pdfService');
+const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer, buildScorecardHTML } = require('../services/pdfService');
 const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardSummary } = require('../services/whatsappService');
 const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
@@ -491,6 +491,90 @@ router.get('/review/:id', async (req, res) => {
   } catch (err) {
     console.error('Review Error:', err);
     res.status(500).json({ error: 'Review fetch ભૂલ.' });
+  }
+});
+
+// ─── GET /api/submissions/:id/html ──────────────────────────
+// Direct HTML view matching the Royal Scorecard PDF exactly (0% Puppeteer/Chromium, instant!)
+router.get('/:id/html', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id },
+      include: { student: true }
+    });
+    if (!submission) {
+      return res.status(404).send('<h2>Submission not found</h2>');
+    }
+
+    const answersArr = Array.isArray(submission.answers) ? submission.answers : [];
+    const questionIds = answersArr.map(a => a.questionId).filter(Boolean);
+
+    let questions = [];
+    if (submission.testCode) {
+      questions = await prisma.question.findMany({
+        where: { testCode: submission.testCode },
+        orderBy: { orderIndex: 'asc' }
+      });
+    }
+    if (questions.length === 0 && questionIds.length > 0) {
+      const firstFoundQ = await prisma.question.findUnique({ where: { id: questionIds[0] } });
+      if (firstFoundQ?.testCode) {
+        questions = await prisma.question.findMany({
+          where: { testCode: firstFoundQ.testCode },
+          orderBy: { orderIndex: 'asc' }
+        });
+      } else {
+        questions = await prisma.question.findMany({
+          where: { id: { in: questionIds } },
+          orderBy: { orderIndex: 'asc' }
+        });
+      }
+    }
+
+    const detailedReview = questions.map((q, idx) => {
+      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
+      const selected = ans.selectedOpt || ans.text || '';
+      let isCorrect = null;
+      if (q.type === 'mcq') {
+        if (!selected) {
+          isCorrect = null;
+        } else if (selected === 'E') {
+          isCorrect = false;
+        } else {
+          isCorrect = (selected === q.correctOpt);
+        }
+      }
+      return {
+        question: q,
+        studentAnswer: selected,
+        isCorrect,
+        isSkipped: !selected || selected === 'E',
+        timeSpent: ans.timeSpent || 0,
+        studentUploadedPhoto: submission.photoUrl
+      };
+    });
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { 
+        isActive: true,
+        showInPdf: true
+      },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const html = await buildScorecardHTML({
+      submission,
+      review: detailedReview,
+      student: submission.student || {},
+      marketingItems
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('Scorecard HTML Error:', err);
+    res.status(500).send('<h2>Error loading scorecard</h2>');
   }
 });
 
