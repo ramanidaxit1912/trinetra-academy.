@@ -373,6 +373,28 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n🔑 OTP: *${otp.split('').join(' ')}*\n\n⏱️ OTP 5 મિનિટ માટે માન્ય છે. 🔒 કોઈ સાથે શેર ન કરશો.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraacademy.in  📞 8200405300`;
+
+  // ⏳ 7AM Reconnect Wait Guard:
+  // If WhatsApp is CONNECTING (waking up from night mode), wait up to 20s
+  if (connectionStatus === 'CONNECTING' || (isInitializing && connectionStatus !== 'CONNECTED')) {
+    console.log(`⏳ [OTP] WhatsApp reconnecting... waiting for +91${cleanMobile}`);
+    const waited = await new Promise(resolve => {
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 500;
+        if (connectionStatus === 'CONNECTED' || elapsed >= 20000) {
+          clearInterval(interval);
+          resolve(connectionStatus === 'CONNECTED');
+        }
+      }, 500);
+    });
+    if (!waited) {
+      console.log(`⚠️ [OTP] WhatsApp still not ready after 20s for +91${cleanMobile}: ${otp}`);
+      return { success: false, isOffline: true, otp };
+    }
+    console.log(`✅ [OTP] WhatsApp ready after wait — sending to +91${cleanMobile}`);
+  }
+
   if (waSocket && connectionStatus === 'CONNECTED') {
     try {
       await waSocket.sendMessage(jid, { text: textMessage });
@@ -385,6 +407,7 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
   console.log(`⚠️ [WhatsApp Offline] OTP for +91${cleanMobile}: ${otp}`);
   return { success: false, isOffline: true, otp };
 }
+
 
 // ─── Send Scorecard PDF (via Queue — prevents crash when 50+ students finish at once) ──────
 async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, totalMarks, pdfBuffer) {
