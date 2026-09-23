@@ -550,20 +550,23 @@ app.listen(PORT, '0.0.0.0', () => {
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
 
-  // ── Self-ping every 12 minutes 24/7 (Keeps Render instance always awake & ready) ──
-  // Ultra-lightweight (1 KB HTTP ping), while heavy tasks (WhatsApp & DB backup) pause at night!
+  // ── Bulletproof Self-ping every 9 minutes 24/7 (Keeps Render instance ALWAYS awake) ──
+  // 9-minute interval ensures Render's 15-minute inactivity timer NEVER triggers!
+  // Ultra-lightweight (1 KB HTTP ping), while heavy tasks (WhatsApp & DB backup) pause at night.
   const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-academy.onrender.com`;
-  if (process.env.NODE_ENV === 'production') {
-    setInterval(async () => {
-      try {
-        const http = require('https');
-        http.get(`${SELF_URL}/api/health`, (res) => {
-          console.log(`💓 [Keep-Alive] Self-ping OK (${res.statusCode}) - Server staying awake`);
-        }).on('error', (e) => {
-          console.warn(`⚠️ [Keep-Alive] Self-ping failed: ${e.message}`);
-        });
-      } catch (e) {}
-    }, 12 * 60 * 1000); // Every 12 minutes 24/7
-    console.log(`💓 [Keep-Alive] 24/7 self-ping scheduled every 12 min → ${SELF_URL}/api/health`);
-  }
+  setInterval(async () => {
+    try {
+      const http = require('https');
+      const req = http.get(`${SELF_URL}/api/health`, { timeout: 10000 }, (res) => {
+        console.log(`💓 [Keep-Alive] 9-min Self-ping OK (${res.statusCode}) - Server is wide awake!`);
+      });
+      req.on('error', (e) => {
+        console.warn(`⚠️ [Keep-Alive] Self-ping note: ${e.message}`);
+      });
+      req.on('timeout', () => {
+        req.destroy();
+      });
+    } catch (e) {}
+  }, 9 * 60 * 1000); // Bulletproof 9 minutes (Render sleeps after 15 min)
+  console.log(`💓 [Keep-Alive] 9-minute 24/7 Self-ping active → ${SELF_URL}/api/health`);
 });

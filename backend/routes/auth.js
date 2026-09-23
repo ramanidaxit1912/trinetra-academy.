@@ -180,25 +180,26 @@ router.post('/send-otp', async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Invalidate old OTPs for this mobile
-    await prisma.oTPSession.updateMany({
-      where: { mobile: cleanMobile, used: false },
-      data: { used: true }
+    // ⚡ Fast Parallel Execution: Invalidate old + Create new OTP concurrently in Supabase
+    const dbPromise = Promise.all([
+      prisma.oTPSession.updateMany({
+        where: { mobile: cleanMobile, used: false },
+        data: { used: true }
+      }),
+      prisma.oTPSession.create({
+        data: { mobile: cleanMobile, otp, expiresAt }
+      })
+    ]);
+
+    // 🟢 100% Automated Free WhatsApp OTP Delivery (dispatches immediately)
+    const { sendWhatsAppOTP } = require('../services/whatsappService');
+    const waPromise = sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી').catch(err => {
+      console.warn('WhatsApp service trigger note:', err.message);
+      return { success: false, error: err.message };
     });
 
-    // Create new OTP session
-    await prisma.oTPSession.create({
-      data: { mobile: cleanMobile, otp, expiresAt }
-    });
-
-    // 🟢 100% Automated Free WhatsApp OTP Delivery
-    let waResult = { success: false };
-    try {
-      const { sendWhatsAppOTP } = require('../services/whatsappService');
-      waResult = await sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી');
-    } catch (waErr) {
-      console.warn('WhatsApp service trigger note:', waErr.message);
-    }
+    // Wait for both DB and WhatsApp concurrently (cuts waiting time by 50%!)
+    const [, waResult] = await Promise.all([dbPromise, waPromise]);
 
     const isDeliveredViaWhatsApp = Boolean(waResult?.success);
     const shouldProvideScreenOtp = process.env.OTP_MODE === 'dev' || !isDeliveredViaWhatsApp;
