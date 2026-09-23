@@ -118,6 +118,49 @@ async function restoreSessionFromDb() {
   return false;
 }
 
+// ─── Smart Session Cleanup: Keep max 50 files (creds.json + 49 newest keys) ──
+const MAX_SESSION_FILES = 50;
+
+async function cleanupOldSessionFiles() {
+  try {
+    if (!fs.existsSync(sessionDir)) return;
+    const allFiles = fs.readdirSync(sessionDir).filter(f => f.endsWith('.json'));
+    if (allFiles.length <= MAX_SESSION_FILES) return;
+
+    // Always keep creds.json (main credential — never delete!)
+    const credsFile = allFiles.filter(f => f === 'creds.json');
+    const otherFiles = allFiles.filter(f => f !== 'creds.json');
+
+    // Sort other files by modification time (newest first)
+    const sorted = otherFiles
+      .map(f => ({ name: f, mtime: fs.statSync(path.join(sessionDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    // Keep newest (MAX_SESSION_FILES - 1) files + creds.json
+    const keepCount = MAX_SESSION_FILES - credsFile.length;
+    const toKeep = new Set([...credsFile, ...sorted.slice(0, keepCount).map(f => f.name)]);
+    const toDelete = sorted.slice(keepCount).map(f => f.name);
+
+    if (toDelete.length === 0) return;
+
+    // Delete old files from disk
+    for (const file of toDelete) {
+      try { fs.unlinkSync(path.join(sessionDir, file)); } catch (e) {}
+    }
+
+    // Delete old files from Supabase DB in one batch query
+    const placeholders = toDelete.map((_, i) => `$${i + 1}`).join(', ');
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM whatsapp_sessions WHERE id IN (${placeholders})`,
+      ...toDelete
+    );
+
+    console.log(`🧹 [Session Cleanup] Removed ${toDelete.length} old key files. Kept ${toKeep.size} essential files.`);
+  } catch (e) {
+    console.warn('⚠️ [Session Cleanup] Error:', e.message);
+  }
+}
+
 // Backup all session files from sessionDir into Supabase DB
 async function saveSessionToDb() {
   try {
@@ -136,6 +179,9 @@ async function saveSessionToDb() {
         `, file, content);
       }
     }
+
+    // 🧹 Auto-cleanup: Remove old files after every save (keeps max 50)
+    await cleanupOldSessionFiles();
   } catch (e) {
     console.warn('⚠️ [WhatsApp Session] Save error:', e.message);
   }
@@ -188,6 +234,10 @@ async function initWhatsApp() {
     // 1. Restore persistent session keys from Supabase if disk is empty (e.g. after Render redeploy)
     const diskFiles = fs.existsSync(sessionDir) ? fs.readdirSync(sessionDir).filter(f => f.endsWith('.json')) : [];
     if (diskFiles.length === 0) {
+      // ⏳ 8s Grace Delay: On fresh Render deploy, old instance takes ~5s to shut down.
+      // Without this delay, old + new instances both connect → WhatsApp 440 Conflict error!
+      console.log('⏳ [WhatsApp] Fresh deploy detected — waiting 8s for old instance to exit (prevents 440 conflict)...');
+      await new Promise(r => setTimeout(r, 8000));
       await restoreSessionFromDb();
     }
 
