@@ -37,8 +37,8 @@ async function uploadPdfToCloudinary(buffer, filename = 'document.pdf', customPu
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: 'trinetra/scorecards',
-        resource_type: 'auto',
-        public_id,
+        resource_type: 'raw',
+        public_id: `${public_id}.pdf`,
         overwrite: true,
         invalidate: true
       },

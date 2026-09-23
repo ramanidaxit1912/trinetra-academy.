@@ -583,11 +583,6 @@ router.get('/:id/html', async (req, res) => {
 router.get('/:id/pdf', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    // ⚡ Instant Cache Hit: Zero DB queries, Zero Puppeteer, Zero Render bandwidth!
-    if (isCloudinaryConfigured() && scorecardPdfUrlCache.has(id)) {
-      return res.redirect(302, scorecardPdfUrlCache.get(id));
-    }
-
     const submission = await prisma.submission.findUnique({
       where: { id },
       include: { student: true }
@@ -656,37 +651,23 @@ router.get('/:id/pdf', async (req, res) => {
     const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
     const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
 
-    // ☁️ Ultra-Low Bandwidth: Upload to Cloudinary CDN & 302 Redirect (Saves 99.9% Render Bandwidth!)
-    if (isCloudinaryConfigured()) {
-      try {
-        const pdfBuffer = await generateScorecardPDFBuffer({
-          submission,
-          review: detailedReview,
-          student: submission.student || {},
-          marketingItems
-        });
-        const uploadRes = await uploadPdfToCloudinary(pdfBuffer, filename, `scorecard_${id}`);
-        if (uploadRes?.url) {
-          scorecardPdfUrlCache.set(id, uploadRes.url);
-          return res.redirect(302, uploadRes.url);
-        }
-      } catch (cloudErr) {
-        console.warn('Cloudinary PDF Upload Note (fallback to direct stream):', cloudErr.message);
-      }
-    }
-
-    // Direct Stream Fallback (if Cloudinary not set or upload fails)
-    const pdfDoc = generateScorecardPDF({
+    // ⚡ Direct High-Speed PDF Buffer Delivery (100% Reliable, Zero 401 ACL errors!)
+    const pdfBuffer = await generateScorecardPDFBuffer({
       submission,
       review: detailedReview,
       student: submission.student || {},
       marketingItems
     });
 
+    // Background upload to Cloudinary (fire & forget for backup, never block or redirect client)
+    if (isCloudinaryConfigured()) {
+      uploadPdfToCloudinary(pdfBuffer, filename, `scorecard_${id}`)
+        .catch(err => console.warn('Cloudinary backup note:', err.message));
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
-
-    pdfDoc.pipe(res);
+    return res.send(pdfBuffer);
   } catch (err) {
     console.error('PDF Generation Error:', err);
     res.status(500).json({ error: 'PDF જનરેટ કરવામાં ભૂલ આવી.', details: err.message });
