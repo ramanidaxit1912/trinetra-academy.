@@ -796,6 +796,8 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
       }
     ` : ''}
 
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700;800&display=swap');
+
     ${katexCss}
 
     @page {
@@ -805,7 +807,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
 
     * { box-sizing: border-box; }
     body {
-      font-family: 'Hind Vadodara', 'Shruti', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Hind Vadodara', 'Shruti', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 0;
       color: #0f172a;
@@ -1939,10 +1941,11 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
         src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiBoldB64}) format('truetype');
       }
     ` : ''}
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700;800&display=swap');
     @page { size: A4; margin: 8mm 10mm; }
     * { box-sizing: border-box; }
     body, table, th, td, div, span, h1, h2, h3, h4, p, strong, text {
-      font-family: 'Hind Vadodara', 'Shruti', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Hind Vadodara', 'Shruti', 'Noto Sans Devanagari', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     body { padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 

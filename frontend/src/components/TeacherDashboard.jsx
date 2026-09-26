@@ -163,6 +163,13 @@ export function MathSymbolToolbar({ onInsert }) {
     { label: '∩', val: '\\cap', title: 'Intersection' },
     { label: '⊥', val: '\\perp', title: 'Perpendicular' },
     { label: '∥', val: '\\parallel', title: 'Parallel' },
+    { label: '→ પ્રક્રિયા', val: ' \\to ', title: 'રાસાયણિક પ્રક્રિયા (Chemical Reaction)' },
+    { label: '⇌ સંતુલન', val: ' \\rightleftharpoons ', title: 'રાસાયણિક સંતુલન (Equilibrium)' },
+    { label: '°C', val: '^\\circ C', title: 'ડિગ્રી સેલ્સિયસ (°C)' },
+    { label: 'Ω', val: '\\Omega', title: 'ઓહ્મ (Ohm)' },
+    { label: 'λ', val: '\\lambda', title: 'તરંગલંબાઈ (Lambda)' },
+    { label: 'μ', val: '\\mu', title: 'માઇક્રો (Micro)' },
+    { label: '॥ ૧ ॥', val: '॥ ૧ ॥', title: 'સંસ્કૃત શ્લોક વિરામ (Danda)' },
   ];
 
   return (
