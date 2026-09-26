@@ -180,7 +180,128 @@ function formatMathHtml(text) {
            .replace(/\^5/g, '⁵')
            .replace(/\^n/g, 'ⁿ');
 
-  return str;
+  return formatQuestionStructure(str);
+}
+
+// Helper: Format Match the following (જોડકાં) tables & Statements (વિધાનો) for PDF and HTML reports
+function formatQuestionStructure(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  let str = text.replace(/\r\n/g, '\n').trim();
+
+  // 1. Detect Match the Following (જોડકાં / Columns with pipe '|')
+  if (str.includes('|')) {
+    if ((str.match(/\n/g) || []).length < 2) {
+      str = str.replace(/\s+(?=\([B-Z0-9]\)\s+[^|]*\|)/g, '\n');
+      str = str.replace(/\s+(?=(?:કોલમ|વિભાગ|સ્તંભ|Column|List|યાદી)\s+[I1A]\b)/g, '\n');
+    }
+
+    const lines = str.split('\n').map(l => l.trim()).filter(Boolean);
+    const tableLines = [];
+    const beforeLines = [];
+    const afterLines = [];
+    let foundTable = false;
+    let finishedTable = false;
+
+    for (const line of lines) {
+      const isTableRow = line.includes('|') && (
+        /(?:કોલમ|વિભાગ|સ્તંભ|Column|List|યાદી|[A-Z0-9]\))/i.test(line) ||
+        tableLines.length > 0
+      );
+
+      if (isTableRow && !finishedTable) {
+        foundTable = true;
+        tableLines.push(line);
+      } else {
+        if (!foundTable) {
+          beforeLines.push(line);
+        } else {
+          finishedTable = true;
+          afterLines.push(line);
+        }
+      }
+    }
+
+    if (tableLines.length >= 2) {
+      const headerParts = tableLines[0].split('|').map(s => s.trim());
+      const rows = tableLines.slice(1).map(tl => tl.split('|').map(s => s.trim()));
+
+      const tableHtml = `<div style="overflow-x:auto;margin:10px 0 14px 0;border:1.5px solid #cbd5e1;border-radius:10px;background:#ffffff;">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;color:#0f172a;">
+    <thead>
+      <tr style="background:#f1f5f9;border-bottom:2px solid #cbd5e1;">
+        <th style="padding:8px 12px;text-align:left;font-weight:bold;color:#1e3a8a;border-right:1.5px solid #cbd5e1;width:50%;">${headerParts[0] || 'કોલમ I'}</th>
+        <th style="padding:8px 12px;text-align:left;font-weight:bold;color:#1e3a8a;width:50%;">${headerParts[1] || 'કોલમ II'}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map((r, i) => {
+        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:6px;">$1</strong> ');
+        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:6px;">$1</strong> ');
+        return `
+      <tr style="border-bottom:1px solid #e2e8f0;background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        <td style="padding:8px 12px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;">${c1}</td>
+        <td style="padding:8px 12px;font-weight:600;color:#1e293b;">${c2}</td>
+      </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+
+      const beforeHtml = beforeLines.length > 0 ? `<div>${beforeLines.join('<br />')}</div>` : '';
+      const afterHtml = afterLines.length > 0 ? `<div style="margin-top:8px;font-weight:bold;">${afterLines.join('<br />')}</div>` : '';
+      return (beforeHtml ? beforeHtml : '') + tableHtml + (afterHtml ? afterHtml : '');
+    }
+  }
+
+  // 2. Detect Statements (વિધાનવાળા પ્રશ્નો): (૧) ... (૨) ... (૩) ...
+  if (/(\([૧-૯1-9iIvVxX]+\)\s*)/.test(str)) {
+    let normalized = str;
+    if ((str.match(/\n/g) || []).length < 2) {
+      normalized = str.replace(/([^\n])\s+(?=\([૧-૯1-9iIvVxX]+\)\s*)/g, '$1\n');
+    }
+    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+    const stItems = [];
+    const beforeSt = [];
+    const afterSt = [];
+    let foundSt = false;
+    let finishedSt = false;
+
+    for (const line of lines) {
+      const match = line.match(/^(\([૧-૯1-9iIvVxX]+\))\s*(.*)$/);
+      if (match) {
+        if (!finishedSt) {
+          foundSt = true;
+          stItems.push({ num: match[1], body: match[2] });
+        } else {
+          afterSt.push(line);
+        }
+      } else {
+        if (!foundSt) {
+          beforeSt.push(line);
+        } else {
+          finishedSt = true;
+          afterSt.push(line);
+        }
+      }
+    }
+
+    if (stItems.length >= 2) {
+      const stCardsHtml = `<div style="display:flex;flex-direction:column;gap:6px;margin:10px 0 12px 0;">
+  ${stItems.map(item => `
+  <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border:1px solid #cbd5e1;border-left:3.5px solid #2563eb;border-radius:8px;padding:7px 10px;font-size:13px;line-height:1.5;color:#0f172a;">
+    <span style="font-weight:bold;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:1px 6px;border-radius:4px;flex-shrink:0;">${item.num}</span>
+    <span style="color:#0f172a;font-weight:600;flex:1;">${item.body}</span>
+  </div>`).join('')}
+</div>`;
+
+      const beforeHtml = beforeSt.length > 0 ? `<div>${beforeSt.join('<br />')}</div>` : '';
+      const afterHtml = afterSt.length > 0 ? `<div style="margin-top:8px;font-weight:bold;">${afterSt.join('<br />')}</div>` : '';
+      return (beforeHtml ? beforeHtml : '') + stCardsHtml + (afterHtml ? afterHtml : '');
+    }
+  }
+
+  // 3. Fallback: preserve simple newlines
+  return str.replace(/\n/g, '<br />');
 }
 
 // Helper: Check if string is an image source or tag

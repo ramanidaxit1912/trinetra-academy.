@@ -402,7 +402,133 @@ export function formatMathText(rawText) {
     return SUBSCRIPTS[p1] || p1;
   });
 
-  return text;
+  return formatQuestionStructure(text);
+}
+
+/**
+ * Smart Question Structure Formatter:
+ * 1. Transforms Match the following (જોડકાં with '|') into clean, responsive mobile tables
+ * 2. Transforms Statements (વિધાનો with (૧), (૨), (૩) or (1), (2), (3)) into structured card blocks
+ * 3. Preserves all line breaks (\n -> <br />)
+ */
+export function formatQuestionStructure(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  let str = text.replace(/\r\n/g, '\n').trim();
+
+  // 1. Detect Match the Following (જોડકાં / Columns with pipe '|')
+  if (str.includes('|')) {
+    if ((str.match(/\n/g) || []).length < 2) {
+      str = str.replace(/\s+(?=\([B-Z0-9]\)\s+[^|]*\|)/g, '\n');
+      str = str.replace(/\s+(?=(?:કોલમ|વિભાગ|સ્તંભ|Column|List|યાદી)\s+[I1A]\b)/g, '\n');
+    }
+
+    const lines = str.split('\n').map(l => l.trim()).filter(Boolean);
+    const tableLines = [];
+    const beforeLines = [];
+    const afterLines = [];
+    let foundTable = false;
+    let finishedTable = false;
+
+    for (const line of lines) {
+      const isTableRow = line.includes('|') && (
+        /(?:કોલમ|વિભાગ|સ્તંભ|Column|List|યાદી|[A-Z0-9]\))/i.test(line) ||
+        tableLines.length > 0
+      );
+
+      if (isTableRow && !finishedTable) {
+        foundTable = true;
+        tableLines.push(line);
+      } else {
+        if (!foundTable) {
+          beforeLines.push(line);
+        } else {
+          finishedTable = true;
+          afterLines.push(line);
+        }
+      }
+    }
+
+    if (tableLines.length >= 2) {
+      const headerParts = tableLines[0].split('|').map(s => s.trim());
+      const rows = tableLines.slice(1).map(tl => tl.split('|').map(s => s.trim()));
+
+      const tableHtml = `<div class="jodka-table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:50%;">${headerParts[0] || 'કોલમ I'}</th>
+        <th style="width:50%;">${headerParts[1] || 'કોલમ II'}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map((r) => {
+        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:6px;">$1</strong> ');
+        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:6px;">$1</strong> ');
+        return `
+      <tr>
+        <td>${c1}</td>
+        <td>${c2}</td>
+      </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+
+      const beforeHtml = beforeLines.length > 0 ? `<div>${beforeLines.join('<br />')}</div>` : '';
+      const afterHtml = afterLines.length > 0 ? `<div style="margin-top:10px;font-weight:700;">${afterLines.join('<br />')}</div>` : '';
+      return (beforeHtml ? beforeHtml : '') + tableHtml + (afterHtml ? afterHtml : '');
+    }
+  }
+
+  // 2. Detect Statements (વિધાનવાળા પ્રશ્નો): (૧) ... (૨) ... (૩) ...
+  if (/(\([૧-૯1-9iIvVxX]+\)\s*)/.test(str)) {
+    let normalized = str;
+    if ((str.match(/\n/g) || []).length < 2) {
+      normalized = str.replace(/([^\n])\s+(?=\([૧-૯1-9iIvVxX]+\)\s*)/g, '$1\n');
+    }
+    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+    const stItems = [];
+    const beforeSt = [];
+    const afterSt = [];
+    let foundSt = false;
+    let finishedSt = false;
+
+    for (const line of lines) {
+      const match = line.match(/^(\([૧-૯1-9iIvVxX]+\))\s*(.*)$/);
+      if (match) {
+        if (!finishedSt) {
+          foundSt = true;
+          stItems.push({ num: match[1], body: match[2] });
+        } else {
+          afterSt.push(line);
+        }
+      } else {
+        if (!foundSt) {
+          beforeSt.push(line);
+        } else {
+          finishedSt = true;
+          afterSt.push(line);
+        }
+      }
+    }
+
+    if (stItems.length >= 2) {
+      const stCardsHtml = `<div class="statements-list">
+  ${stItems.map(item => `
+  <div class="statement-card">
+    <span class="statement-badge">${item.num}</span>
+    <span class="statement-text">${item.body}</span>
+  </div>`).join('')}
+</div>`;
+
+      const beforeHtml = beforeSt.length > 0 ? `<div>${beforeSt.join('<br />')}</div>` : '';
+      const afterHtml = afterSt.length > 0 ? `<div style="margin-top:10px;font-weight:700;">${afterSt.join('<br />')}</div>` : '';
+      return (beforeHtml ? beforeHtml : '') + stCardsHtml + (afterHtml ? afterHtml : '');
+    }
+  }
+
+  // 3. Fallback: preserve simple newlines
+  return str.replace(/\n/g, '<br />');
 }
 
 export default formatMathText;
