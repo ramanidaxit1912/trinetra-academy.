@@ -100,56 +100,88 @@ body {
   border: 1px solid var(--border);
 }
 
-/* ─── Smart Match The Following (જોડકાં) Table ─── */
+/* ─── Smart Match The Following (જોડકાં) Table — ZERO HORIZONTAL SCROLL ─── */
 .jodka-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 12px 0 16px 0;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  margin: 10px 0 14px 0 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 .jodka-table-wrap table {
-  width: 100%;
-  min-width: 320px;
-  border-collapse: collapse;
-  font-size: 0.94rem;
-  line-height: 1.55;
-  font-family: inherit;
-  color: #0f172a;
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  font-size: 0.85rem !important;
+  line-height: 1.45 !important;
+  font-family: inherit !important;
+  color: #0f172a !important;
+  box-sizing: border-box !important;
 }
 .jodka-table-wrap th {
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: 800;
-  color: #1e3a8a;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 2px solid #cbd5e1;
-  border-right: 1.5px solid #cbd5e1;
+  padding: 8px 8px !important;
+  text-align: left !important;
+  font-weight: 800 !important;
+  color: #1e3a8a !important;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+  font-size: 0.82rem !important;
+  word-break: break-word !important;
 }
-.jodka-table-wrap th:last-child {
-  border-right: none;
+.jodka-table-wrap th.jodka-col-1,
+.jodka-table-wrap td.jodka-col-1 {
+  width: 58% !important;
+  border-right: 1.5px solid #e2e8f0 !important;
+  padding: 7px 8px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  vertical-align: middle !important;
+  word-break: break-word !important;
 }
-.jodka-table-wrap td {
-  padding: 10px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  border-right: 1.5px solid #e2e8f0;
-  font-weight: 600;
-  color: #1e293b;
-  vertical-align: top;
-}
-.jodka-table-wrap td:last-child {
-  border-right: none;
+.jodka-table-wrap th.jodka-col-2,
+.jodka-table-wrap td.jodka-col-2 {
+  width: 42% !important;
+  border-right: none !important;
+  padding: 7px 8px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  vertical-align: middle !important;
+  word-break: break-word !important;
 }
 .jodka-table-wrap tr:last-child td {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 .jodka-table-wrap tr:nth-child(even) td {
-  background: #f8fafc;
+  background: #f8fafc !important;
 }
 .jodka-table-wrap tr:nth-child(odd) td {
-  background: #ffffff;
+  background: #ffffff !important;
+}
+
+@media (max-width: 480px) {
+  .jodka-table-wrap table {
+    font-size: 0.80rem !important;
+    line-height: 1.38 !important;
+  }
+  .jodka-table-wrap th {
+    padding: 7px 6px !important;
+    font-size: 0.78rem !important;
+  }
+  .jodka-table-wrap th.jodka-col-1,
+  .jodka-table-wrap td.jodka-col-1 {
+    width: 58% !important;
+    padding: 6px 6px !important;
+  }
+  .jodka-table-wrap th.jodka-col-2,
+  .jodka-table-wrap td.jodka-col-2 {
+    width: 42% !important;
+    padding: 6px 6px !important;
+  }
 }
 
 /* ─── Smart Statements (વિધાનો) Cards ─── */

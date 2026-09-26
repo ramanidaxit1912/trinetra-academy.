@@ -452,22 +452,22 @@ export function formatQuestionStructure(text) {
       const headerParts = tableLines[0].split('|').map(s => s.trim());
       const rows = tableLines.slice(1).map(tl => tl.split('|').map(s => s.trim()));
 
-      const tableHtml = `<div class="jodka-table-wrap">
-  <table>
+      const tableHtml = `<div class="jodka-table-wrap" style="width:100%;max-width:100%;box-sizing:border-box;margin:10px 0 14px 0;border:1.5px solid #cbd5e1;border-radius:10px;background:#ffffff;overflow:hidden;">
+  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.85rem;line-height:1.45;font-family:inherit;color:#0f172a;box-sizing:border-box;">
     <thead>
-      <tr>
-        <th style="width:50%;">${headerParts[0] || 'કોલમ I'}</th>
-        <th style="width:50%;">${headerParts[1] || 'કોલમ II'}</th>
+      <tr style="background:#f1f5f9;border-bottom:1.5px solid #cbd5e1;">
+        <th class="jodka-col-1" style="width:58%;padding:7px 8px;text-align:left;font-weight:800;color:#1e3a8a;border-right:1.5px solid #cbd5e1;font-size:0.82rem;word-break:break-word;">${headerParts[0] || 'કોલમ I'}</th>
+        <th class="jodka-col-2" style="width:42%;padding:7px 8px;text-align:left;font-weight:800;color:#1e3a8a;font-size:0.82rem;word-break:break-word;">${headerParts[1] || 'કોલમ II'}</th>
       </tr>
     </thead>
     <tbody>
-      ${rows.map((r) => {
-        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:6px;">$1</strong> ');
-        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:6px;">$1</strong> ');
+      ${rows.map((r, i) => {
+        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:4px;">$1</strong> ');
+        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:4px;">$1</strong> ');
         return `
-      <tr>
-        <td>${c1}</td>
-        <td>${c2}</td>
+      <tr style="border-bottom:1px solid #e2e8f0;background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        <td class="jodka-col-1" style="width:58%;padding:6px 8px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c1}</td>
+        <td class="jodka-col-2" style="width:42%;padding:6px 8px;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c2}</td>
       </tr>`;
       }).join('')}
     </tbody>
