@@ -284,7 +284,7 @@ function formatQuestionStructure(text) {
       const stCardsHtml = `<div style="display:flex;flex-direction:column;gap:6px;margin:10px 0 12px 0;">
   ${stItems.map(item => `
   <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border:1px solid #cbd5e1;border-left:3.5px solid #2563eb;border-radius:8px;padding:7px 10px;font-size:13px;line-height:1.5;color:#0f172a;">
-    <span style="font-weight:bold;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:1px 6px;border-radius:4px;flex-shrink:0;">${item.num}</span>
+    <span style="font-family:'Shruti','Hind Vadodara',sans-serif;font-weight:bold;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:1px 6px;border-radius:4px;flex-shrink:0;">${item.num}</span>
     <span style="color:#0f172a;font-weight:600;flex:1;">${item.body}</span>
   </div>`).join('')}
 </div>`;
@@ -566,11 +566,17 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
   // Load local Gujarati fonts as Base64 for 100% offline instant rendering
   let fontRegularB64 = '';
   let fontBoldB64 = '';
+  let fontShrutiRegularB64 = '';
+  let fontShrutiBoldB64 = '';
   try {
     const regPath = path.join(__dirname, '../fonts/HindVadodara-Regular.ttf');
     const boldPath = path.join(__dirname, '../fonts/HindVadodara-Bold.ttf');
+    const shrutiRegPath = path.join(__dirname, '../fonts/Shruti-Regular.ttf');
+    const shrutiBoldPath = path.join(__dirname, '../fonts/Shruti-Bold.ttf');
     if (fs.existsSync(regPath)) fontRegularB64 = fs.readFileSync(regPath).toString('base64');
     if (fs.existsSync(boldPath)) fontBoldB64 = fs.readFileSync(boldPath).toString('base64');
+    if (fs.existsSync(shrutiRegPath)) fontShrutiRegularB64 = fs.readFileSync(shrutiRegPath).toString('base64');
+    if (fs.existsSync(shrutiBoldPath)) fontShrutiBoldB64 = fs.readFileSync(shrutiBoldPath).toString('base64');
   } catch (e) {}
 
   // Helper to render a question card with full image and diagram support
@@ -765,6 +771,25 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
         src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
       }
     ` : ''}
+    ${fontShrutiRegularB64 ? `
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 400;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiRegularB64}) format('truetype');
+      }
+    ` : ''}
+    ${fontShrutiBoldB64 ? `
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 700;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 800;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiBoldB64}) format('truetype');
+      }
+    ` : ''}
 
     ${katexCss}
 
@@ -775,7 +800,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
 
     * { box-sizing: border-box; }
     body {
-      font-family: 'Hind Vadodara', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Hind Vadodara', 'Shruti', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 0;
       color: #0f172a;
@@ -1699,13 +1724,18 @@ module.exports = {
  * Matches the client-side StudentDashboard handlePrintProgressReport + Royal Scorecard brochure
  */
 async function buildPragatiReportHTML({ student, submissions, marketingItems = [] }) {
-  // Load same Gujarati fonts as Scorecard (Hind Vadodara base64 from backend/fonts)
+  // Load same Gujarati fonts as Scorecard (Hind Vadodara & Shruti base64 from backend/fonts)
   let fontRegularB64 = null, fontBoldB64 = null;
+  let fontShrutiRegularB64 = null, fontShrutiBoldB64 = null;
   try {
     const regPath = path.join(__dirname, '../fonts/HindVadodara-Regular.ttf');
     const boldPath = path.join(__dirname, '../fonts/HindVadodara-Bold.ttf');
+    const shrutiRegPath = path.join(__dirname, '../fonts/Shruti-Regular.ttf');
+    const shrutiBoldPath = path.join(__dirname, '../fonts/Shruti-Bold.ttf');
     if (fs.existsSync(regPath)) { fontRegularB64 = fs.readFileSync(regPath).toString('base64'); }
     if (fs.existsSync(boldPath)) { fontBoldB64 = fs.readFileSync(boldPath).toString('base64'); }
+    if (fs.existsSync(shrutiRegPath)) { fontShrutiRegularB64 = fs.readFileSync(shrutiRegPath).toString('base64'); }
+    if (fs.existsSync(shrutiBoldPath)) { fontShrutiBoldB64 = fs.readFileSync(shrutiBoldPath).toString('base64'); }
   } catch (e) {}
 
   // Generate real scannable QR Code Data URL for Play Store App URL
@@ -1885,10 +1915,29 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
         src: url(data:font/truetype;charset=utf-8;base64,${fontBoldB64}) format('truetype');
       }
     ` : ''}
+    ${fontShrutiRegularB64 ? `
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 400;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiRegularB64}) format('truetype');
+      }
+    ` : ''}
+    ${fontShrutiBoldB64 ? `
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 700;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiBoldB64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'Shruti';
+        font-weight: 800;
+        src: url(data:font/truetype;charset=utf-8;base64,${fontShrutiBoldB64}) format('truetype');
+      }
+    ` : ''}
     @page { size: A4; margin: 8mm 10mm; }
     * { box-sizing: border-box; }
     body, table, th, td, div, span, h1, h2, h3, h4, p, strong, text {
-      font-family: 'Hind Vadodara', 'HindVadodara', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Hind Vadodara', 'Shruti', 'Noto Sans Gujarati', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     body { padding: 0; color: #0f172a; max-width: 840px; margin: 0 auto; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
