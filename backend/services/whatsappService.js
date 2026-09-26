@@ -264,7 +264,7 @@ async function initWhatsApp() {
           jid.includes('status@broadcast')
         );
       },
-      keepAliveIntervalMs: 60000,   // 60s (was 25s) — 60% less WhatsApp ping traffic
+      keepAliveIntervalMs: 30000,   // 30s — rock-solid connection, prevents 428 timeouts
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       retryRequestDelayMs: 2000,
