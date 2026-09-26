@@ -180,6 +180,28 @@ function formatMathHtml(text, isQuestion = false) {
            .replace(/\^5/g, '⁵')
            .replace(/\^n/g, 'ⁿ');
 
+  // Automatic stacked fractions for variables & subscripts: a₁/a₂, a_1/a_2, b₁/b₂, b_1/b_2, c₁/c₂
+  const uniSubToLatex = { '₀':'_0', '₁':'_1', '₂':'_2', '₃':'_3', '₄':'_4', '₅':'_5', '₆':'_6', '₇':'_7', '₈':'_8', '₉':'_9' };
+  const normSubTerm = (t) => t.replace(/[₀-₉]/g, c => uniSubToLatex[c] || c);
+  str = str.replace(/(?<![0-9a-zA-Z\/])([a-zA-Z][₀-₉0-9_]*)\/([a-zA-Z][₀-₉0-9_]*)(?![0-9a-zA-Z\/])/g, (match, num, den) => {
+    if (/^(km\/h|m\/s|cm\/s|and\/or|or\/and)$/i.test(match)) return match;
+    try {
+      return katex.renderToString(`\\frac{${normSubTerm(num)}}{${normSubTerm(den)}}`, { throwOnError: false, displayMode: false });
+    } catch {
+      return match;
+    }
+  });
+
+  // Automatic stacked numeric fractions: 1/2, 3/4, 22/7
+  str = str.replace(/(?<![0-9\/\.])([0-9]{1,3})\/([0-9]{1,3})(?![0-9\/\.])/g, (match, num, den) => {
+    if (parseInt(num) > 999 || parseInt(den) > 999) return match;
+    try {
+      return katex.renderToString(`\\frac{${num}}{${den}}`, { throwOnError: false, displayMode: false });
+    } catch {
+      return match;
+    }
+  });
+
   return isQuestion ? formatQuestionStructure(str) : str;
 }
 

@@ -179,6 +179,18 @@ export function formatMathText(rawText, isQuestion = false) {
     try { return renderKaTeX(`\\frac{${num}}{${den}}`, false); } catch { return match; }
   });
 
+  // Pattern E: variable/variable with subscripts or powers — e.g. a₁/a₂, a_1/a_2, b₁/b₂, b_1/b_2, c₁/c₂, p/q, x/y
+  const uniSubToLatex = { '₀':'_0', '₁':'_1', '₂':'_2', '₃':'_3', '₄':'_4', '₅':'_5', '₆':'_6', '₇':'_7', '₈':'_8', '₉':'_9' };
+  const normSubTerm = (t) => t.replace(/[₀-₉]/g, c => uniSubToLatex[c] || c);
+  text = text.replace(/(?<![0-9a-zA-Z\/])([a-zA-Z][₀-₉0-9_]*)\/([a-zA-Z][₀-₉0-9_]*)(?![0-9a-zA-Z\/])/g, (match, num, den) => {
+    if (/^(km\/h|m\/s|cm\/s|and\/or|or\/and)$/i.test(match)) return match;
+    try {
+      return renderKaTeX(`\\frac{${normSubTerm(num)}}{${normSubTerm(den)}}`, false);
+    } catch {
+      return match;
+    }
+  });
+
   // 1d. sqrt with parentheses: sqrt(b^2 - 4ac) → √ rendered
   //     Teacher writes: sqrt(b^2 - 4ac) → auto sqrt
   text = text.replace(/\bsqrt\(([^()]+)\)/g, (match, inner) => {
