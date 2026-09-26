@@ -144,7 +144,7 @@ async function launchPdfBrowser() {
 const APP_PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=co.bolton.unhnx';
 
 // Helper: Format KaTeX math expressions within text
-function formatMathHtml(text) {
+function formatMathHtml(text, isQuestion = false) {
   if (!text) return '';
   let str = String(text);
 
@@ -180,13 +180,18 @@ function formatMathHtml(text) {
            .replace(/\^5/g, '⁵')
            .replace(/\^n/g, 'ⁿ');
 
-  return formatQuestionStructure(str);
+  return isQuestion ? formatQuestionStructure(str) : str;
 }
 
 // Helper: Format Match the following (જોડકાં) tables & Statements (વિધાનો) for PDF and HTML reports
 function formatQuestionStructure(text) {
   if (!text || typeof text !== 'string') return text || '';
   let str = text.replace(/\r\n/g, '\n').trim();
+
+  // Safety guard: Options (e.g. "માત્ર (૨) અને (૩) સાચાં છે") should NEVER be formatted as statement questions!
+  if (!str.includes('\n') && (str.length < 90 || /^(?:માત્ર\s+|બંને\s+|ત્રણેય\s+|તમામ\s+|ઉપરોક્ત\s+|કોઈપણ\s+)/.test(str) || /(?:સાચાં|સાચું|ખોટું|ખોટાં|સત્ય|અસત્ય)/.test(str))) {
+    return str;
+  }
 
   // 1. Detect Match the Following (જોડકાં / Columns with pipe '|')
   if (str.includes('|')) {
@@ -583,7 +588,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
   const renderQuestionCard = (item, idx) => {
     const q = item.question || item;
     const qNum = idx + 1;
-    const qText = formatMathHtml(q.text || q.questionText || `પ્રશ્ન ${qNum}`);
+    const qText = formatMathHtml(q.text || q.questionText || `પ્રશ્ન ${qNum}`, true);
     const studentAns = (item.studentAnswer || '').toUpperCase().trim();
     const correctOpt = (q.correctOpt || 'A').toUpperCase().trim();
     const isCorrect = item.isCorrect;

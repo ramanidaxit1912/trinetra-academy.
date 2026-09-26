@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import { ConfettiCanvas } from '../components/ConfettiBadges';
-import { formatMathText } from '../utils/mathFormatter';
+import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import { isImg, extractImgSrc } from '../components/ExamEngine';
 
 export default function ScorecardPage() {
@@ -278,9 +278,10 @@ export default function ScorecardPage() {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.6, marginBottom: 12 }}>
-                      {formatMathText(q.questionText || '')}
-                    </div>
+                    <div 
+                      style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.6, marginBottom: 12 }}
+                      dangerouslySetInnerHTML={{ __html: formatQuestionText(q.questionText || '') }}
+                    />
 
                     {isImg(q.questionImage || q.imageUrl) && (
                       <div style={{ marginBottom: 12, maxWidth: 360 }}>

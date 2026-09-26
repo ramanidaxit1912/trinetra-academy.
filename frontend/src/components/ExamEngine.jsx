@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { saveTestProgress } from '../services/api';
-import { formatMathText } from '../utils/mathFormatter';
+import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 
 export const isImg = (val) => {
   if (!val || typeof val !== 'string') return false;
@@ -973,7 +973,7 @@ export default function ExamEngine({ onFinish }) {
               marginBottom: 16
             }}
             dangerouslySetInnerHTML={{ 
-              __html: formatMathText(currentQ?.text || `પ્રશ્ન ${currentIndex + 1}: નીચે આપેલ વિકલ્પોમાંથી સાચો જવાબ પસંદ કરો`) 
+              __html: formatQuestionText(currentQ?.text || `પ્રશ્ન ${currentIndex + 1}: નીચે આપેલ વિકલ્પોમાંથી સાચો જવાબ પસંદ કરો`) 
             }}
           />
 

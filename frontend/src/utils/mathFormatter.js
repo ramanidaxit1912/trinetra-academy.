@@ -95,7 +95,7 @@ function cleanInnerMath(expr) {
 /**
  * Formats mathematical text into rich HTML with KaTeX and clean Unicode symbols
  */
-export function formatMathText(rawText) {
+export function formatMathText(rawText, isQuestion = false) {
   if (!rawText || typeof rawText !== 'string') return rawText || '';
 
   let text = rawText;
@@ -402,7 +402,14 @@ export function formatMathText(rawText) {
     return SUBSCRIPTS[p1] || p1;
   });
 
-  return formatQuestionStructure(text);
+  return isQuestion ? formatQuestionStructure(text) : text;
+}
+
+/**
+ * Format question text with both math rendering AND question structure (tables & statements)
+ */
+export function formatQuestionText(rawText) {
+  return formatMathText(rawText, true);
 }
 
 /**
@@ -414,6 +421,11 @@ export function formatMathText(rawText) {
 export function formatQuestionStructure(text) {
   if (!text || typeof text !== 'string') return text || '';
   let str = text.replace(/\r\n/g, '\n').trim();
+
+  // Safety guard: Options (e.g. "માત્ર (૨) અને (૩) સાચાં છે") should NEVER be formatted as statement questions!
+  if (!str.includes('\n') && (str.length < 90 || /^(?:માત્ર\s+|બંને\s+|ત્રણેય\s+|તમામ\s+|ઉપરોક્ત\s+|કોઈપણ\s+)/.test(str) || /(?:સાચાં|સાચું|ખોટું|ખોટાં|સત્ય|અસત્ય)/.test(str))) {
+    return str;
+  }
 
   // 1. Detect Match the Following (જોડકાં / Columns with pipe '|')
   if (str.includes('|')) {
