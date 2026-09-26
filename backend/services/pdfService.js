@@ -226,25 +226,20 @@ function formatQuestionStructure(text) {
       const rows = tableLines.slice(1).map(tl => tl.split('|').map(s => s.trim()));
 
       const tableHtml = `<div style="width:100%;max-width:100%;box-sizing:border-box;margin:10px 0 14px 0;border:1.5px solid #cbd5e1;border-radius:10px;background:#ffffff;overflow:hidden;">
-  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px;line-height:1.45;color:#0f172a;box-sizing:border-box;">
-    <thead>
-      <tr style="background:#f1f5f9;border-bottom:1.5px solid #cbd5e1;">
-        <th style="padding:6px 8px;text-align:left;font-weight:bold;color:#1e3a8a;border-right:1.5px solid #cbd5e1;width:58%;word-break:break-word;">${headerParts[0] || 'કોલમ I'}</th>
-        <th style="padding:6px 8px;text-align:left;font-weight:bold;color:#1e3a8a;width:42%;word-break:break-word;">${headerParts[1] || 'કોલમ II'}</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map((r, i) => {
-        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:4px;">$1</strong> ');
-        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:4px;">$1</strong> ');
-        return `
-      <tr style="border-bottom:1px solid #e2e8f0;background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-        <td style="padding:6px 8px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c1}</td>
-        <td style="padding:6px 8px;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c2}</td>
-      </tr>`;
-      }).join('')}
-    </tbody>
-  </table>
+  <div style="display:flex;width:100%;background:#f1f5f9;border-bottom:1.5px solid #cbd5e1;font-weight:bold;font-size:12px;color:#1e3a8a;line-height:1.35;box-sizing:border-box;">
+    <div style="width:58%;padding:6px 8px;border-right:1.5px solid #cbd5e1;box-sizing:border-box;word-break:break-word;">${headerParts[0] || 'કોલમ I'}</div>
+    <div style="width:42%;padding:6px 8px;box-sizing:border-box;word-break:break-word;">${headerParts[1] || 'કોલમ II'}</div>
+  </div>
+  ${rows.map((r, i) => {
+    const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:4px;">$1</strong> ');
+    const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:4px;">$1</strong> ');
+    const isLast = i === rows.length - 1;
+    return `
+  <div style="display:flex;width:100%;border-bottom:${isLast ? 'none' : '1px solid #e2e8f0'};background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};font-size:12.5px;line-height:1.4;box-sizing:border-box;">
+    <div style="width:58%;padding:6px 8px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;box-sizing:border-box;word-break:break-word;">${c1}</div>
+    <div style="width:42%;padding:6px 8px;font-weight:600;color:#1e293b;box-sizing:border-box;word-break:break-word;">${c2}</div>
+  </div>`;
+  }).join('')}
 </div>`;
 
       const beforeHtml = beforeLines.length > 0 ? `<div>${beforeLines.join('<br />')}</div>` : '';

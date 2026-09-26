@@ -184,6 +184,47 @@ body {
   }
 }
 
+/* ─── Smart Match The Following (જોડકાં) Flexbox — 100% RESPONSIVE, ZERO SCROLL ─── */
+.jodka-box {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 10px 0 14px 0 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+.jodka-header-row {
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%) !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+  font-weight: 800 !important;
+  font-size: 0.80rem !important;
+  color: #1e3a8a !important;
+  line-height: 1.35 !important;
+}
+.jodka-data-row {
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  font-size: 0.82rem !important;
+  line-height: 1.4 !important;
+  align-items: stretch !important;
+}
+.jodka-data-row:last-child {
+  border-bottom: none !important;
+}
+.jodka-data-row:nth-child(even) {
+  background: #f8fafc !important;
+}
+.jodka-data-row:nth-child(odd) {
+  background: #ffffff !important;
+}
+
 /* ─── Smart Statements (વિધાનો) Cards ─── */
 .statements-list {
   display: flex;

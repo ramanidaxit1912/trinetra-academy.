@@ -452,26 +452,21 @@ export function formatQuestionStructure(text) {
       const headerParts = tableLines[0].split('|').map(s => s.trim());
       const rows = tableLines.slice(1).map(tl => tl.split('|').map(s => s.trim()));
 
-      const tableHtml = `<div class="jodka-table-wrap" style="width:100%;max-width:100%;box-sizing:border-box;margin:10px 0 14px 0;border:1.5px solid #cbd5e1;border-radius:10px;background:#ffffff;overflow:hidden;">
-  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.85rem;line-height:1.45;font-family:inherit;color:#0f172a;box-sizing:border-box;">
-    <thead>
-      <tr style="background:#f1f5f9;border-bottom:1.5px solid #cbd5e1;">
-        <th class="jodka-col-1" style="width:58%;padding:7px 8px;text-align:left;font-weight:800;color:#1e3a8a;border-right:1.5px solid #cbd5e1;font-size:0.82rem;word-break:break-word;">${headerParts[0] || 'કોલમ I'}</th>
-        <th class="jodka-col-2" style="width:42%;padding:7px 8px;text-align:left;font-weight:800;color:#1e3a8a;font-size:0.82rem;word-break:break-word;">${headerParts[1] || 'કોલમ II'}</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map((r, i) => {
-        const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:4px;">$1</strong> ');
-        const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:4px;">$1</strong> ');
-        return `
-      <tr style="border-bottom:1px solid #e2e8f0;background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-        <td class="jodka-col-1" style="width:58%;padding:6px 8px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c1}</td>
-        <td class="jodka-col-2" style="width:42%;padding:6px 8px;font-weight:600;color:#1e293b;vertical-align:middle;word-break:break-word;">${c2}</td>
-      </tr>`;
-      }).join('')}
-    </tbody>
-  </table>
+      const tableHtml = `<div class="jodka-box" style="width:100%;max-width:100%;box-sizing:border-box;margin:10px 0 14px 0;border:1.5px solid #cbd5e1;border-radius:10px;background:#ffffff;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+  <div class="jodka-header-row" style="display:flex;width:100%;background:linear-gradient(180deg,#f8fafc 0%,#edf2f7 100%);border-bottom:1.5px solid #cbd5e1;font-weight:800;font-size:0.80rem;color:#1e3a8a;line-height:1.35;box-sizing:border-box;">
+    <div style="width:58%;padding:7px 8px;border-right:1.5px solid #cbd5e1;box-sizing:border-box;word-break:break-word;">${headerParts[0] || 'કોલમ I'}</div>
+    <div style="width:42%;padding:7px 8px;box-sizing:border-box;word-break:break-word;">${headerParts[1] || 'કોલમ II'}</div>
+  </div>
+  ${rows.map((r, i) => {
+    const c1 = (r[0] || '').replace(/^(\([A-Za-z0-9]+\))\s*/, '<strong style="color:#2563eb;margin-right:4px;">$1</strong> ');
+    const c2 = (r[1] || '').replace(/^(\([A-Za-z0-9૧-૯]+\))\s*/, '<strong style="color:#059669;margin-right:4px;">$1</strong> ');
+    const isLast = i === rows.length - 1;
+    return `
+  <div class="jodka-data-row" style="display:flex;width:100%;border-bottom:${isLast ? 'none' : '1px solid #e2e8f0'};background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};font-size:0.82rem;line-height:1.4;box-sizing:border-box;">
+    <div style="width:58%;padding:7px 8px;border-right:1.5px solid #e2e8f0;font-weight:600;color:#1e293b;box-sizing:border-box;word-break:break-word;">${c1}</div>
+    <div style="width:42%;padding:7px 8px;font-weight:600;color:#1e293b;box-sizing:border-box;word-break:break-word;">${c2}</div>
+  </div>`;
+  }).join('')}
 </div>`;
 
       const beforeHtml = beforeLines.length > 0 ? `<div>${beforeLines.join('<br />')}</div>` : '';
