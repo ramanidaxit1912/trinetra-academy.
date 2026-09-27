@@ -8,6 +8,7 @@ import TeacherPage from './pages/TeacherPage';
 import StudentDashboard from './pages/StudentDashboard';
 import ScorecardPage from './pages/ScorecardPage';
 import PragatiPage from './pages/PragatiPage';
+import { FloatingPwaBanner } from './components/InstallPwaModal';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/trinetra-secure-desk" element={<TeacherPage />} />
             <Route path="*"        element={<HomePage />} />
           </Routes>
+          <FloatingPwaBanner />
         </BrowserRouter>
       </StoreProvider>
     </ErrorBoundary>

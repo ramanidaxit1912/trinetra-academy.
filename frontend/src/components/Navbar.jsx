@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { GraduationCap, Menu, X } from 'lucide-react';
+import { GraduationCap, Menu, X, Download } from 'lucide-react';
+import InstallPwaModal from './InstallPwaModal';
 
 const NAV_LINKS = [
   { label: '🏠 Home',               to: '/',         type: 'link' },
@@ -10,6 +11,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const location = useLocation();
 
   const isActive = (to) => location.pathname === to;
@@ -118,6 +120,30 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* 📲 PWA App Install Button */}
+            <button
+              onClick={() => setInstallModalOpen(true)}
+              title="મોબાઇલ કે ડેસ્કટોપમાં ત્રિનેત્ર એપ ઇન્સ્ટોલ કરો"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.35) 100%)',
+                border: '1.5px solid #10b981',
+                color: '#34d399',
+                padding: '7px 13px',
+                borderRadius: 9,
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.2)',
+                transition: 'all 0.18s ease'
+              }}
+            >
+              <Download size={14} /> 📲 ઍપ ઇન્સ્ટોલ
+            </button>
           </div>
 
           {/* ── Mobile Hamburger ── */}
@@ -231,7 +257,30 @@ export default function Navbar() {
               🔐 Teacher Login (શિક્ષક પ્રવેશ)
             </Link>
 
-            {/* Row 4: Compact WhatsApp Helpline */}
+            {/* Row 4: 📲 PWA App Install Button */}
+            <button
+              onClick={() => { setMenuOpen(false); setInstallModalOpen(true); }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.38) 100%)',
+                border: '1.5px solid #10b981',
+                color: '#6ee7b7',
+                padding: '11px 14px',
+                borderRadius: 12,
+                fontWeight: 900,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
+                fontFamily: 'Hind Vadodara, sans-serif'
+              }}
+            >
+              <Download size={18} /> 📲 ત્રિનેત્ર ઍપ ઇન્સ્ટોલ કરો (App Install)
+            </button>
+
+            {/* Row 5: Compact WhatsApp Helpline */}
             <a href="https://wa.me/918200405300" target="_blank" rel="noreferrer" style={{
               background: 'rgba(34, 197, 94, 0.12)',
               color: '#4ade80',
@@ -251,6 +300,9 @@ export default function Navbar() {
             </a>
           </div>
         )}
+
+        {/* 📲 PWA Install Instruction / Trigger Modal */}
+        <InstallPwaModal isOpen={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       </nav>
 
       {/* Responsive CSS */}
