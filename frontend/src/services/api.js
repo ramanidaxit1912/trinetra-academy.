@@ -157,6 +157,7 @@ export const deleteMarketingItem = (id) => api.delete(`/marketing/${id}`);
 
 // ─── Enrolled Students (Batch & Admission Control) ────────────
 export const getEnrolledStudents        = (params) => api.get('/teacher/enrolled-students', { params });
+export const getEnrolledStudentsOtps    = (params) => api.get('/teacher/enrolled-students-otps', { params });
 export const bulkImportEnrolledStudents = (data)   => api.post('/teacher/enrolled-students/bulk', data);
 export const addEnrolledStudent         = (data)   => api.post('/teacher/enrolled-students', data);
 export const deleteEnrolledStudent      = (id)     => api.delete(`/teacher/enrolled-students/${id}`);

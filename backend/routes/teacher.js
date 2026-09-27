@@ -418,6 +418,102 @@ router.get('/enrolled-students', authMiddleware, teacherOnly, async (req, res) =
   }
 });
 
+// ─── GET /api/teacher/enrolled-students-otps ─────────────────
+// Fetch enrolled admission students with their latest OTP sessions, login status & test counts
+router.get('/enrolled-students-otps', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { q } = req.query;
+    let enrolledWhere = {};
+    if (q && q.trim()) {
+      const s = q.trim();
+      enrolledWhere = {
+        OR: [
+          { mobile: { contains: s } },
+          { name: { contains: s, mode: 'insensitive' } },
+          { batch: { contains: s, mode: 'insensitive' } }
+        ]
+      };
+    }
+
+    const enrolledList = await prisma.enrolledStudent.findMany({
+      where: enrolledWhere,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (enrolledList.length === 0) {
+      return res.json({ success: true, students: [], totalCount: 0 });
+    }
+
+    // Build variant mobiles map
+    const cleanMobMap = {};
+    const allMobilesSet = new Set();
+    enrolledList.forEach(e => {
+      const raw = String(e.mobile || '').trim();
+      const clean = raw.replace(/\D/g, '').replace(/^(91|0)/, '');
+      const variants = [raw, clean, `91${clean}`, `+91${clean}`, `+91 ${clean}`];
+      cleanMobMap[e.id] = variants;
+      variants.forEach(v => allMobilesSet.add(v));
+    });
+
+    const allMobiles = Array.from(allMobilesSet);
+
+    // Fetch OTP sessions
+    const otpSessions = await prisma.oTPSession.findMany({
+      where: {
+        mobile: { in: allMobiles }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Fetch registered student profiles with submissions count
+    const studentRecords = await prisma.student.findMany({
+      where: {
+        mobile: { in: allMobiles }
+      },
+      include: {
+        _count: { select: { submissions: true } }
+      }
+    });
+
+    const enriched = enrolledList.map(enrolled => {
+      const variants = cleanMobMap[enrolled.id] || [];
+      const matchedOtps = otpSessions.filter(o => variants.includes(o.mobile));
+      const latestOtp = matchedOtps.length > 0 ? matchedOtps[0] : null;
+      const matchedStudent = studentRecords.find(s => variants.includes(s.mobile));
+
+      return {
+        id: enrolled.id,
+        name: enrolled.name || matchedStudent?.name || 'વિદ્યાર્થી',
+        mobile: enrolled.mobile,
+        batch: enrolled.batch || 'Trinetra Regular',
+        isActive: enrolled.isActive,
+        createdAt: enrolled.createdAt,
+        registeredStudentId: matchedStudent?.id || null,
+        isRegistered: !!matchedStudent,
+        lastLoginAt: matchedStudent?.lastLoginAt || null,
+        currentSessionId: matchedStudent?.currentSessionId || null,
+        masterAccessAllowed: matchedStudent?.masterAccessAllowed || false,
+        masterAccessExpiresAt: matchedStudent?.masterAccessExpiresAt || null,
+        submissionsCount: matchedStudent?._count?.submissions || 0,
+        latestOtp: latestOtp ? {
+          otp: latestOtp.otp,
+          expiresAt: latestOtp.expiresAt,
+          used: latestOtp.used,
+          createdAt: latestOtp.createdAt,
+          isExpired: new Date(latestOtp.expiresAt) < new Date(),
+        } : null,
+        totalOtpRequests: matchedOtps.length
+      };
+    });
+
+    const totalEnrolled = await prisma.enrolledStudent.count();
+    res.json({ success: true, students: enriched, totalCount: totalEnrolled });
+  } catch (err) {
+    console.error('Fetch Enrolled OTPs Error:', err);
+    res.status(500).json({ error: 'એડમિશન વિદ્યાર્થીઓના OTP ડેટા લોડ કરવામાં ભૂલ.' });
+  }
+});
+
 // ─── POST /api/teacher/enrolled-students/bulk ──────────────────
 // Bulk import enrolled students from Excel or CSV
 router.post('/enrolled-students/bulk', authMiddleware, teacherOnly, async (req, res) => {

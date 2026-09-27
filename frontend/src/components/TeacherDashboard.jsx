@@ -4,6 +4,7 @@ import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
 import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
 import EnrolledStudentsManager from './EnrolledStudentsManager';
+import EnrolledStudentsOtpManager from './EnrolledStudentsOtpManager';
 import { Camera, Zap } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -18,7 +19,7 @@ import {
   LogOut, Plus, Trash2, Eye, CheckCircle, Users, Clock, BarChart2, Edit3, Play, Square,
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
-  Sparkles, Tag, Unlock, Key, ShieldCheck, HelpCircle
+  Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle
 } from 'lucide-react';
 
 const darkLbl = { display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8', marginBottom: 6 };
@@ -10410,7 +10411,7 @@ function StudentAnswers({ showToast }) {
    STUDENT LOGINS
 ═══════════════════════════════════════════════════════ */
 function StudentLogins({ showToast }) {
-  const [activeSubTab, setActiveSubTab] = useState('admission'); // 'admission' | 'logins'
+  const [activeSubTab, setActiveSubTab] = useState('admission'); // 'admission' | 'admission_otps' | 'logins'
   const [students, setStudents] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
@@ -10746,6 +10747,26 @@ function StudentLogins({ showToast }) {
         </button>
 
         <button
+          onClick={() => setActiveSubTab('admission_otps')}
+          style={{
+            height: 38,
+            padding: '0 18px',
+            borderRadius: 8,
+            border: activeSubTab === 'admission_otps' ? '1.5px solid #10b981' : 'none',
+            background: activeSubTab === 'admission_otps' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35))' : 'transparent',
+            color: activeSubTab === 'admission_otps' ? '#34d399' : '#94a3b8',
+            fontWeight: 800,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'Hind Vadodara, sans-serif'
+          }}>
+          <KeyRound size={16} /> 🔐 🎓 એડમિશન OTP ડેટા (Admission Students OTP)
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('logins')}
           style={{
             height: 38,
@@ -10762,12 +10783,14 @@ function StudentLogins({ showToast }) {
             gap: 6,
             fontFamily: 'Hind Vadodara, sans-serif'
           }}>
-          <Users size={16} /> 📱 તમામ લૉગિન & OTP કંટ્રોલ (Logins & Sessions)
+          <Users size={16} /> 👥 📱 તમામ લૉગિન & OTP કંટ્રોલ (Logins & Sessions)
         </button>
       </div>
 
       {activeSubTab === 'admission' ? (
         <EnrolledStudentsManager showToast={showToast} />
+      ) : activeSubTab === 'admission_otps' ? (
+        <EnrolledStudentsOtpManager showToast={showToast} />
       ) : (
         <>
           {/* ── Top Summary & Master Access Banner ── */}
