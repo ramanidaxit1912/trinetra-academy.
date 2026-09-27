@@ -3548,52 +3548,107 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
         })}
       </div>
 
-      {/* 📱 Full Student Mobile Screen Preview Modal */}
-      {phonePreviewQ && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(2,6,23,0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
-        }}>
+      {/* 📱 Full Student Mobile Screen Preview Modal (Portal to body for 100% crisp sharpness without parent blur/transforms) */}
+      {phonePreviewQ && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPhonePreviewQ(null);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'rgba(2, 6, 23, 0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'none'
+          }}
+        >
           <div style={{
-            maxWidth: 480, width: '100%', maxHeight: '92vh', overflowY: 'auto',
-            background: '#040711', borderRadius: 24, border: '2px solid rgba(56,189,248,0.4)',
-            padding: '16px', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.8)'
+            maxWidth: 460,
+            width: '100%',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            background: '#090d16',
+            borderRadius: 22,
+            border: '2px solid #38bdf8',
+            padding: '16px',
+            position: 'relative',
+            boxShadow: '0 25px 60px -15px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.25)',
+            color: '#f8fafc',
+            transform: 'none',
+            filter: 'none'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '1.1rem' }}>📱</span>
-                <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem' }}>વિદ્યાર્થી ફોન સ્ક્રીન પ્રિવ્યૂ</span>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 12,
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              paddingBottom: 10
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.2rem' }}>📱</span>
+                <div>
+                  <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.96rem', lineHeight: 1.2 }}>
+                    વિદ્યાર્થી મોબાઇલ સ્ક્રીન પ્રિવ્યૂ
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 600 }}>
+                    વિદ્યાર્થીના ફોનમાં આ પ્રશ્ન આ રીતે જ દેખાશે
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setPhonePreviewQ(null)}
-                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#cbd5e1', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={16} />
+              <button
+                type="button"
+                onClick={() => setPhonePreviewQ(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#e2e8f0',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.85rem'
+                }}
+              >
+                ✕
               </button>
             </div>
 
+            {/* Mobile Question Mockup */}
             <LiveMathQuestionPreview
               qData={phonePreviewQ}
               onEdit={() => {
-                setEditingQId(phonePreviewQ.id);
-                setEditForm({ ...phonePreviewQ });
+                const targetQ = { ...phonePreviewQ };
                 setPhonePreviewQ(null);
+                setEditingQId(targetQ.id);
+                setEditForm(targetQ);
               }}
             />
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button
                 type="button"
                 onClick={() => {
-                  setEditingQId(phonePreviewQ.id);
-                  setEditForm({ ...phonePreviewQ });
+                  const targetQ = { ...phonePreviewQ };
                   setPhonePreviewQ(null);
+                  setEditingQId(targetQ.id);
+                  setEditForm(targetQ);
                 }}
                 style={{
                   flex: 1,
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: 'white',
+                  color: '#ffffff',
                   border: 'none',
-                  padding: '10px',
+                  padding: '11px',
                   borderRadius: 10,
                   fontWeight: 900,
                   fontSize: '0.88rem',
@@ -3601,19 +3656,20 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
                 }}
               >
-                <Edit3 size={15} /> ✏️ જો કંઈ ખોટું હોય તો અહીંથી એડિટ કરો
+                <Edit3 size={16} /> ✏️ જો કંઈ ખોટું હોય તો અહીંથી એડિટ કરો
               </button>
               <button
                 type="button"
                 onClick={() => setPhonePreviewQ(null)}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.08)',
                   color: '#cbd5e1',
                   border: '1px solid rgba(255,255,255,0.15)',
-                  padding: '10px 14px',
+                  padding: '11px 16px',
                   borderRadius: 10,
                   fontWeight: 700,
                   fontSize: '0.85rem',
@@ -3624,7 +3680,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
