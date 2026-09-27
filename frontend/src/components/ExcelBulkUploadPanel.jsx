@@ -260,11 +260,13 @@ export default function ExcelBulkUploadPanel({ showToast, onBack, onDone, subjec
         throw new Error('ફાઇલમાં પૂરતો ડેટા મળ્યો નથી (ઓછામાં ઓછી હેડર રો અને ૧ પ્રશ્ન જરૂરી છે).');
       }
 
-      // Find Header Row (Search first 10 rows for Question / Option / પ્રશ્ન keyword)
+      // Find Header Row (A row that contains both question and options/answer)
       let headerRowIndex = 0;
       for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
         const rowStr = rawRows[i].map(c => String(c).toLowerCase()).join(' ');
-        if (rowStr.includes('question') || rowStr.includes('પ્રશ્ન') || rowStr.includes('option') || rowStr.includes('વિકલ્પ') || rowStr.includes('answer')) {
+        const hasQuestion = rowStr.includes('question') || rowStr.includes('પ્રશ્ન') || rowStr.includes('q text');
+        const hasOptions = rowStr.includes('option') || rowStr.includes('વિકલ્પ') || rowStr.includes('opt') || rowStr.includes('ans') || rowStr.includes('answer');
+        if (hasQuestion && hasOptions) {
           headerRowIndex = i;
           break;
         }

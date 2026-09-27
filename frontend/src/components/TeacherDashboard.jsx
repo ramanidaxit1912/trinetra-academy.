@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
-  getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, updateQuestion, updateTestMeta, activateTest, scheduleTest,
+  getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, deleteTest, updateQuestion, updateTestMeta, activateTest, scheduleTest,
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
@@ -3035,6 +3035,21 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
     }
   };
 
+  const handleDeleteWholeTest = async () => {
+    const qCount = testData.questions?.length || 0;
+    if (!window.confirm(`⚠️ કસોટી ડિલીટ કરવાની ચેતવણી!\n\nશું તમે ખરેખર '${testData.testName}' (${testData.testCode}) કસોટી અને તેના તમામ ${qCount} પ્રશ્નો ડિલીટ કરવા માંગો છો?\n\nઆનાથી આ કસોટીના તમામ પ્રશ્નો અને વિદ્યાર્થીઓના જવાબો કાયમી માટે ડિલીટ થઈ જશે, જેથી ડેટાબેઝ ક્લીન રહેશે.`)) {
+      return;
+    }
+
+    try {
+      await deleteTest(testData.testCode);
+      showToast(`🗑️ કસોટી '${testData.testName}' સફળતાપૂર્વક ડિલીટ થઈ ગઈ!`, 'success');
+      if (onBack) onBack();
+      if (onSaved) onSaved();
+    } catch {
+      showToast('કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
+    }
+  };
   return (
     <div className="animate-fade-in" style={{ marginBottom: 20 }}>
       {/* Top Header */}
@@ -3091,6 +3106,11 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           <button onClick={() => exportTestPDF(testData, teacherProfile)}
             style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', padding: '8px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
             <Download size={14} /> PDF Download
+          </button>
+          <button onClick={handleDeleteWholeTest}
+            title="આ કસોટી અને તેના તમામ પ્રશ્નો કાયમી ડિલીટ કરો"
+            style={{ background: 'rgba(239,68,68,0.18)', border: '1.5px solid rgba(239,68,68,0.45)', color: '#fca5a5', padding: '8px 14px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
+            <Trash2 size={14} /> કસોટી ડિલીટ કરો (Delete)
           </button>
           <button onClick={() => onGoLive(testData.testCode)}
             style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
@@ -4143,6 +4163,24 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
     setLoading(false);
   };
 
+  const handleDeleteTest = async (testCode, testName, questionCount) => {
+    if (!window.confirm(`⚠️ કસોટી ડિલીટ કરવાની ચેતવણી!\n\nશું તમે ખરેખર '${testName || testCode}' કસોટી (${questionCount || ''} પ્રશ્નો) ડિલીટ કરવા માંગો છો?\n\nઆનાથી આ કસોટીના તમામ પ્રશ્નો અને વિદ્યાર્થી પરિણામો કાયમી માટે ડિલીટ થઈ જશે, જેથી ડેટાબેઝ ક્લીન રહેશે.`)) {
+      return;
+    }
+
+    try {
+      await deleteTest(testCode);
+      showToast(`🗑️ કસોટી '${testName || testCode}' સફળતાપૂર્વક ડિલીટ થઈ ગઈ!`, 'success');
+      if (selectedOldTest?.testCode === testCode) {
+        setSelectedOldTest(null);
+      }
+      fetchQ();
+    } catch (err) {
+      console.error('Delete test failed:', err);
+      showToast('કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
+    }
+  };
+
   // Group questions into existing tests
   const testGroupsMap = {};
   questions.forEach(q => {
@@ -5109,6 +5147,11 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                       style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', color: '#93c5fd', padding: '10px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                       <Download size={14} /> PDF
                     </button>
+                    <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length)}
+                      title="કસોટી ડિલીટ કરો (Delete Test & Free Database)"
+                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', padding: '10px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                      <Trash2 size={14} /> ડિલીટ
+                    </button>
                   </div>
                 </div>
               ))}
@@ -5324,6 +5367,25 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                               fontFamily: 'Hind Vadodara, sans-serif'
                             }}>
                             <Download size={13} /> PDF
+                          </button>
+
+                          <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length)}
+                            title="આખી કસોટી ડિલીટ કરો અને ડેટાબેઝ ખાલી કરો"
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.35)',
+                              color: '#f87171',
+                              padding: '7px 12px',
+                              borderRadius: 8,
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              fontFamily: 'Hind Vadodara, sans-serif'
+                            }}>
+                            <Trash2 size={13} /> Delete
                           </button>
 
                           <button onClick={() => {

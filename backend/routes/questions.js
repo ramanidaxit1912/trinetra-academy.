@@ -432,6 +432,50 @@ router.delete('/:id', authMiddleware, teacherOnly, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'પ્રશ્ન ડિલીટ કરવામાં ભૂલ.' });
   }
+// ─── DELETE /api/questions/test/:testCode ─────────────────────────
+// Delete entire test (all questions and optionally all submissions) to free database storage (teacher only)
+router.delete('/test/:testCode', authMiddleware, teacherOnly, async (req, res) => {
+  const { testCode } = req.params;
+  const deleteSubmissions = req.query.deleteSubmissions !== 'false';
+
+  if (!testCode) {
+    return res.status(400).json({ error: 'ટેસ્ટ કોડ જરૂરી છે.' });
+  }
+
+  try {
+    invalidateQuestionsCache();
+
+    // 1. Delete all questions of this test
+    const deletedQuestions = await prisma.question.deleteMany({
+      where: {
+        OR: [
+          { testCode },
+          { chapter: testCode }
+        ]
+      }
+    });
+
+    // 2. Delete all student submissions associated with this test
+    let deletedSubmissionsCount = 0;
+    if (deleteSubmissions) {
+      const deletedSubs = await prisma.submission.deleteMany({
+        where: {
+          testCode
+        }
+      });
+      deletedSubmissionsCount = deletedSubs.count;
+    }
+
+    res.json({
+      success: true,
+      message: `કસોટી (${testCode}) સફળતાપૂર્વક ડિલીટ થઈ ગઈ. (${deletedQuestions.count} પ્રશ્નો અને ${deletedSubmissionsCount} વિદ્યાર્થી સબમિશન્સ હટાવીને ડેટાબેઝ ક્લીન કર્યો)`,
+      deletedQuestions: deletedQuestions.count,
+      deletedSubmissions: deletedSubmissionsCount
+    });
+  } catch (err) {
+    console.error('Delete test error:', err);
+    res.status(500).json({ error: 'કસોટી ડિલીટ કરવામાં સર્વર ક્ષતિ આવી.' });
+  }
 });
 
 
