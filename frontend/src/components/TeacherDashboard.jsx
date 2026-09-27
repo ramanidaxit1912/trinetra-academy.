@@ -4400,6 +4400,25 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
     setTimeout(() => {
       setMainChoice('new');
       setPlaneFlying(false);
+
+      // Play soft landing touchdown chime
+      setTimeout(() => {
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const chime = audioCtx.createOscillator();
+          const chimeGain = audioCtx.createGain();
+          chime.type = 'triangle';
+          chime.frequency.setValueAtTime(659.25, audioCtx.currentTime); // E5
+          chime.frequency.exponentialRampToValueAtTime(523.25, audioCtx.currentTime + 0.22); // C5
+          chimeGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          chimeGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+          chime.connect(chimeGain);
+          chimeGain.connect(audioCtx.destination);
+          chime.start();
+          chime.stop(audioCtx.currentTime + 0.36);
+        } catch (_) {}
+      }, 380);
     }, 450);
   };
 
@@ -4896,6 +4915,58 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             opacity: 0;
           }
         }
+
+        @keyframes planeLandingAnim {
+          0% {
+            transform: translate(-260px, -130px) rotate(36deg) scale(1.4);
+            opacity: 0;
+          }
+          20% {
+            opacity: 1;
+          }
+          65% {
+            transform: translate(-12px, 5px) rotate(-7deg) scale(0.96);
+          }
+          82% {
+            transform: translate(5px, -2px) rotate(3deg) scale(1.02);
+          }
+          100% {
+            transform: translate(0px, 0px) rotate(0deg) scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes planeLandedIdle {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-4px) rotate(2deg);
+          }
+        }
+
+        @keyframes planeRunwayLight {
+          0%, 100% {
+            opacity: 0.3;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+
+        @keyframes planeTouchdownPuff {
+          0% {
+            transform: scale(0.2);
+            opacity: 0.85;
+          }
+          60% {
+            opacity: 0.45;
+          }
+          100% {
+            transform: scale(2.5);
+            opacity: 0;
+          }
+        }
       `}</style>
 
       {/* Stats */}
@@ -5368,14 +5439,200 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
       {/* ── SUB-VIEW 1: NEW TEST (Manual vs JSON) ── */}
       {mainChoice === 'new' && !newMode && (
         <div className="animate-fade-in" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ color: '#60a5fa', fontWeight: 900, fontSize: '1.05rem' }}>
-              🆕 નવી કસોટી — મોડ પસંદ કરો
+          {/* PPT-Style Landing Runway Banner */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.3) 50%, rgba(15, 23, 42, 0.95) 100%)',
+            border: '1.5px solid rgba(56, 189, 248, 0.45)',
+            borderRadius: 20,
+            padding: '16px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            boxShadow: '0 12px 32px -8px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            overflow: 'visible'
+          }}>
+            {/* Ambient Landing Glow */}
+            <div style={{
+              position: 'absolute',
+              top: -30,
+              right: 120,
+              width: 140,
+              height: 140,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%)',
+              pointerEvents: 'none'
+            }} />
+
+            {/* Left Info: Header & Runway Prompt */}
+            <div style={{ zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff',
+                  fontSize: '0.7rem',
+                  fontWeight: 900,
+                  padding: '3px 10px',
+                  borderRadius: 20,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ffffff', display: 'inline-block' }} />
+                  🛬 વિમાન સફળતાપૂર્વક લેન્ડ થયું!
+                </span>
+                <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 800 }}>
+                  STEP 2: મોડ પસંદ કરો
+                </span>
+              </div>
+              <h2 style={{
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '1.25rem',
+                margin: '0 0 4px',
+                letterSpacing: '-0.01em'
+              }}>
+                🆕 નવી કસોટી નિર્માણ કેન્દ્ર
+              </h2>
+              <div style={{ color: '#94a3b8', fontSize: '0.84rem' }}>
+                નીચેનામાંથી તમને અનુકૂળ રીત પસંદ કરો (Excel બલ્ક અપલોડ / મેન્યુઅલ વિઝાર્ડ / JSON):
+              </div>
             </div>
-            <button onClick={() => setMainChoice(null)}
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-              ← પાછા જાઓ
-            </button>
+
+            {/* Right: Landing Runway Strip with Touchdown Paper Plane */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 2 }}>
+              {/* Runway landing zone */}
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '6px 14px',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: 14,
+                overflow: 'visible'
+              }}>
+                {/* Runway dashed center line */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginRight: 12,
+                  opacity: 0.7
+                }}>
+                  <span style={{ width: 8, height: 2, background: '#38bdf8', borderRadius: 2, animation: 'planeRunwayLight 1.2s infinite' }} />
+                  <span style={{ width: 8, height: 2, background: '#38bdf8', borderRadius: 2, animation: 'planeRunwayLight 1.2s infinite 0.2s' }} />
+                  <span style={{ width: 8, height: 2, background: '#38bdf8', borderRadius: 2, animation: 'planeRunwayLight 1.2s infinite 0.4s' }} />
+                  <span style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 800 }}>RUNWAY</span>
+                </div>
+
+                {/* Landed Paper Plane Container */}
+                <div style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  animation: 'planeLandingAnim 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards, planeLandedIdle 3s ease-in-out 0.75s infinite'
+                }}>
+                  {/* Arrival Flight Contrail SVG */}
+                  <svg
+                    width="75"
+                    height="35"
+                    viewBox="0 0 75 35"
+                    fill="none"
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: -68,
+                      pointerEvents: 'none',
+                      overflow: 'visible'
+                    }}
+                  >
+                    <path
+                      d="M 5,6 C 25,10 45,20 70,22"
+                      fill="none"
+                      stroke="url(#planeLandingContrail)"
+                      strokeWidth="2.2"
+                      strokeDasharray="4 4"
+                      className="plane-trail-dash"
+                    />
+                    <defs>
+                      <linearGradient id="planeLandingContrail" x1="0" y1="6" x2="70" y2="22" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="rgba(56, 189, 248, 0)" />
+                        <stop offset="0.7" stopColor="rgba(56, 189, 248, 0.55)" />
+                        <stop offset="1" stopColor="#38bdf8" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* 3D Paper Airplane */}
+                  <svg
+                    width="42"
+                    height="42"
+                    viewBox="0 0 64 64"
+                    fill="none"
+                    style={{
+                      filter: 'drop-shadow(0 8px 16px rgba(56, 189, 248, 0.55)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))'
+                    }}
+                  >
+                    <path d="M 6,32 L 58,10 L 26,44 Z" fill="url(#planeWingGrad1)" />
+                    <path d="M 58,10 L 38,54 L 26,44 Z" fill="url(#planeWingGrad2)" />
+                    <path d="M 26,44 L 32,52 L 34,45 Z" fill="#0284c7" />
+                    <path d="M 6,32 L 58,10 L 28,34 Z" fill="rgba(255, 255, 255, 0.45)" />
+                    <circle cx="26" cy="44" r="3" fill="#10b981" className="plane-spark" />
+                  </svg>
+
+                  {/* Touchdown Puff Ring */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 8,
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(56, 189, 248, 0.7) 0%, rgba(16, 185, 129, 0.4) 50%, transparent 70%)',
+                    animation: 'planeTouchdownPuff 0.65s ease-out 0.4s forwards'
+                  }} />
+                </div>
+              </div>
+
+              {/* Back Button */}
+              <button
+                type="button"
+                onClick={() => setMainChoice(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#e2e8f0',
+                  padding: '9px 16px',
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.color = '#38bdf8';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#e2e8f0';
+                }}
+              >
+                <span>←</span>
+                <span>પાછા જાઓ</span>
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
