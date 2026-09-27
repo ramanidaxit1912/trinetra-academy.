@@ -2940,6 +2940,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
   const [editForm, setEditForm]     = useState({});
   const [showAdd, setShowAdd]       = useState(false);
   const [phonePreviewQ, setPhonePreviewQ] = useState(null);
+  const [fullTestPhonePreview, setFullTestPhonePreview] = useState(false);
+  const [fullTestQIndex, setFullTestQIndex] = useState(0);
   const [newQ, setNewQ]             = useState({
     text: '', type: 'mcq', optionA: '', optionB: '', optionC: '', optionD: '', correctOpt: 'A', marks: 1, image: '', imageUrl: '', optionA_img: '', optionB_img: '', optionC_img: '', optionD_img: ''
   });
@@ -3053,6 +3055,24 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => { setFullTestQIndex(0); setFullTestPhonePreview(true); }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(56,189,248,0.22), rgba(37,99,235,0.32))',
+              border: '1.5px solid #38bdf8',
+              color: '#38bdf8',
+              padding: '8px 16px',
+              borderRadius: 8,
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontSize: '0.84rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'Hind Vadodara, sans-serif',
+              boxShadow: '0 0 16px rgba(56,189,248,0.25)'
+            }}>
+            <Eye size={15} /> 📱 આખી કસોટી મોબાઇલ વ્યૂ
+          </button>
           <button onClick={() => exportTestPDF(testData, teacherProfile)}
             style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', padding: '8px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
             <Download size={14} /> PDF Download
@@ -3677,6 +3697,390 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                 }}
               >
                 બંધ કરો
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 📱 FULL TEST REALISTIC STUDENT PHONE SIMULATOR */}
+      {fullTestPhonePreview && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFullTestPhonePreview(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'rgba(2, 6, 23, 0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '12px'
+          }}
+        >
+          <div style={{
+            maxWidth: 440,
+            width: '100%',
+            height: '94vh',
+            maxHeight: 820,
+            background: '#090d16',
+            borderRadius: 28,
+            border: '2.5px solid #38bdf8',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 25px 60px -15px rgba(0,0,0,0.95), 0 0 35px rgba(56,189,248,0.3)',
+            color: '#f8fafc',
+            fontFamily: 'Hind Vadodara, sans-serif'
+          }}>
+            {/* 📱 Phone Top Notch & Status Bar */}
+            <div style={{
+              background: '#040711',
+              padding: '8px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              fontSize: '0.7rem',
+              color: '#94a3b8',
+              fontWeight: 700,
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>9:41</span>
+                <span style={{ color: '#38bdf8' }}>• Trinetra Exam Engine</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>📶 5G</span>
+                <span>🔋 100%</span>
+                <button
+                  type="button"
+                  onClick={() => setFullTestPhonePreview(false)}
+                  style={{
+                    background: 'rgba(239,68,68,0.2)',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    color: '#fca5a5',
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    marginLeft: 4
+                  }}
+                  title="બંધ કરો"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* 📱 Test Header with Timer & Title */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30,58,138,0.5), rgba(15,23,42,0.9))',
+              padding: '10px 14px',
+              borderBottom: '1px solid rgba(56,189,248,0.25)',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.7rem',
+                  padding: '2px 8px',
+                  borderRadius: 6
+                }}>
+                  {testData.subject || 'કસોટી'}
+                </span>
+                <div style={{
+                  background: 'rgba(239,68,68,0.2)',
+                  border: '1px solid #ef4444',
+                  color: '#fca5a5',
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  <span>⏱️</span>
+                  <span>{testData.timeLimit ? `${Math.floor(testData.timeLimit / 60)}:00` : 'કોઈ મર્યાદા નથી'}</span>
+                </div>
+              </div>
+              <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {testData.testName}
+              </div>
+            </div>
+
+            {/* 📱 Question Navigation Palette Bar (Scrollable Numbers) */}
+            <div style={{
+              background: '#070b14',
+              padding: '8px 12px',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              gap: 6,
+              overflowX: 'auto',
+              flexShrink: 0
+            }}>
+              {testData.questions.map((q, idx) => {
+                const isActive = fullTestQIndex === idx;
+                return (
+                  <button
+                    key={q.id || idx}
+                    type="button"
+                    onClick={() => setFullTestQIndex(idx)}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      border: isActive ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                      background: isActive ? 'linear-gradient(135deg,#0284c7,#0369a1)' : 'rgba(255,255,255,0.04)',
+                      color: isActive ? '#ffffff' : '#94a3b8',
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: isActive ? '0 0 10px rgba(56,189,248,0.5)' : 'none'
+                    }}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 📱 Active Question Scrollable View */}
+            {(() => {
+              const curQ = testData.questions[fullTestQIndex];
+              if (!curQ) {
+                return (
+                  <div style={{ padding: 30, textAlign: 'center', color: '#94a3b8' }}>
+                    આ કસોટીમાં હજુ કોઈ પ્રશ્નો નથી.
+                  </div>
+                );
+              }
+              const hasImage = Boolean(curQ.image || curQ.imageUrl);
+              const options = ['A', 'B', 'C', 'D'];
+              if (curQ.optionE || curQ.optionE_img) options.push('E');
+
+              return (
+                <div style={{ flex: 1, overflowY: 'auto', padding: '14px', background: '#0b1120' }}>
+                  {/* Question Meta Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.85rem' }}>
+                      પ્રશ્ન {fullTestQIndex + 1} / {testData.questions.length}
+                    </span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.68rem', fontWeight: 800, padding: '2px 7px', borderRadius: 4, border: '1px solid rgba(34,197,94,0.3)' }}>
+                        +{curQ.marks || 1} ગુણ
+                      </span>
+                      {Number(curQ.negativeMarking) > 0 && (
+                        <span style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', fontSize: '0.68rem', fontWeight: 800, padding: '2px 7px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.3)' }}>
+                          -{curQ.negativeMarking}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Question Text */}
+                  <div
+                    style={{
+                      color: '#f8fafc',
+                      fontSize: '0.94rem',
+                      fontWeight: 600,
+                      lineHeight: 1.6,
+                      marginBottom: 12,
+                      wordBreak: 'break-word'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: formatQuestionText(curQ.text) }}
+                  />
+
+                  {/* Diagram / Image */}
+                  {hasImage && (
+                    <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                      <img
+                        src={curQ.image || curQ.imageUrl}
+                        alt="diagram"
+                        style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: '#000' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Options */}
+                  {curQ.type === 'mcq' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {options.map(opt => {
+                        const optVal = curQ[`option${opt}`];
+                        const optImg = curQ[`option${opt}_img`];
+                        if (!optVal && !optImg) return null;
+                        const isCorrect = curQ.correctOpt === opt;
+                        const isE = opt === 'E';
+
+                        return (
+                          <div
+                            key={opt}
+                            style={{
+                              background: isCorrect ? 'rgba(34,197,94,0.15)' : (isE ? 'rgba(100,116,139,0.08)' : 'rgba(255,255,255,0.04)'),
+                              border: `1.5px solid ${isCorrect ? '#22c55e' : (isE ? 'rgba(100,116,139,0.3)' : 'rgba(255,255,255,0.1)')}`,
+                              borderRadius: 10,
+                              padding: '9px 12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10
+                            }}
+                          >
+                            <span style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: '50%',
+                              background: isCorrect ? '#22c55e' : 'rgba(255,255,255,0.1)',
+                              color: isCorrect ? '#022c22' : '#e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 900,
+                              fontSize: '0.78rem',
+                              flexShrink: 0
+                            }}>
+                              {opt}
+                            </span>
+                            <div style={{ flex: 1, color: isCorrect ? '#86efac' : '#f1f5f9', fontSize: '0.88rem', fontWeight: isCorrect ? 700 : 500, lineHeight: 1.45 }}>
+                              {optVal && <span dangerouslySetInnerHTML={{ __html: formatMathText(optVal) }} />}
+                              {optImg && <img src={optImg} alt="" style={{ maxHeight: 60, marginTop: 4, borderRadius: 4 }} />}
+                            </div>
+                            {isCorrect && (
+                              <span style={{ background: '#22c55e', color: '#052e16', fontWeight: 900, fontSize: '0.66rem', padding: '2px 8px', borderRadius: 10, flexShrink: 0 }}>
+                                ✓ સાચો
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Explanation (if provided) */}
+                  {curQ.explanation?.trim() && (
+                    <div style={{
+                      marginTop: 12,
+                      background: 'rgba(56,189,248,0.08)',
+                      border: '1px dashed rgba(56,189,248,0.35)',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      fontSize: '0.78rem',
+                      color: '#7dd3fc'
+                    }}>
+                      <strong style={{ color: '#38bdf8' }}>💡 સમજૂતી (Solution): </strong>
+                      <span dangerouslySetInnerHTML={{ __html: formatMathText(curQ.explanation) }} />
+                    </div>
+                  )}
+
+                  {/* ✏️ Direct Edit Action Button */}
+                  <div style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetId = curQ.id;
+                        setFullTestPhonePreview(false);
+                        setEditingQId(targetId);
+                        setEditForm({ ...curQ });
+                      }}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontWeight: 900,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
+                      }}
+                    >
+                      <Edit3 size={15} /> ✏️ આ પ્રશ્ન #{fullTestQIndex + 1} માં સુધારો કરો (Edit)
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 📱 Phone Bottom Navigation Footer */}
+            <div style={{
+              background: '#040711',
+              padding: '10px 14px',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 8,
+              flexShrink: 0
+            }}>
+              <button
+                type="button"
+                disabled={fullTestQIndex === 0}
+                onClick={() => setFullTestQIndex(i => Math.max(0, i - 1))}
+                style={{
+                  background: fullTestQIndex === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: fullTestQIndex === 0 ? '#475569' : '#cbd5e1',
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: fullTestQIndex === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                ← અગાઉનો
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFullTestPhonePreview(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#94a3b8',
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                બંધ કરો
+              </button>
+
+              <button
+                type="button"
+                disabled={fullTestQIndex === testData.questions.length - 1}
+                onClick={() => setFullTestQIndex(i => Math.min(testData.questions.length - 1, i + 1))}
+                style={{
+                  background: fullTestQIndex === testData.questions.length - 1 ? 'rgba(56,189,248,0.2)' : 'linear-gradient(135deg,#0284c7,#2563eb)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '7px 16px',
+                  borderRadius: 8,
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: fullTestQIndex === testData.questions.length - 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                આગળનો →
               </button>
             </div>
           </div>
