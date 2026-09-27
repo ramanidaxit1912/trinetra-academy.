@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
+import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
 import { Camera, Zap } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -4574,8 +4575,36 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
-            {/* Manual */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
+            {/* 1. Excel / CSV Bulk Upload (Recommended) */}
+            <button onClick={() => setNewMode('excel')}
+              style={{
+                background: 'linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.08))',
+                border: '2px solid rgba(16,185,129,0.45)',
+                borderRadius: 16,
+                padding: '24px 20px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.2s',
+                fontFamily: 'Hind Vadodara, sans-serif',
+                position: 'relative'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.24)'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.08))'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.45)'; e.currentTarget.style.transform = 'none'; }}>
+              <div style={{ position: 'absolute', top: 10, right: 10, background: '#10b981', color: '#064e3b', fontSize: '0.68rem', fontWeight: 900, padding: '3px 8px', borderRadius: 20 }}>
+                🌟 સૌથી સરળ & ઝડપી
+              </div>
+              <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📊</div>
+              <div style={{ color: '#34d399', fontWeight: 900, fontSize: '1.05rem', marginBottom: 6 }}>Excel / CSV Bulk Upload</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.6 }}>
+                સેમ્પલ એક્સેલ ડાઉનલોડ કરો ➜ ૫૦ થી ૫૦૦ પ્રશ્નો ભરીને ૧-ક્લિકમાં અપલોડ કરો.
+              </div>
+              <div style={{ marginTop: 14, background: 'rgba(16,185,129,0.25)', color: '#a7f3d0', fontSize: '0.78rem', fontWeight: 800, padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
+                🚀 Excel બલ્ક અપલોડ શરૂ કરો →
+              </div>
+            </button>
+
+            {/* 2. Manual */}
             <button onClick={() => setNewMode('manual')}
               style={{ background: 'linear-gradient(135deg,rgba(29,78,216,0.15),rgba(37,99,235,0.08))', border: '1.5px solid rgba(59,130,246,0.3)', borderRadius: 16, padding: '24px 20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✍️</div>
@@ -4588,7 +4617,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
               </div>
             </button>
 
-            {/* JSON */}
+            {/* 3. JSON */}
             <button onClick={() => setNewMode('json')}
               style={{ background: 'linear-gradient(135deg,rgba(109,40,217,0.15),rgba(124,58,237,0.08))', border: '1.5px solid rgba(139,92,246,0.3)', borderRadius: 16, padding: '24px 20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📂</div>
@@ -4602,6 +4631,21 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── EXCEL BULK UPLOADER ── */}
+      {mainChoice === 'new' && newMode === 'excel' && (
+        <ExcelBulkUploadPanel
+          showToast={showToast}
+          onBack={() => setNewMode(null)}
+          setSelectedLiveTestCode={setSelectedLiveTestCode}
+          onDone={(code, isLive) => {
+            setMainChoice(null);
+            setNewMode(null);
+            fetchQ();
+            if (isLive && setActiveTab) setActiveTab('live');
+          }}
+        />
       )}
 
       {/* ── MANUAL CREATOR ── */}
