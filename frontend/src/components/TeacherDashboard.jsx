@@ -2028,6 +2028,7 @@ function ManualTestCreator({ showToast, onDone }) {
     descMarks:      5,              // Marks per Descriptive
     negativeMarking: 0,
     shuffleQuestions: true,         // Anti-cheating randomization
+    isEnrolledOnly: false,          // Access Level: false = Public, true = Enrolled Only
   });
 
   // ── Step 2: Pre-generated Question Formations ─────────
@@ -2172,6 +2173,7 @@ function ManualTestCreator({ showToast, onDone }) {
           timeLimit:       finalTimeLimit,
           negativeMarking: Number(testInfo.negativeMarking) || 0,
           shuffleQuestions: testInfo.shuffleQuestions !== false,
+          isEnrolledOnly:  !!testInfo.isEnrolledOnly,
           isActive:        false, // Teacher controls when to make it live!
         });
         ok++;
@@ -2420,6 +2422,31 @@ function ManualTestCreator({ showToast, onDone }) {
                 </button>
               </div>
             </div>
+
+            {/* Access Level (Enrolled vs Public) */}
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ ...darkLbl, color: '#38bdf8', fontWeight: 800 }}>🔒 પ્રવેશ મર્યાદા (Access Level) *</label>
+              <select
+                className="input-dark"
+                value={testInfo.isEnrolledOnly ? 'enrolled' : 'public'}
+                onChange={e => setTestInfo(t => ({ ...t, isEnrolledOnly: e.target.value === 'enrolled' }))}
+                style={{
+                  width: '100%',
+                  background: testInfo.isEnrolledOnly ? 'rgba(79, 70, 229, 0.25)' : '#0d1526',
+                  border: testInfo.isEnrolledOnly ? '1.5px solid #818cf8' : '1px solid rgba(255,255,255,0.15)',
+                  color: testInfo.isEnrolledOnly ? '#c7d2fe' : 'white',
+                  fontWeight: 800,
+                  padding: '10px 14px'
+                }}>
+                <option value="public">🟢 સૌ માટે ખુલ્લી (Public Test) — ડેમો/માર્કેટિંગ માટે</option>
+                <option value="enrolled">🔒 ફક્ત એડમિશન લીધેલા (Trinetra Enrolled Students) — Master Excel Whitelist</option>
+              </select>
+              {testInfo.isEnrolledOnly && (
+                <div style={{ marginTop: 6, background: 'rgba(79, 70, 229, 0.15)', border: '1px solid rgba(129, 140, 248, 0.3)', borderRadius: 8, padding: '8px 12px', color: '#c7d2fe', fontSize: '0.78rem', fontWeight: 700 }}>
+                  🔒 આ કસોટી ફક્ત તમારા એક્સેલ વ્હાઇટલિસ્ટમાં નોંધાયેલ ૧૦ આંકડાના મોબાઇલ નંબર ધરાવતા વિદ્યાર્થીઓ જ આપી શકશે.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 4. Timer Selection: 2 Clear Options (Per MCQ vs Whole Test + No Limit) */}
@@ -2623,6 +2650,7 @@ function ManualTestCreator({ showToast, onDone }) {
                 { l: 'કુલ ગુણ',      v: `${totalTargetMarks} Marks`, e: '🎯' },
                 { l: 'સમય',         v: testInfo.timerMode === 'no_limit' ? 'No Limit' : testInfo.timerMode === 'per_question' ? `${testInfo.perQuestionSec}s / પ્રશ્ન` : `${testInfo.timeLimit} Min (કુલ)`, e: '⏱' },
                 { l: 'ટેસ્ટ કોડ',    v: testInfo.testCode, e: '🔑' },
+                { l: 'પ્રવેશ મર્યાદા', v: testInfo.isEnrolledOnly ? '🔒 Enrolled Only' : '🟢 Public', e: '🛡️' },
                 { l: 'શફલિંગ',      v: testInfo.shuffleQuestions === false ? 'બંધ (Standard)' : 'ચાલુ (Anti-Cheat)', e: '🔀' },
               ].map((x, i) => (
                 <div key={i} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px' }}>
@@ -4596,6 +4624,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
     perQuestionSec: 60, // 30, 45, 60, 90, 120
     timeLimit: 0, // 0 = no time limit
     testCode: 'TEST-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
+    isEnrolledOnly: false, // Access Level: true = Only Enrolled Students
   });
 
   // Calculate effective timeLimit: 0 for no_limit, seconds (<= 300) for per_question, total seconds (> 300) for total_test
@@ -4673,6 +4702,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             testCode:        bulkTestCode,
             testName:        bulkTestName,
             timeLimit:       effectiveTime,
+            isEnrolledOnly:  !!jsonTestMeta.isEnrolledOnly,
             isActive:        false, // Teacher controls when to make it live!
           });
           ok++;
@@ -5091,6 +5121,22 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                 </select>
               </div>
 
+              {/* Access Level (Enrolled vs Public) */}
+              <div>
+                <label style={{ ...darkLbl, color: '#a5b4fc' }}>🔒 પ્રવેશ મર્યાદા (Access Level)</label>
+                <select className="input-dark" value={jsonTestMeta.isEnrolledOnly ? 'enrolled' : 'public'}
+                  onChange={e => {
+                    const v = e.target.value === 'enrolled';
+                    const next = { ...jsonTestMeta, isEnrolledOnly: v };
+                    setJsonTestMeta(next);
+                    if (jsonText) parseJSON(jsonText, next);
+                  }}
+                  style={{ background: jsonTestMeta.isEnrolledOnly ? 'rgba(79, 70, 229, 0.25)' : '#0d1526', color: jsonTestMeta.isEnrolledOnly ? '#c7d2fe' : 'white', fontWeight: 800 }}>
+                  <option value="public">🟢 સૌ માટે ખુલ્લી (Public Test)</option>
+                  <option value="enrolled">🔒 ફક્ત એડમિશન લીધેલા (Trinetra Enrolled Students)</option>
+                </select>
+              </div>
+
               {/* Conditional Timer Inputs / Banner */}
               {jsonTestMeta.timerMode === 'per_question' && (
                 <div>
@@ -5136,6 +5182,11 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                 </div>
               )}
             </div>
+            {jsonTestMeta.isEnrolledOnly && (
+              <div style={{ marginTop: 10, background: 'rgba(79, 70, 229, 0.15)', border: '1px solid rgba(129, 140, 248, 0.3)', borderRadius: 10, padding: '10px 14px', color: '#c7d2fe', fontSize: '0.8rem', fontWeight: 700 }}>
+                🔒 આ કસોટી ફક્ત તમારા એક્સેલ વ્હાઇટલિસ્ટ (Master Admission List) માં નોંધાયેલ ૧૦ આંકડાના મોબાઇલ નંબર ધરાવતા વિદ્યાર્થીઓ જ આપી શકશે.
+              </div>
+            )}
           </div>
 
           {/* Sample Download & Format Guide */}

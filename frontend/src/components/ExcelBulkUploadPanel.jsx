@@ -102,6 +102,7 @@ export default function ExcelBulkUploadPanel({ showToast, onBack, onDone, subjec
     perQuestionSec: 60,
     negativeMarking: 0, // 0, 0.25, 0.33, 0.50
     hasOptionE: true, // Add Option E "ઉત્તર આપવા માંગતા નથી"
+    isEnrolledOnly: false, // Access Level: true = Only Trinetra Enrolled Students
   });
 
   const fileInputRef = useRef(null);
@@ -471,6 +472,7 @@ export default function ExcelBulkUploadPanel({ showToast, onBack, onDone, subjec
       testCode: finalTestCode,
       testName: finalTestName,
       timeLimit: effectiveTime,
+      isEnrolledOnly: !!testMeta.isEnrolledOnly,
       isActive: makeLiveImmediately,
       orderIndex: idx + 1
     }));
@@ -487,6 +489,7 @@ export default function ExcelBulkUploadPanel({ showToast, onBack, onDone, subjec
           subject: testMeta.subject,
           timeLimit: effectiveTime,
           negativeMarking: effectiveNeg,
+          isEnrolledOnly: !!testMeta.isEnrolledOnly,
           isActive: makeLiveImmediately,
           hasOptionE: testMeta.hasOptionE
         });
@@ -942,6 +945,36 @@ export default function ExcelBulkUploadPanel({ showToast, onBack, onDone, subjec
                 <option value={1.00}>-1.00 (૧ ગુણ કપાત)</option>
               </select>
             </div>
+
+            {/* Access Level (Enrolled vs Public) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', marginBottom: 6 }}>
+                🔒 પ્રવેશ મર્યાદા (Access Level)
+              </label>
+              <select
+                value={testMeta.isEnrolledOnly ? 'enrolled' : 'public'}
+                onChange={(e) => setTestMeta({ ...testMeta, isEnrolledOnly: e.target.value === 'enrolled' })}
+                style={{
+                  width: '100%',
+                  background: testMeta.isEnrolledOnly ? 'rgba(79, 70, 229, 0.25)' : '#1e293b',
+                  border: testMeta.isEnrolledOnly ? '1.5px solid #818cf8' : '1.5px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  color: testMeta.isEnrolledOnly ? '#c7d2fe' : 'white',
+                  fontWeight: 800,
+                  fontSize: '0.88rem'
+                }}
+              >
+                <option value="public">🟢 સૌ માટે ખુલ્લી (Public Test)</option>
+                <option value="enrolled">🔒 ફક્ત એડમિશન લીધેલા (Trinetra Enrolled Students)</option>
+              </select>
+            </div>
+
+            {testMeta.isEnrolledOnly && (
+              <div style={{ gridColumn: '1 / -1', background: 'rgba(79, 70, 229, 0.15)', border: '1px solid rgba(129, 140, 248, 0.3)', borderRadius: 10, padding: '10px 14px', color: '#c7d2fe', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>🔒</span> આ કસોટી ફક્ત તમારા એક્સેલ વ્હાઇટલિસ્ટ (Master Admission List) માં નોંધાયેલ ૧૦ આંકડાના મોબાઇલ નંબર ધરાવતા વિદ્યાર્થીઓ જ આપી શકશે.
+              </div>
+            )}
 
             {/* Option E Toggle */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 22 }}>
