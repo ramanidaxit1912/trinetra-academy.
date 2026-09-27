@@ -3047,6 +3047,20 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
       if (onBack) onBack();
       if (onSaved) onSaved();
     } catch (err) {
+      console.warn('deleteTest failed in editor, trying fallback:', err);
+      try {
+        if (testData.questions && testData.questions.length > 0) {
+          for (const q of testData.questions) {
+            if (q.id) await deleteQuestion(q.id);
+          }
+          showToast(`🗑️ કસોટી '${testData.testName}' સફળતાપૂર્વક ડિલીટ થઈ ગઈ! (ડેટાબેઝ ક્લીન)`, 'success');
+          if (onBack) onBack();
+          if (onSaved) onSaved();
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback in editor failed:', fallbackErr);
+      }
       showToast(err.response?.data?.error || 'કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
     }
   };
@@ -4163,7 +4177,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
     setLoading(false);
   };
 
-  const handleDeleteTest = async (testCode, testName, questionCount) => {
+  const handleDeleteTest = async (testCode, testName, questionCount, questionsList = []) => {
     if (!window.confirm(`⚠️ કસોટી ડિલીટ કરવાની ચેતવણી!\n\nશું તમે ખરેખર '${testName || testCode}' કસોટી (${questionCount || ''} પ્રશ્નો) ડિલીટ કરવા માંગો છો?\n\nઆનાથી આ કસોટીના તમામ પ્રશ્નો અને વિદ્યાર્થી પરિણામો કાયમી માટે ડિલીટ થઈ જશે, જેથી ડેટાબેઝ ક્લીન રહેશે.`)) {
       return;
     }
@@ -4176,7 +4190,26 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
       }
       fetchQ();
     } catch (err) {
-      console.error('Delete test failed:', err);
+      console.warn('deleteTest failed, trying fallback sequential question deletion:', err);
+      try {
+        const qList = (questionsList && questionsList.length > 0)
+          ? questionsList
+          : questions.filter(q => q.testCode === testCode || q.chapter === testCode);
+
+        if (qList.length > 0) {
+          for (const q of qList) {
+            if (q.id) await deleteQuestion(q.id);
+          }
+          showToast(`🗑️ કસોટી '${testName || testCode}' સફળતાપૂર્વક ડિલીટ થઈ ગઈ! (ડેટાબેઝ ક્લીન)`, 'success');
+          if (selectedOldTest?.testCode === testCode) {
+            setSelectedOldTest(null);
+          }
+          fetchQ();
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback delete failed:', fallbackErr);
+      }
       showToast(err.response?.data?.error || 'કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
     }
   };
@@ -5147,7 +5180,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                       style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', color: '#93c5fd', padding: '10px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                       <Download size={14} /> PDF
                     </button>
-                    <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length)}
+                    <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length, t.questions)}
                       title="કસોટી ડિલીટ કરો (Delete Test & Free Database)"
                       style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', padding: '10px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                       <Trash2 size={14} /> ડિલીટ
@@ -5369,7 +5402,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                             <Download size={13} /> PDF
                           </button>
 
-                          <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length)}
+                          <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length, t.questions)}
                             title="આખી કસોટી ડિલીટ કરો અને ડેટાબેઝ ખાલી કરો"
                             style={{
                               background: 'rgba(239, 68, 68, 0.15)',

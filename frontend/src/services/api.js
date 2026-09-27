@@ -85,7 +85,7 @@ export const addQuestion      = (data)  => api.post('/questions', data);
 export const createQuestion   = (data)  => api.post('/questions', data);
 export const updateQuestion   = (id, d) => api.put(`/questions/${id}`, d);
 export const deleteQuestion   = (id)    => api.delete(`/questions/${id}`);
-export const deleteTest       = (code, deleteSubmissions = true) => api.delete(`/questions/test/${code}`, { params: { deleteSubmissions } });
+export const deleteTest       = (code, deleteSubmissions = true) => api.post('/questions/delete-test', { testCode: code, deleteSubmissions }).catch(() => api.delete(`/questions/test/${code}`, { params: { deleteSubmissions } }));
 export const updateTestMeta   = (code, data) => api.put(`/questions/test/${code}/meta`, data);
 export const activateTest     = (payload) => api.post('/questions/activate-test', typeof payload === 'object' ? payload : { testCode: payload });
 export const bulkSaveQuestions = (data) => api.post('/questions/bulk-save', data);
