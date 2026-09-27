@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import { formatMathText } from '../utils/mathFormatter';
+import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
 import { Camera, Zap } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -207,67 +207,225 @@ export function MathSymbolToolbar({ onInsert }) {
   );
 }
 
-/* ─── 👁️ Live Math Question Preview Box ─────────────────── */
-export function LiveMathQuestionPreview({ qData }) {
+/* ─── 📱 Realistic Student Mobile Screen Live Preview ─────────────────── */
+export function LiveMathQuestionPreview({ qData, onEdit }) {
   if (!qData || (!qData.text?.trim() && !qData.optionA?.trim())) return null;
+
+  const hasImage = Boolean(qData.image || qData.imageUrl);
+  const options = ['A', 'B', 'C', 'D'];
+  if (qData.optionE || qData.optionE_img) options.push('E');
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.95))',
-      border: '1.5px solid rgba(56,189,248,0.5)',
-      borderRadius: 10,
-      padding: '12px 14px',
-      marginTop: 10,
-      marginBottom: 12,
-      boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+      maxWidth: 420,
+      margin: '14px auto',
+      background: '#090d16',
+      border: '2px solid rgba(56,189,248,0.45)',
+      borderRadius: 22,
+      overflow: 'hidden',
+      boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08)',
+      fontFamily: 'Hind Vadodara, sans-serif'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span>👁️ લાઇવ પ્રિવ્યૂ (વિદ્યાર્થી સ્ક્રીન પર આ રીતે દેખાશે):</span>
-        </span>
-        {Number(qData.negativeMarking) > 0 && (
-          <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 6, border: '1px solid #dc2626' }}>
-            ➖ નેગેટિવ: -{qData.negativeMarking}
+      {/* 📱 Phone Top Notch & Status Bar */}
+      <div style={{
+        background: '#040711',
+        padding: '6px 14px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        fontSize: '0.68rem',
+        color: '#94a3b8',
+        fontWeight: 700
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>9:41</span>
+          <span style={{ color: '#38bdf8' }}>• Trinetra Mobile</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>📶 5G</span>
+          <span>🔋 100%</span>
+        </div>
+      </div>
+
+      {/* 📱 Header Bar */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(30,58,138,0.4), rgba(15,23,42,0.8))',
+        padding: '8px 14px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid rgba(56,189,248,0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
+            color: '#ffffff',
+            fontWeight: 900,
+            fontSize: '0.72rem',
+            padding: '2px 8px',
+            borderRadius: 6
+          }}>
+            📱 વિદ્યાર્થી સ્ક્રીન પ્રિવ્યૂ
           </span>
+          {qData.subject && (
+            <span style={{ fontSize: '0.72rem', color: '#93c5fd', fontWeight: 700 }}>
+              {qData.subject}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(34,197,94,0.3)' }}>
+            +{qData.marks || 1}
+          </span>
+          {Number(qData.negativeMarking) > 0 && (
+            <span style={{ background: 'rgba(239,68,68,0.18)', color: '#fca5a5', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.3)' }}>
+              -{qData.negativeMarking}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 📱 Question Content Box */}
+      <div style={{ padding: '14px', background: '#0b1120' }}>
+        {/* Question Text */}
+        {qData.text?.trim() && (
+          <div
+            style={{
+              color: '#f8fafc',
+              fontSize: '0.94rem',
+              fontWeight: 600,
+              lineHeight: 1.6,
+              marginBottom: 12,
+              wordBreak: 'break-word'
+            }}
+            dangerouslySetInnerHTML={{ __html: formatQuestionText(qData.text) }}
+          />
+        )}
+
+        {/* Question Image (if any) */}
+        {hasImage && (
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+            <img
+              src={qData.image || qData.imageUrl}
+              alt="Question Figure"
+              style={{
+                maxWidth: '100%',
+                maxHeight: 180,
+                borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.15)',
+                background: '#000'
+              }}
+            />
+          </div>
+        )}
+
+        {/* 📱 Mobile Student Option Cards (Vertically Stacked) */}
+        {qData.type === 'mcq' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {options.map(opt => {
+              const optVal = qData[`option${opt}`];
+              const optImg = qData[`option${opt}_img`];
+              if (!optVal && !optImg) return null;
+              const isCorrect = qData.correctOpt === opt;
+              const isE = opt === 'E';
+
+              return (
+                <div
+                  key={opt}
+                  style={{
+                    background: isCorrect ? 'rgba(34,197,94,0.15)' : (isE ? 'rgba(100,116,139,0.08)' : 'rgba(255,255,255,0.04)'),
+                    border: `1.5px solid ${isCorrect ? '#22c55e' : (isE ? 'rgba(100,116,139,0.3)' : 'rgba(255,255,255,0.1)')}`,
+                    borderRadius: 10,
+                    padding: '9px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    background: isCorrect ? '#22c55e' : 'rgba(255,255,255,0.1)',
+                    color: isCorrect ? '#022c22' : '#e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '0.78rem',
+                    flexShrink: 0
+                  }}>
+                    {opt}
+                  </span>
+
+                  <div style={{ flex: 1, color: isCorrect ? '#86efac' : '#f1f5f9', fontSize: '0.88rem', fontWeight: isCorrect ? 700 : 500, lineHeight: 1.45 }}>
+                    {optVal && <span dangerouslySetInnerHTML={{ __html: formatMathText(optVal) }} />}
+                    {optImg && <img src={optImg} alt="" style={{ maxHeight: 60, marginTop: 4, borderRadius: 4 }} />}
+                  </div>
+
+                  {isCorrect && (
+                    <span style={{
+                      background: '#22c55e',
+                      color: '#052e16',
+                      fontWeight: 900,
+                      fontSize: '0.66rem',
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      flexShrink: 0
+                    }}>
+                      ✓ સાચો જવાબ
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Explanation Preview */}
+        {qData.explanation?.trim() && (
+          <div style={{
+            marginTop: 12,
+            background: 'rgba(56,189,248,0.08)',
+            border: '1px dashed rgba(56,189,248,0.35)',
+            borderRadius: 8,
+            padding: '8px 10px',
+            fontSize: '0.78rem',
+            color: '#7dd3fc'
+          }}>
+            <strong style={{ color: '#38bdf8' }}>💡 સમજૂતી (Solution): </strong>
+            <span dangerouslySetInnerHTML={{ __html: formatMathText(qData.explanation) }} />
+          </div>
         )}
       </div>
 
-      {/* Rendered Question Text */}
-      {qData.text?.trim() && (
-        <div
-          style={{ color: '#f1f5f9', fontSize: '0.92rem', fontWeight: 600, lineHeight: 1.6, marginBottom: 8 }}
-          dangerouslySetInnerHTML={{ __html: formatMathText(qData.text) }}
-        />
-      )}
-
-      {/* Rendered Options */}
-      {qData.type === 'mcq' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-          {['A','B','C','D'].map(opt => {
-            const optVal = qData[`option${opt}`];
-            if (!optVal && !qData[`option${opt}_img`]) return null;
-            const isCorrect = qData.correctOpt === opt;
-            return (
-              <div
-                key={opt}
-                style={{
-                  background: isCorrect ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${isCorrect ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
-                  borderRadius: 6,
-                  padding: '5px 8px',
-                  fontSize: '0.8rem',
-                  color: isCorrect ? '#4ade80' : '#cbd5e1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <strong style={{ color: isCorrect ? '#22c55e' : '#94a3b8' }}>{opt}.</strong>
-                {optVal && <span dangerouslySetInnerHTML={{ __html: formatMathText(optVal) }} />}
-                {isCorrect && <span style={{ marginLeft: 'auto', fontWeight: 900, color: '#22c55e' }}>✓</span>}
-              </div>
-            );
-          })}
+      {/* Edit Trigger Button if provided */}
+      {onEdit && (
+        <div style={{ padding: '8px 14px', background: '#040711', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={onEdit}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '7px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+          >
+            ✏️ આ પ્રશ્નમાં સુધારો કરો (Edit Question)
+          </button>
         </div>
       )}
     </div>
@@ -2781,6 +2939,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
   const [editingQId, setEditingQId] = useState(null);
   const [editForm, setEditForm]     = useState({});
   const [showAdd, setShowAdd]       = useState(false);
+  const [phonePreviewQ, setPhonePreviewQ] = useState(null);
   const [newQ, setNewQ]             = useState({
     text: '', type: 'mcq', optionA: '', optionB: '', optionC: '', optionD: '', correctOpt: 'A', marks: 1, image: '', imageUrl: '', optionA_img: '', optionB_img: '', optionC_img: '', optionD_img: ''
   });
@@ -3146,7 +3305,11 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button onClick={() => setPhonePreviewQ(q)}
+                        style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                        <Eye size={13} /> 📱 મોબાઇલ વ્યૂ
+                      </button>
                       <button onClick={() => {
                         setEditingQId(q.id);
                         setEditForm({ ...q });
@@ -3384,6 +3547,85 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           );
         })}
       </div>
+
+      {/* 📱 Full Student Mobile Screen Preview Modal */}
+      {phonePreviewQ && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(2,6,23,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+        }}>
+          <div style={{
+            maxWidth: 480, width: '100%', maxHeight: '92vh', overflowY: 'auto',
+            background: '#040711', borderRadius: 24, border: '2px solid rgba(56,189,248,0.4)',
+            padding: '16px', position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.8)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '1.1rem' }}>📱</span>
+                <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem' }}>વિદ્યાર્થી ફોન સ્ક્રીન પ્રિવ્યૂ</span>
+              </div>
+              <button onClick={() => setPhonePreviewQ(null)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#cbd5e1', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <LiveMathQuestionPreview
+              qData={phonePreviewQ}
+              onEdit={() => {
+                setEditingQId(phonePreviewQ.id);
+                setEditForm({ ...phonePreviewQ });
+                setPhonePreviewQ(null);
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingQId(phonePreviewQ.id);
+                  setEditForm({ ...phonePreviewQ });
+                  setPhonePreviewQ(null);
+                }}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px',
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Edit3 size={15} /> ✏️ જો કંઈ ખોટું હોય તો અહીંથી એડિટ કરો
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhonePreviewQ(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#cbd5e1',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                બંધ કરો
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
