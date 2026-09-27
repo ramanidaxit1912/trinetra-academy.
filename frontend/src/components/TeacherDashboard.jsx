@@ -4361,6 +4361,48 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
   // Main choice: null (hub menu) | 'new' | 'edit_old' | 'manual' | 'json'
   const [mainChoice, setMainChoice] = useState(null); // 'new' | 'edit_old' | null
   const [newMode, setNewMode]       = useState(null); // 'manual' | 'json' | null
+  const [planeFlying, setPlaneFlying] = useState(false); // PPT-style paper plane animation trigger
+
+  // PPT Paper Airplane swoosh sound & flight transition
+  const handleStartNewTest = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (planeFlying) return;
+    setPlaneFlying(true);
+
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      osc.type = 'sine';
+      // Dynamic pitch glide like an airplane zooming by
+      osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(960, audioCtx.currentTime + 0.16);
+      osc.frequency.exponentialRampToValueAtTime(380, audioCtx.currentTime + 0.44);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.14, audioCtx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.46);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.48);
+    } catch (_) {}
+
+    setTimeout(() => {
+      setMainChoice('new');
+      setPlaneFlying(false);
+    }, 450);
+  };
+
   const [selectedOldTest, setSelectedOldTest] = useState(null); // Test object being edited
   const [expandedTestCode, setExpandedTestCode] = useState(null); // Test ID expanded to view questions
     
@@ -4768,6 +4810,94 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
 
   return (
     <div className="animate-fade-in">
+      {/* Scoped CSS for PPT-style Paper Airplane Animation */}
+      <style>{`
+        @keyframes planeGlideInAnim {
+          0% {
+            transform: translate(-150px, 80px) rotate(-38deg) scale(0.35);
+            opacity: 0;
+          }
+          65% {
+            transform: translate(14px, -12px) rotate(20deg) scale(1.08);
+            opacity: 1;
+          }
+          85% {
+            transform: translate(-4px, 4px) rotate(12deg) scale(0.96);
+          }
+          100% {
+            transform: translate(0px, 0px) rotate(15deg) scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes planeHoverFloatAnim {
+          0% {
+            transform: translateY(0px) rotate(15deg);
+          }
+          50% {
+            transform: translateY(-9px) rotate(19deg) scale(1.03);
+          }
+          100% {
+            transform: translateY(0px) rotate(15deg);
+          }
+        }
+
+        @keyframes planeTakeoffAnim {
+          0% {
+            transform: translate(0, 0) rotate(15deg) scale(1);
+            opacity: 1;
+          }
+          25% {
+            transform: translate(-25px, 20px) rotate(5deg) scale(0.95);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(480px, -320px) rotate(-28deg) scale(1.5);
+            opacity: 0;
+          }
+        }
+
+        @keyframes planeTrailDashAnim {
+          from {
+            stroke-dashoffset: 40;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+
+        .plane-trail-dash {
+          animation: planeTrailDashAnim 1.4s linear infinite;
+        }
+
+        @keyframes planeSparkPulse {
+          0%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+          }
+          50% {
+            transform: scale(1.6);
+            opacity: 1;
+          }
+        }
+
+        .plane-spark {
+          animation: planeSparkPulse 1.2s ease-in-out infinite;
+          transform-origin: 26px 44px;
+        }
+
+        @keyframes planeBurst {
+          0% {
+            transform: scale(0.4);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(3.5);
+            opacity: 0;
+          }
+        }
+      `}</style>
+
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
         {[
@@ -4822,32 +4952,136 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
 
             {/* 1. NEW TEST CARD */}
             <div
-              onClick={() => setMainChoice('new')}
+              onClick={handleStartNewTest}
               style={{
                 position: 'relative',
                 background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.25) 50%, rgba(15, 23, 42, 0.95) 100%)',
-                border: '1.5px solid rgba(59, 130, 246, 0.45)',
+                border: planeFlying ? '1.5px solid #38bdf8' : '1.5px solid rgba(59, 130, 246, 0.45)',
                 borderRadius: 22,
                 padding: '28px 24px',
-                cursor: 'pointer',
+                cursor: planeFlying ? 'wait' : 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-                overflow: 'hidden',
+                boxShadow: planeFlying 
+                  ? '0 20px 50px -10px rgba(56, 189, 248, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                  : '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                overflow: 'visible',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.borderColor = '#38bdf8';
-                e.currentTarget.style.boxShadow = '0 20px 45px -10px rgba(56, 189, 248, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+                if (!planeFlying) {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = '#38bdf8';
+                  e.currentTarget.style.boxShadow = '0 20px 45px -10px rgba(56, 189, 248, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+                }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
-                e.currentTarget.style.boxShadow = '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)';
+                if (!planeFlying) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+                  e.currentTarget.style.boxShadow = '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)';
+                }
               }}
             >
+              {/* PPT-Style Flying Paper Plane & Contrail */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -24,
+                  right: 22,
+                  zIndex: 25,
+                  pointerEvents: 'none',
+                  animation: planeFlying
+                    ? 'planeTakeoffAnim 0.46s cubic-bezier(0.2, 0.8, 0.2, 1) forwards'
+                    : 'planeGlideInAnim 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards, planeHoverFloatAnim 2.8s ease-in-out 0.9s infinite',
+                  transformOrigin: 'center center'
+                }}
+              >
+                {/* Dotted Flight Contrail Path */}
+                <svg
+                  width="110"
+                  height="60"
+                  viewBox="0 0 110 60"
+                  fill="none"
+                  style={{
+                    position: 'absolute',
+                    top: 14,
+                    left: -98,
+                    pointerEvents: 'none',
+                    opacity: planeFlying ? 0.25 : 0.85,
+                    transition: 'opacity 0.2s',
+                    overflow: 'visible'
+                  }}
+                >
+                  <path
+                    d="M 5,50 C 32,56 55,40 76,28 C 86,22 96,17 106,13"
+                    fill="none"
+                    stroke="url(#planeContrailGrad)"
+                    strokeWidth="2.5"
+                    strokeDasharray="4 4"
+                    strokeLinecap="round"
+                    className="plane-trail-dash"
+                  />
+                  <defs>
+                    <linearGradient id="planeContrailGrad" x1="0" y1="50" x2="106" y2="13" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="rgba(56, 189, 248, 0)" />
+                      <stop offset="0.6" stopColor="rgba(56, 189, 248, 0.65)" />
+                      <stop offset="1" stopColor="#38bdf8" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+
+                {/* 3D Shaded Vector Paper Airplane */}
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <svg
+                    width="50"
+                    height="50"
+                    viewBox="0 0 64 64"
+                    fill="none"
+                    style={{
+                      filter: 'drop-shadow(0 10px 18px rgba(56, 189, 248, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))'
+                    }}
+                  >
+                    {/* Left wing (main lit fold) */}
+                    <path d="M 6,32 L 58,10 L 26,44 Z" fill="url(#planeWingGrad1)" />
+                    {/* Right wing (under shadow fold) */}
+                    <path d="M 58,10 L 38,54 L 26,44 Z" fill="url(#planeWingGrad2)" />
+                    {/* Center keel underside fold */}
+                    <path d="M 26,44 L 32,52 L 34,45 Z" fill="#0284c7" />
+                    {/* Top spine crease highlight */}
+                    <path d="M 6,32 L 58,10 L 28,34 Z" fill="rgba(255, 255, 255, 0.45)" />
+                    {/* Jet thruster spark at tail */}
+                    <circle cx="26" cy="44" r="3" fill="#38bdf8" className="plane-spark" />
+                    <defs>
+                      <linearGradient id="planeWingGrad1" x1="6" y1="10" x2="58" y2="44" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#38bdf8" />
+                        <stop offset="1" stopColor="#0284c7" />
+                      </linearGradient>
+                      <linearGradient id="planeWingGrad2" x1="26" y1="10" x2="58" y2="54" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#e0f2fe" />
+                        <stop offset="0.5" stopColor="#7dd3fc" />
+                        <stop offset="1" stopColor="#0369a1" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* Speed burst effect when taking off */}
+                  {planeFlying && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 18,
+                      left: 8,
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: 'radial-gradient(circle, #38bdf8 0%, rgba(56, 189, 248, 0) 70%)',
+                      animation: 'planeBurst 0.4s ease-out forwards'
+                    }} />
+                  )}
+                </div>
+              </div>
+
               {/* Top ambient radial glow */}
               <div style={{
                 position: 'absolute',
@@ -4855,6 +5089,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                 right: -40,
                 width: 140,
                 height: 140,
+                borderRadius: 22,
                 background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%)',
                 pointerEvents: 'none'
               }} />
@@ -4863,7 +5098,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
               <div style={{
                 position: 'absolute',
                 top: 16,
-                right: 18,
+                right: 80,
                 background: 'linear-gradient(135deg, #2563eb, #0284c7)',
                 color: '#ffffff',
                 fontSize: '0.68rem',
@@ -4946,27 +5181,33 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
               {/* Action Button CTA */}
               <button
                 type="button"
+                onClick={handleStartNewTest}
+                disabled={planeFlying}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  background: planeFlying
+                    ? 'linear-gradient(135deg, #38bdf8 0%, #2563eb 100%)'
+                    : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#ffffff',
                   padding: '14px 18px',
                   borderRadius: 14,
                   fontWeight: 900,
                   fontSize: '0.98rem',
-                  cursor: 'pointer',
+                  cursor: planeFlying ? 'wait' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: '0 6px 20px rgba(37, 99, 235, 0.45)',
+                  boxShadow: planeFlying
+                    ? '0 6px 25px rgba(56, 189, 248, 0.6)'
+                    : '0 6px 20px rgba(37, 99, 235, 0.45)',
                   transition: 'all 0.2s',
                   fontFamily: 'Hind Vadodara, sans-serif'
                 }}
               >
-                <span>➕ નવી કસોટી શરૂ કરો</span>
-                <span style={{ fontSize: '1.1rem' }}>➔</span>
+                <span>{planeFlying ? '✈️ ટેકઓફ થઈ રહ્યું છે...' : '➕ નવી કસોટી શરૂ કરો'}</span>
+                <span style={{ fontSize: '1.1rem', transform: planeFlying ? 'translateX(6px) rotate(-15deg)' : 'none', transition: 'transform 0.2s' }}>➔</span>
               </button>
             </div>
 
