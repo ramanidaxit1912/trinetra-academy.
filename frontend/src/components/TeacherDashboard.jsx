@@ -2024,6 +2024,8 @@ function ManualTestCreator({ showToast, onDone }) {
     descCount:      0,              // Default 0 Desc
     mcqMarks:       1,              // Marks per MCQ
     descMarks:      5,              // Marks per Descriptive
+    negativeMarking: 0,
+    shuffleQuestions: true,         // Anti-cheating randomization
   });
 
   // ── Step 2: Pre-generated Question Formations ─────────
@@ -2167,6 +2169,7 @@ function ManualTestCreator({ showToast, onDone }) {
           testName:        testInfo.testName,
           timeLimit:       finalTimeLimit,
           negativeMarking: Number(testInfo.negativeMarking) || 0,
+          shuffleQuestions: testInfo.shuffleQuestions !== false,
           isActive:        false, // Teacher controls when to make it live!
         });
         ok++;
@@ -2567,6 +2570,13 @@ function ManualTestCreator({ showToast, onDone }) {
                       <option value={1}>➖ -1.00 (1 Mark Neg)</option>
                     </select>
                   </div>
+                  <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 8 }}>
+                    <label style={{ ...darkLbl, fontSize: '0.7rem' }}>🔀 ચોરી રોકવા શફલિંગ (Anti-Cheating Shuffle)</label>
+                    <select className="input-dark" value={testInfo.shuffleQuestions === false ? 'false' : 'true'} onChange={e => setTestInfo(t => ({ ...t, shuffleQuestions: e.target.value === 'true' }))} style={{ padding: '7px 10px', fontSize: '0.8rem' }}>
+                      <option value="true">✅ ચાલુ (Shuffled: દરેક વિદ્યાર્થીને અલગ ક્રમ)</option>
+                      <option value="false">🚫 બંધ (Standard: બધાને એકસરખો ક્રમ)</option>
+                    </select>
+                  </div>
                 </div>
               )}
 
@@ -2611,6 +2621,7 @@ function ManualTestCreator({ showToast, onDone }) {
                 { l: 'કુલ ગુણ',      v: `${totalTargetMarks} Marks`, e: '🎯' },
                 { l: 'સમય',         v: testInfo.timerMode === 'no_limit' ? 'No Limit' : testInfo.timerMode === 'per_question' ? `${testInfo.perQuestionSec}s / પ્રશ્ન` : `${testInfo.timeLimit} Min (કુલ)`, e: '⏱' },
                 { l: 'ટેસ્ટ કોડ',    v: testInfo.testCode, e: '🔑' },
+                { l: 'શફલિંગ',      v: testInfo.shuffleQuestions === false ? 'બંધ (Standard)' : 'ચાલુ (Anti-Cheat)', e: '🔀' },
               ].map((x, i) => (
                 <div key={i} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px' }}>
                   <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>{x.e} {x.l}</div>
@@ -3045,6 +3056,9 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                 </span>
               );
             })()}
+            <span style={{ background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.35)', color: '#c084fc', fontSize: '0.74rem', fontWeight: 800, padding: '3px 10px', borderRadius: 12 }}>
+              🔀 શફલિંગ સક્રિય (Anti-Cheat Randomize)
+            </span>
             <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.2rem', margin: 0 }}>
               {testData.testName}
             </h3>

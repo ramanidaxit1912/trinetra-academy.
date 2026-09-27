@@ -62,6 +62,7 @@ import PhotoAnswerUpload from '../components/PhotoAnswerUpload';
 import ResultCard from '../components/ResultCard';
 import { useStore } from '../store/useStore';
 import { sendOTP, verifyOTP, getQuestions, submitTest, getSubmissionReview, getActiveTestSession, discardActiveTestSession } from '../services/api';
+import { clearShuffledTestCache } from '../utils/shuffleUtils';
 
 const isImg = (val) => {
   if (!val || typeof val !== 'string') return false;
@@ -324,6 +325,7 @@ export default function ExamPage() {
       try {
         localStorage.removeItem(`trinetra_exam_progress_${user?.mobile || 'guest'}_${targetTestCode}`);
         localStorage.removeItem(`trinetra_exam_q_timers_${user?.mobile || 'guest'}_${targetTestCode}`);
+        clearShuffledTestCache(user?.mobile, targetTestCode);
       } catch (e) {}
 
       finishExam(res.data.submission);
@@ -807,6 +809,7 @@ export default function ExamPage() {
                           try {
                             const storageKey = `trinetra_exam_progress_${user?.mobile || 'guest'}_${resumableSession.testCode}`;
                             localStorage.removeItem(storageKey);
+                            clearShuffledTestCache(user?.mobile, resumableSession.testCode);
                             if (user) await discardActiveTestSession({ testCode: resumableSession.testCode });
                           } catch (e) {
                             console.warn(e);
@@ -921,6 +924,14 @@ export default function ExamPage() {
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                         <span style={{ color: '#dc2626', fontWeight: 900 }}>{ruleNum++}.</span>
                         <span style={{ color: '#991b1b' }}><strong>સુરક્ષા નિયમ:</strong> કસોટી ચાલુ હોય ત્યારે બ્રાઉઝર ટેબ બદલવી નહીં કે પેજ બંધ ન કરવું.</span>
+                      </div>
+
+                      {/* Rule 6: Anti-Cheating Question & Option Shuffling */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <span style={{ color: '#7c3aed', fontWeight: 900 }}>{ruleNum++}.</span>
+                        <span style={{ color: '#5b21b6' }}>
+                          <strong>🔀 ચોરી-મુક્ત સુરક્ષા (Anti-Cheating Shuffling):</strong> દરેક વિદ્યાર્થીના ફોનમાં <strong>પ્રશ્નો અને વિકલ્પો (A, B, C, D) આપોઆપ અલગ-અલગ ક્રમમાં</strong> આવે છે. તેથી બીજા વિદ્યાર્થીના ફોનમાંથી જોઈને ઉત્તર ટીક કરવો નહીં, કારણ કે તમારા અને તેમના વિકલ્પો તદ્દન અલગ હશે.
+                        </span>
                       </div>
 
                     </div>

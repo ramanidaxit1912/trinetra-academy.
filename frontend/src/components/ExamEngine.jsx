@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { saveTestProgress } from '../services/api';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
+import {
+  getPersistentShuffledQuestions,
+  getPersistentShuffledOptions
+} from '../utils/shuffleUtils';
 
 export const isImg = (val) => {
   if (!val || typeof val !== 'string') return false;
@@ -27,9 +31,18 @@ export const extractImgSrc = (val) => {
 };
 
 export default function ExamEngine({ onFinish }) {
-  const { user, questions, currentIndex, setCurrentIndex, answers, recordAnswer } = useStore();
+  const { user, questions: rawQuestions, currentIndex, setCurrentIndex, answers, recordAnswer } = useStore();
 
-  const currentQ = questions[currentIndex];
+  const activeTestCode = rawQuestions[0]?.testCode || 'GENERAL';
+  const activeTestName = rawQuestions[0]?.testName || rawQuestions[0]?.chapter || 'કસોટી';
+  const activeSubject  = rawQuestions[0]?.subject  || 'General';
+
+  // 🔀 Anti-Cheating Question Shuffling (Randomized & Persistent per student attempt)
+  const questions = useMemo(() => {
+    return getPersistentShuffledQuestions(rawQuestions, user?.mobile, activeTestCode, true);
+  }, [rawQuestions, user?.mobile, activeTestCode]);
+
+  const currentQ = questions[currentIndex] || rawQuestions[currentIndex] || {};
   const totalQ = questions.length;
   const currentAns = answers[currentQ?.id] || {};
   const questionStartTimeRef = useRef(Date.now());
@@ -46,10 +59,6 @@ export default function ExamEngine({ onFinish }) {
 
   // Per-Question seconds allotment (no carryover / no bonus)
   const secPerQ = isPerQuestionTimer ? Math.max(10, rawTimeLimit) : 0;
-
-  const activeTestCode = currentQ?.testCode || 'GENERAL';
-  const activeTestName = currentQ?.testName || currentQ?.chapter || 'કસોટી';
-  const activeSubject  = currentQ?.subject  || 'General';
 
   // Per-Question timers map: tracks remaining time per question index { [qIndex]: number }
   const [qTimeLeftMap, setQTimeLeftMap] = useState(() => {
@@ -860,6 +869,22 @@ export default function ExamEngine({ onFinish }) {
               }} title="Anti-Cheat Security Protection Active">
                 {tabSwitchCount > 0 ? `⚠️ ${tabSwitchCount} ચેતવણી` : '🔒 સુરક્ષિત'}
               </span>
+
+              {/* Shuffled Order Anti-Cheat Badge */}
+              <span style={{
+                background: '#f5f3ff',
+                color: '#7c3aed',
+                fontSize: '0.66rem',
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: 10,
+                border: '1px solid #ddd6fe',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3
+              }} title="પ્રશ્નો અને વિકલ્પો દરેક વિદ્યાર્થી માટે અલગ ક્રમમાં રેન્ડમાઇઝ થયેલા છે">
+                🔀 શફલ ઓર્ડર
+              </span>
             </div>
 
             {/* Progress Bar */}
@@ -994,118 +1019,119 @@ export default function ExamEngine({ onFinish }) {
             );
           })()}
 
-          {/* MCQ Options with Realistic OMR Bubble Darkening FX (Supports 4 or 5 Options) */}
-          {currentQ?.type === 'mcq' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {['A','B','C','D','E'].map((opt, optIndex) => {
-                let rawOpt = currentQ[`option${opt}`] || currentQ[`opt${opt}`] || currentQ[opt.toLowerCase()] || (currentQ.options && (currentQ.options[opt] || currentQ.options[opt.toLowerCase()] || currentQ.options[optIndex]));
-                const rawImg = currentQ[`option${opt}_img`] || currentQ[`opt${opt}_img`];
-                const optImg = rawImg || (isImg(rawOpt) ? extractImgSrc(rawOpt) : '');
-                
-                const testMetaStr = `${activeTestName || ''} ${activeSubject || ''} ${activeTestCode || ''} ${currentQ?.subject || ''} ${currentQ?.testName || ''} ${currentQ?.testCode || ''}`.toUpperCase();
-                const isTatExam = testMetaStr.includes('TAT-S') || testMetaStr.includes('TAT-HS') || testMetaStr.includes('TAT S') || testMetaStr.includes('TAT HS') || testMetaStr.includes('TATS') || testMetaStr.includes('TATHS');
+          {/* MCQ Options with Anti-Cheating Shuffling and Realistic OMR Bubble Darkening FX */}
+          {currentQ?.type === 'mcq' && (() => {
+            const shuffledOptions = getPersistentShuffledOptions(
+              currentQ,
+              user?.mobile,
+              activeTestCode,
+              activeTestName,
+              activeSubject,
+              true
+            );
 
-                if (opt === 'E' && !rawOpt && !optImg && isTatExam) {
-                  rawOpt = 'ઉત્તર આપવા માંગતા નથી (Not Attempted / Skip)';
-                }
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {shuffledOptions.map((optItem) => {
+                  const { displayKey, origKey, rawOpt, rawImg, isOptionE } = optItem;
+                  const optImg = rawImg || (isImg(rawOpt) ? extractImgSrc(rawOpt) : '');
+                  const optText = isImg(rawOpt) ? '' : rawOpt;
+                  if (!optText && !optImg) return null;
+                  const isSelected = currentAns.selectedOpt === origKey;
 
-                const optText = isImg(rawOpt) ? '' : rawOpt;
-                if (!optText && !optImg) return null;
-                const isSelected = currentAns.selectedOpt === opt;
-                const isOptionE = opt === 'E';
-
-                return (
-                  <button
-                    key={opt}
-                    className={`mcq-option ${isSelected ? (isOptionE ? 'selected' : 'omr-option-row-active') : ''}`}
-                    onClick={() => selectMCQ(opt)}
-                    style={{
-                      position: 'relative',
-                      overflow: 'hidden',
-                      border: isSelected
-                        ? (isOptionE ? '2px solid #64748b' : '2px solid #2563eb')
-                        : (isOptionE ? '1.5px dashed #94a3b8' : '1.5px solid #cbd5e1'),
-                      background: isSelected
-                        ? (isOptionE ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)')
-                        : (isOptionE ? '#f8fafc' : '#ffffff'),
-                      boxShadow: isSelected
-                        ? (isOptionE ? '0 4px 14px rgba(100,116,139,0.18)' : '0 4px 14px rgba(37,99,235,0.18)')
-                        : '0 1px 3px rgba(0,0,0,0.03)',
-                      transition: 'all 0.18s ease'
-                    }}
-                  >
-                    {/* OMR Round Ink Bubble */}
-                    <span
-                      className={`option-label ${isSelected ? 'omr-bubble-selected' : ''}`}
+                  return (
+                    <button
+                      key={origKey}
+                      className={`mcq-option ${isSelected ? (isOptionE ? 'selected' : 'omr-option-row-active') : ''}`}
+                      onClick={() => selectMCQ(origKey)}
                       style={{
-                        borderRadius: '50%',
-                        width: 32,
-                        height: 32,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.92rem',
-                        fontWeight: 900,
-                        flexShrink: 0,
-                        background: isSelected ? undefined : '#f1f5f9',
-                        color: isSelected ? undefined : (isOptionE ? '#475569' : '#1e293b'),
-                        border: isSelected ? undefined : '1.5px solid #cbd5e1'
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: isSelected
+                          ? (isOptionE ? '2px solid #64748b' : '2px solid #2563eb')
+                          : (isOptionE ? '1.5px dashed #94a3b8' : '1.5px solid #cbd5e1'),
+                        background: isSelected
+                          ? (isOptionE ? 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)')
+                          : (isOptionE ? '#f8fafc' : '#ffffff'),
+                        boxShadow: isSelected
+                          ? (isOptionE ? '0 4px 14px rgba(100,116,139,0.18)' : '0 4px 14px rgba(37,99,235,0.18)')
+                          : '0 1px 3px rgba(0,0,0,0.03)',
+                        transition: 'all 0.18s ease'
                       }}
                     >
-                      {opt}
-                    </span>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      {optText && (
-                        <div
-                          className="gu-text"
-                          style={{
-                            color: isSelected ? '#0f172a' : (isOptionE ? '#475569' : '#1e293b'),
-                            fontWeight: isSelected ? 800 : (isOptionE ? 600 : 500),
-                            lineHeight: 1.45,
-                            fontSize: '0.94rem'
-                          }}
-                          dangerouslySetInnerHTML={{ __html: formatMathText(optText) }}
-                        />
-                      )}
-                      {isOptionE && (
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: 2, fontWeight: 700 }}>
-                          ℹ️ આ વિકલ્પ પસંદ કરવાથી નેગેટિવ માર્કિંગ થશે નહીં (0 ગુણ).
-                        </div>
-                      )}
-                      {optImg && (
-                        <div style={{ marginTop: 8 }}>
-                          <img 
-                            src={optImg} 
-                            alt={`Option ${opt}`} 
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                            style={{ maxHeight: 110, maxWidth: '100%', borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', objectFit: 'contain' }} 
-                          />
-                        </div>
-                      )}
-                    </div>
-                    {isSelected && (
-                      <span style={{
-                        background: isOptionE ? '#64748b' : '#2563eb',
-                        color: '#ffffff',
-                        borderRadius: '50%',
-                        width: 22,
-                        height: 22,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        fontWeight: 900,
-                        flexShrink: 0,
-                        boxShadow: '0 2px 6px rgba(37,99,235,0.4)'
-                      }}>
-                        ✓
+                      {/* OMR Round Ink Bubble */}
+                      <span
+                        className={`option-label ${isSelected ? 'omr-bubble-selected' : ''}`}
+                        style={{
+                          borderRadius: '50%',
+                          width: 32,
+                          height: 32,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.92rem',
+                          fontWeight: 900,
+                          flexShrink: 0,
+                          background: isSelected ? undefined : '#f1f5f9',
+                          color: isSelected ? undefined : (isOptionE ? '#475569' : '#1e293b'),
+                          border: isSelected ? undefined : '1.5px solid #cbd5e1'
+                        }}
+                      >
+                        {displayKey}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        {optText && (
+                          <div
+                            className="gu-text"
+                            style={{
+                              color: isSelected ? '#0f172a' : (isOptionE ? '#475569' : '#1e293b'),
+                              fontWeight: isSelected ? 800 : (isOptionE ? 600 : 500),
+                              lineHeight: 1.45,
+                              fontSize: '0.94rem'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: formatMathText(optText) }}
+                          />
+                        )}
+                        {isOptionE && (
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: 2, fontWeight: 700 }}>
+                            ℹ️ આ વિકલ્પ પસંદ કરવાથી નેગેટિવ માર્કિંગ થશે નહીં (0 ગુણ).
+                          </div>
+                        )}
+                        {optImg && (
+                          <div style={{ marginTop: 8 }}>
+                            <img 
+                              src={optImg} 
+                              alt={`Option ${displayKey}`} 
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                              style={{ maxHeight: 110, maxWidth: '100%', borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', objectFit: 'contain' }} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <span style={{
+                          background: isOptionE ? '#64748b' : '#2563eb',
+                          color: '#ffffff',
+                          borderRadius: '50%',
+                          width: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: 900,
+                          flexShrink: 0,
+                          boxShadow: '0 2px 6px rgba(37,99,235,0.4)'
+                        }}>
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Descriptive hint */}
           {currentQ?.type === 'descriptive' && (
