@@ -4783,62 +4783,342 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
         ))}
       </div>
 
-      {/* ── PRIMARY CHOICE: NEW TEST VS EDIT OLD TEST ── */}
+      {/* ── PRIMARY CHOICE: NEW TEST VS EDIT OLD TEST (ULTRA LUXURY UI) ── */}
       {!mainChoice && (
-        <div className="animate-fade-in" style={{ marginBottom: 24 }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em', marginBottom: 14, textTransform: 'uppercase' }}>
-            🎯 તમે શું કરવા માંગો છો? (SELECT ACTION)
+        <div className="animate-fade-in" style={{ marginBottom: 28 }}>
+          {/* Section Header with glowing badge */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                padding: '4px 14px',
+                borderRadius: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                letterSpacing: '0.04em'
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#38bdf8', display: 'inline-block', boxShadow: '0 0 8px #38bdf8' }} />
+                🎯 ટેસ્ટ કંટ્રોલ હબ (TEST CREATION & MANAGEMENT)
+              </span>
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700 }}>
+              કુલ સક્રિય કસોટીઓ: <span style={{ color: '#38bdf8', fontWeight: 900 }}>{existingTests.length}</span>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
 
-            {/* 1. NEW TEST */}
-            <button onClick={() => setMainChoice('new')}
-              style={{ background: 'linear-gradient(135deg,rgba(29,78,216,0.18),rgba(37,99,235,0.08))', border: '2px solid rgba(59,130,246,0.4)', borderRadius: 18, padding: '26px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.22)'; e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,rgba(29,78,216,0.18),rgba(37,99,235,0.08))'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)'; e.currentTarget.style.transform = 'none'; }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-                <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', border: '1px solid rgba(59,130,246,0.4)' }}>
-                  🆕
-                </div>
-                <div>
-                  <div style={{ color: '#60a5fa', fontWeight: 900, fontSize: '1.15rem' }}>૧. નવી કસોટી બનાવો</div>
-                  <div style={{ color: '#93c5fd', fontSize: '0.75rem', fontWeight: 700 }}>Create New Test</div>
-                </div>
-              </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.6, marginBottom: 14 }}>
-                • નવું ટાઈટલ, વિષય અને સમય નક્કી કરો.<br />
-                • ✍️ Manual Wizard અથવા 📂 JSON થી પ્રશ્નો ઉમેરો.<br />
-                • સીધી Live કરવા માટે તૈયાર.
-              </div>
-              <div style={{ background: 'rgba(59,130,246,0.25)', color: '#bfdbfe', fontSize: '0.8rem', fontWeight: 800, padding: '7px 14px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                ➕ નવી કસોટી શરૂ કરો →
-              </div>
-            </button>
+            {/* 1. NEW TEST CARD */}
+            <div
+              onClick={() => setMainChoice('new')}
+              style={{
+                position: 'relative',
+                background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.25) 50%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(59, 130, 246, 0.45)',
+                borderRadius: 22,
+                padding: '28px 24px',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#38bdf8';
+                e.currentTarget.style.boxShadow = '0 20px 45px -10px rgba(56, 189, 248, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+                e.currentTarget.style.boxShadow = '0 12px 36px -10px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)';
+              }}
+            >
+              {/* Top ambient radial glow */}
+              <div style={{
+                position: 'absolute',
+                top: -40,
+                right: -40,
+                width: 140,
+                height: 140,
+                background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              }} />
 
-            {/* 2. EDIT / MANAGE OLD TEST */}
-            <button onClick={() => setMainChoice('edit_old')}
-              style={{ background: 'linear-gradient(135deg,rgba(180,83,9,0.18),rgba(217,119,6,0.08))', border: '2px solid rgba(245,158,11,0.4)', borderRadius: 18, padding: '26px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.22)'; e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,rgba(180,83,9,0.18),rgba(217,119,6,0.08))'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.4)'; e.currentTarget.style.transform = 'none'; }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-                <div style={{ width: 50, height: 50, borderRadius: 14, background: 'rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', border: '1px solid rgba(245,158,11,0.4)' }}>
-                  📝
+              {/* Top Recommended Tag */}
+              <div style={{
+                position: 'absolute',
+                top: 16,
+                right: 18,
+                background: 'linear-gradient(135deg, #2563eb, #0284c7)',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '3px 10px',
+                borderRadius: 20,
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
+                letterSpacing: '0.04em'
+              }}>
+                ⭐ સૌથી ઝડપી રીત
+              </div>
+
+              <div>
+                {/* Header Icon + Title */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                  <div style={{
+                    width: 58,
+                    height: 58,
+                    borderRadius: 16,
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.9rem',
+                    boxShadow: '0 8px 20px rgba(37, 99, 235, 0.45)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                    flexShrink: 0
+                  }}>
+                    ✨
+                  </div>
+                  <div>
+                    <h3 style={{
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      fontSize: '1.3rem',
+                      margin: '0 0 3px',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.2
+                    }}>
+                      ૧. નવી કસોટી બનાવો
+                    </h3>
+                    <span style={{
+                      color: '#38bdf8',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase'
+                    }}>
+                      CREATE BRAND NEW TEST
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '1.15rem' }}>૨. જૂની કસોટીમાં ફેરફાર કરો</div>
-                  <div style={{ color: '#fde68a', fontSize: '0.75rem', fontWeight: 700 }}>Edit / Update Existing Test</div>
+
+                {/* Feature highlights pills */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 9
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 900 }}>✓</span>
+                    <span><strong>📊 Excel / CSV Bulk Upload:</strong> ૫૦ થી ૫૦૦ પ્રશ્નો ૧-ક્લિકમાં અપલોડ</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 900 }}>✓</span>
+                    <span><strong>✍️ Smart Wizard & 📂 JSON:</strong> પ્રશ્ન દીઠ સમય કે કુલ ટેસ્ટ સમય સેટિંગ</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 900 }}>✓</span>
+                    <span><strong>🔒 પ્રવેશ મર્યાદા (Access Level):</strong> Public અથવા એડમિશન વ્હાઇટલિસ્ટ</span>
+                  </div>
                 </div>
               </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.6, marginBottom: 14 }}>
-                • અગાઉ બનાવેલી કસોટીઓ ({existingTests.length}) માં સુધારો કરો.<br />
-                • જૂના પ્રશ્નો Edit / Delete કરો અથવા નવા ઉમેરો.<br />
-                • સમય, ગુણ કે વિષય બદલો.
+
+              {/* Action Button CTA */}
+              <button
+                type="button"
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  padding: '14px 18px',
+                  borderRadius: 14,
+                  fontWeight: 900,
+                  fontSize: '0.98rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 6px 20px rgba(37, 99, 235, 0.45)',
+                  transition: 'all 0.2s',
+                  fontFamily: 'Hind Vadodara, sans-serif'
+                }}
+              >
+                <span>➕ નવી કસોટી શરૂ કરો</span>
+                <span style={{ fontSize: '1.1rem' }}>➔</span>
+              </button>
+            </div>
+
+            {/* 2. EDIT / MANAGE OLD TEST CARD */}
+            <div
+              onClick={() => setMainChoice('edit_old')}
+              style={{
+                position: 'relative',
+                background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(180, 83, 9, 0.2) 50%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                borderRadius: 22,
+                padding: '28px 24px',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 12px 36px -10px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#fbbf24';
+                e.currentTarget.style.boxShadow = '0 20px 45px -10px rgba(251, 191, 36, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+                e.currentTarget.style.boxShadow = '0 12px 36px -10px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08)';
+              }}
+            >
+              {/* Top ambient radial glow */}
+              <div style={{
+                position: 'absolute',
+                top: -40,
+                right: -40,
+                width: 140,
+                height: 140,
+                background: 'radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%)',
+                pointerEvents: 'none'
+              }} />
+
+              {/* Test count badge */}
+              <div style={{
+                position: 'absolute',
+                top: 16,
+                right: 18,
+                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '3px 10px',
+                borderRadius: 20,
+                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.4)',
+                letterSpacing: '0.04em'
+              }}>
+                📋 {existingTests.length} કસોટીઓ સંગ્રહિત
               </div>
-              <div style={{ background: 'rgba(245,158,11,0.25)', color: '#fef3c7', fontSize: '0.8rem', fontWeight: 800, padding: '7px 14px', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                ✏️ જૂની કસોટી પસંદ કરો ({existingTests.length}) →
+
+              <div>
+                {/* Header Icon + Title */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                  <div style={{
+                    width: 58,
+                    height: 58,
+                    borderRadius: 16,
+                    background: 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.9rem',
+                    boxShadow: '0 8px 20px rgba(217, 119, 6, 0.45)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                    flexShrink: 0
+                  }}>
+                    📝
+                  </div>
+                  <div>
+                    <h3 style={{
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      fontSize: '1.3rem',
+                      margin: '0 0 3px',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.2
+                    }}>
+                      ૨. જૂની કસોટીમાં ફેરફાર કરો
+                    </h3>
+                    <span style={{
+                      color: '#fbbf24',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase'
+                    }}>
+                      EDIT & MANAGE EXISTING TESTS
+                    </span>
+                  </div>
+                </div>
+
+                {/* Feature highlights pills */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 9
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 900 }}>✓</span>
+                    <span><strong>✏️ પ્રશ્નો એડિટ / ડીલીટ:</strong> ભૂલભરેલા પ્રશ્નો સુધારો કે નવા ઉમેરો</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 900 }}>✓</span>
+                    <span><strong>⏱️ સમય, વિષય & ગુણ:</strong> કોઈપણ સમયે નિયમો બદલી શકો</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 600 }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 900 }}>✓</span>
+                    <span><strong>🔄 ઓટો રિ-ઇવેલ્યુએશન:</strong> સાચો જવાબ બદલતાં તમામ પરિણામો ઓટો અપડેટ</span>
+                  </div>
+                </div>
               </div>
-            </button>
+
+              {/* Action Button CTA */}
+              <button
+                type="button"
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  padding: '14px 18px',
+                  borderRadius: 14,
+                  fontWeight: 900,
+                  fontSize: '0.98rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.45)',
+                  transition: 'all 0.2s',
+                  fontFamily: 'Hind Vadodara, sans-serif'
+                }}
+              >
+                <span>✏️ જૂની કસોટી પસંદ કરો ({existingTests.length})</span>
+                <span style={{ fontSize: '1.1rem' }}>➔</span>
+              </button>
+            </div>
 
           </div>
         </div>
@@ -4857,60 +5137,219 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
             {/* 1. Excel / CSV Bulk Upload (Recommended) */}
-            <button onClick={() => setNewMode('excel')}
+            <div
+              onClick={() => setNewMode('excel')}
               style={{
-                background: 'linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.08))',
-                border: '2px solid rgba(16,185,129,0.45)',
-                borderRadius: 16,
+                position: 'relative',
+                background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(5, 150, 105, 0.25) 50%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(16, 185, 129, 0.45)',
+                borderRadius: 20,
                 padding: '24px 20px',
                 cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.2s',
-                fontFamily: 'Hind Vadodara, sans-serif',
-                position: 'relative'
+                textAlign: 'left',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 10px 30px -10px rgba(16, 185, 129, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.24)'; e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,rgba(16,185,129,0.18),rgba(5,150,105,0.08))'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.45)'; e.currentTarget.style.transform = 'none'; }}>
-              <div style={{ position: 'absolute', top: 10, right: 10, background: '#10b981', color: '#064e3b', fontSize: '0.68rem', fontWeight: 900, padding: '3px 8px', borderRadius: 20 }}>
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#34d399';
+                e.currentTarget.style.boxShadow = '0 18px 40px -10px rgba(52, 211, 153, 0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.45)';
+                e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(16, 185, 129, 0.25)';
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: '#ffffff',
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '3px 9px',
+                borderRadius: 20,
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.4)'
+              }}>
                 🌟 સૌથી સરળ & ઝડપી
               </div>
-              <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📊</div>
-              <div style={{ color: '#34d399', fontWeight: 900, fontSize: '1.05rem', marginBottom: 6 }}>Excel / CSV Bulk Upload</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.6 }}>
-                સેમ્પલ એક્સેલ ડાઉનલોડ કરો ➜ ૫૦ થી ૫૦૦ પ્રશ્નો ભરીને ૧-ક્લિકમાં અપલોડ કરો.
+
+              <div>
+                <div style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.7rem',
+                  boxShadow: '0 6px 16px rgba(16, 185, 129, 0.4)',
+                  marginBottom: 14,
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  📊
+                </div>
+                <div style={{ color: '#34d399', fontWeight: 900, fontSize: '1.12rem', marginBottom: 4 }}>
+                  Excel / CSV Bulk Upload
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5, marginBottom: 16 }}>
+                  સેમ્પલ એક્સેલ ડાઉનલોડ કરો ➜ ૫૦ થી ૫૦૦ પ્રશ્નો ભરીને ૧-ક્લિકમાં અપલોડ કરો.
+                </div>
               </div>
-              <div style={{ marginTop: 14, background: 'rgba(16,185,129,0.25)', color: '#a7f3d0', fontSize: '0.78rem', fontWeight: 800, padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                color: '#ffffff',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                padding: '10px 14px',
+                borderRadius: 10,
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}>
                 🚀 Excel બલ્ક અપલોડ શરૂ કરો →
               </div>
-            </button>
+            </div>
 
             {/* 2. Manual */}
-            <button onClick={() => setNewMode('manual')}
-              style={{ background: 'linear-gradient(135deg,rgba(29,78,216,0.15),rgba(37,99,235,0.08))', border: '1.5px solid rgba(59,130,246,0.3)', borderRadius: 16, padding: '24px 20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>✍️</div>
-              <div style={{ color: '#60a5fa', fontWeight: 900, fontSize: '1.05rem', marginBottom: 6 }}>Manual Entry (વિઝાર્ડ)</div>
-              <div style={{ color: '#64748b', fontSize: '0.82rem', lineHeight: 1.6 }}>
-                ટેસ્ટ નામ, MCQ/Descriptive પ્રશ્નોની સંખ્યા નક્કી કરી એક-એક ઉમેરો.
+            <div
+              onClick={() => setNewMode('manual')}
+              style={{
+                position: 'relative',
+                background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(37, 99, 235, 0.22) 50%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: 20,
+                padding: '24px 20px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 10px 30px -10px rgba(37, 99, 235, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#38bdf8';
+                e.currentTarget.style.boxShadow = '0 18px 40px -10px rgba(56, 189, 248, 0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(37, 99, 235, 0.25)';
+              }}
+            >
+              <div>
+                <div style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.7rem',
+                  boxShadow: '0 6px 16px rgba(37, 99, 235, 0.4)',
+                  marginBottom: 14,
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  ✍️
+                </div>
+                <div style={{ color: '#60a5fa', fontWeight: 900, fontSize: '1.12rem', marginBottom: 4 }}>
+                  Manual Entry (વિઝાર્ડ)
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5, marginBottom: 16 }}>
+                  ટેસ્ટ નામ, MCQ/Descriptive પ્રશ્નોની સંખ્યા નક્કી કરી એક-એક ઉમેરો.
+                </div>
               </div>
-              <div style={{ marginTop: 14, background: 'rgba(59,130,246,0.2)', color: '#93c5fd', fontSize: '0.78rem', fontWeight: 700, padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
-                ➕ Smart Wizard Start
+
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
+                color: '#ffffff',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                padding: '10px 14px',
+                borderRadius: 10,
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+              }}>
+                ➕ Smart Wizard Start →
               </div>
-            </button>
+            </div>
 
             {/* 3. JSON */}
-            <button onClick={() => setNewMode('json')}
-              style={{ background: 'linear-gradient(135deg,rgba(109,40,217,0.15),rgba(124,58,237,0.08))', border: '1.5px solid rgba(139,92,246,0.3)', borderRadius: 16, padding: '24px 20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s', fontFamily: 'Hind Vadodara, sans-serif' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📂</div>
-              <div style={{ color: '#a78bfa', fontWeight: 900, fontSize: '1.05rem', marginBottom: 6 }}>JSON File Upload</div>
-              <div style={{ color: '#64748b', fontSize: '0.82rem', lineHeight: 1.6 }}>
-                JSON ફાઈલ સિલેક્ટ કરો ➜ તમામ પ્રશ્નો એકસાથે બલ્કમાં અપલોડ થઈ જશે.
+            <div
+              onClick={() => setNewMode('json')}
+              style={{
+                position: 'relative',
+                background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(124, 58, 237, 0.22) 50%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(139, 92, 246, 0.4)',
+                borderRadius: 20,
+                padding: '24px 20px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 10px 30px -10px rgba(124, 58, 237, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#c084fc';
+                e.currentTarget.style.boxShadow = '0 18px 40px -10px rgba(192, 132, 252, 0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(124, 58, 237, 0.25)';
+              }}
+            >
+              <div>
+                <div style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.7rem',
+                  boxShadow: '0 6px 16px rgba(124, 58, 237, 0.4)',
+                  marginBottom: 14,
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  📂
+                </div>
+                <div style={{ color: '#a78bfa', fontWeight: 900, fontSize: '1.12rem', marginBottom: 4 }}>
+                  JSON File Upload
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5, marginBottom: 16 }}>
+                  JSON ફાઈલ સિલેક્ટ કરો ➜ તમામ પ્રશ્નો એકસાથે બલ્કમાં અપલોડ થઈ જશે.
+                </div>
               </div>
-              <div style={{ marginTop: 14, background: 'rgba(139,92,246,0.2)', color: '#c4b5fd', fontSize: '0.78rem', fontWeight: 700, padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
-                🚀 Bulk Upload
+
+              <div style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+                color: '#ffffff',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                padding: '10px 14px',
+                borderRadius: 10,
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+              }}>
+                🚀 Bulk Upload →
               </div>
-            </button>
+            </div>
           </div>
         </div>
       )}
