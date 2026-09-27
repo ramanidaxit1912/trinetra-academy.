@@ -420,18 +420,6 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
   }
 });
 
-// ─── DELETE /api/questions/:id ────────────────────────────────
-// Delete question (teacher only)
-router.delete('/:id', authMiddleware, teacherOnly, async (req, res) => {
-  const id = parseInt(req.params.id);
-
-  try {
-    invalidateQuestionsCache();
-    await prisma.question.delete({ where: { id } });
-    res.json({ success: true, message: 'પ્રશ્ન ડિલીટ થઈ ગયો.' });
-  } catch (err) {
-    res.status(500).json({ error: 'પ્રશ્ન ડિલીટ કરવામાં ભૂલ.' });
-  }
 // ─── DELETE /api/questions/test/:testCode ─────────────────────────
 // Delete entire test (all questions and optionally all submissions) to free database storage (teacher only)
 router.delete('/test/:testCode', authMiddleware, teacherOnly, async (req, res) => {
@@ -475,6 +463,20 @@ router.delete('/test/:testCode', authMiddleware, teacherOnly, async (req, res) =
   } catch (err) {
     console.error('Delete test error:', err);
     res.status(500).json({ error: 'કસોટી ડિલીટ કરવામાં સર્વર ક્ષતિ આવી.' });
+  }
+});
+
+// ─── DELETE /api/questions/:id ────────────────────────────────
+// Delete question (teacher only)
+router.delete('/:id', authMiddleware, teacherOnly, async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    invalidateQuestionsCache();
+    await prisma.question.delete({ where: { id } });
+    res.json({ success: true, message: 'પ્રશ્ન ડિલીટ થઈ ગયો.' });
+  } catch (err) {
+    res.status(500).json({ error: 'પ્રશ્ન ડિલીટ કરવામાં ભૂલ.' });
   }
 });
 

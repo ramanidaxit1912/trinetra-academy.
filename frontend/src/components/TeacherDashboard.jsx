@@ -3046,8 +3046,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
       showToast(`🗑️ કસોટી '${testData.testName}' સફળતાપૂર્વક ડિલીટ થઈ ગઈ!`, 'success');
       if (onBack) onBack();
       if (onSaved) onSaved();
-    } catch {
-      showToast('કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
     }
   };
   return (
@@ -4177,7 +4177,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
       fetchQ();
     } catch (err) {
       console.error('Delete test failed:', err);
-      showToast('કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
+      showToast(err.response?.data?.error || 'કસોટી ડિલીટ કરવામાં ક્ષતિ આવી.', 'error');
     }
   };
 
