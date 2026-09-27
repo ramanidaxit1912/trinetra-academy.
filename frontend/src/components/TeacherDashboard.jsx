@@ -3066,98 +3066,207 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
   };
   return (
     <div className="animate-fade-in" style={{ marginBottom: 20 }}>
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: 6 }}>
+      {/* Top Test Header & Action Toolbar */}
+      <div className="glass-card animate-fade-in" style={{
+        padding: '16px 20px',
+        marginBottom: 16,
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.8))',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 14,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 14
+      }}>
+        {/* Left: Badges, Test Title & Metadata */}
+        <div style={{ flex: '1 1 320px', minWidth: 280 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+            <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', fontSize: '0.7rem', fontWeight: 900, padding: '2px 8px', borderRadius: 6 }}>
               ✏️ EDIT TEST
             </span>
             {(() => {
               const testStr = `${testData.testName || ''} ${testData.subject || ''} ${testData.testCode || ''}`.toUpperCase();
               const isTat = testStr.includes('TAT-S') || testStr.includes('TAT-HS') || testStr.includes('TAT S') || testStr.includes('TAT HS');
               return isTat ? (
-                <span style={{ background: 'linear-gradient(135deg,rgba(168,85,247,0.25),rgba(147,51,234,0.35))', border: '1px solid #a855f7', color: '#e9d5ff', fontSize: '0.74rem', fontWeight: 900, padding: '3px 10px', borderRadius: 12 }}>
-                  🎯 TAT-S / TAT-HS Pattern (5 Options + Option E Skip)
+                <span style={{ background: 'linear-gradient(135deg,rgba(168,85,247,0.25),rgba(147,51,234,0.35))', border: '1px solid #a855f7', color: '#e9d5ff', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
+                  🎯 TAT-S / TAT-HS (5 Opts)
                 </span>
               ) : (
-                <span style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', fontSize: '0.74rem', fontWeight: 800, padding: '3px 10px', borderRadius: 12 }}>
-                  📘 સામાન્ય પેટર્ન (4 Options A-D)
+                <span style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
+                  📘 4 Options (A-D)
                 </span>
               );
             })()}
-            <span style={{ background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.35)', color: '#c084fc', fontSize: '0.74rem', fontWeight: 800, padding: '3px 10px', borderRadius: 12 }}>
-              🔀 શફલિંગ સક્રિય (Anti-Cheat Randomize)
+            <span style={{ background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.35)', color: '#c084fc', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
+              🔀 શફલિંગ સક્રિય
             </span>
-            <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.2rem', margin: 0 }}>
-              {testData.testName}
-            </h3>
           </div>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: 3 }}>
-            વિષય: {testData.subject} • કોડ: <span style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{testData.testCode}</span> • {testData.questions.length} પ્રશ્નો
+
+          <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.25rem', margin: '0 0 4px 0', letterSpacing: '-0.3px', lineHeight: 1.3 }}>
+            {testData.testName}
+          </h3>
+
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>વિષય: <strong style={{ color: '#e2e8f0' }}>{testData.subject || 'સામાન્ય'}</strong></span>
+            <span style={{ color: '#475569' }}>•</span>
+            <span>કોડ: <strong style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{testData.testCode}</strong></span>
+            <span style={{ color: '#475569' }}>•</span>
+            <span>પ્રશ્નો: <strong style={{ color: '#fbbf24' }}>{testData.questions.length}</strong></span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={() => { setFullTestQIndex(0); setFullTestPhonePreview(true); }}
+        {/* Right: Action Buttons (Uniform 38px Height & Consistent Styling) */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => { setFullTestQIndex(0); setFullTestPhonePreview(true); }}
+            title="મોબાઇલ પ્રિવ્યૂ જુઓ"
             style={{
-              background: 'linear-gradient(135deg, rgba(56,189,248,0.22), rgba(37,99,235,0.32))',
+              height: 38,
+              background: 'linear-gradient(135deg, rgba(56,189,248,0.18), rgba(37,99,235,0.28))',
               border: '1.5px solid #38bdf8',
               color: '#38bdf8',
-              padding: '8px 16px',
+              padding: '0 14px',
+              borderRadius: 8,
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'Hind Vadodara, sans-serif',
+              boxShadow: '0 0 12px rgba(56,189,248,0.2)',
+              whiteSpace: 'nowrap'
+            }}>
+            <Eye size={15} /> 📱 મોબાઇલ વ્યૂ
+          </button>
+
+          <button
+            onClick={() => exportTestPDF(testData, teacherProfile)}
+            title="આ કસોટીની PDF ડાઉનલોડ કરો"
+            style={{
+              height: 38,
+              background: 'rgba(59,130,246,0.15)',
+              border: '1px solid rgba(59,130,246,0.35)',
+              color: '#93c5fd',
+              padding: '0 14px',
+              borderRadius: 8,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'Hind Vadodara, sans-serif',
+              whiteSpace: 'nowrap'
+            }}>
+            <Download size={14} /> PDF Download
+          </button>
+
+          <button
+            onClick={handleDeleteWholeTest}
+            title="આ કસોટી અને તેના તમામ પ્રશ્નો કાયમી ડિલીટ કરો"
+            style={{
+              height: 38,
+              background: 'rgba(239,68,68,0.15)',
+              border: '1.5px solid rgba(239,68,68,0.4)',
+              color: '#fca5a5',
+              padding: '0 14px',
+              borderRadius: 8,
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'Hind Vadodara, sans-serif',
+              whiteSpace: 'nowrap'
+            }}>
+            <Trash2 size={14} /> કસોટી ડિલીટ
+          </button>
+
+          <button
+            onClick={() => onGoLive(testData.testCode)}
+            title="કસોટી લાઈવ કરો"
+            style={{
+              height: 38,
+              background: 'linear-gradient(135deg,#047857,#10b981)',
+              color: 'white',
+              border: 'none',
+              padding: '0 16px',
               borderRadius: 8,
               fontWeight: 800,
               cursor: 'pointer',
               fontSize: '0.84rem',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 6,
               fontFamily: 'Hind Vadodara, sans-serif',
-              boxShadow: '0 0 16px rgba(56,189,248,0.25)'
+              boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+              whiteSpace: 'nowrap'
             }}>
-            <Eye size={15} /> 📱 આખી કસોટી મોબાઇલ વ્યૂ
-          </button>
-          <button onClick={() => exportTestPDF(testData, teacherProfile)}
-            style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', padding: '8px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
-            <Download size={14} /> PDF Download
-          </button>
-          <button onClick={handleDeleteWholeTest}
-            title="આ કસોટી અને તેના તમામ પ્રશ્નો કાયમી ડિલીટ કરો"
-            style={{ background: 'rgba(239,68,68,0.18)', border: '1.5px solid rgba(239,68,68,0.45)', color: '#fca5a5', padding: '8px 14px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
-            <Trash2 size={14} /> કસોટી ડિલીટ કરો (Delete)
-          </button>
-          <button onClick={() => onGoLive(testData.testCode)}
-            style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
             <Play size={14} fill="white" /> Live કરો
           </button>
-          <button onClick={onBack}
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#cbd5e1', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+
+          <button
+            onClick={onBack}
+            title="પાછા જાઓ"
+            style={{
+              height: 38,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#cbd5e1',
+              padding: '0 14px',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'Hind Vadodara, sans-serif',
+              whiteSpace: 'nowrap'
+            }}>
             ← પાછા જાઓ
           </button>
         </div>
       </div>
 
       {/* Test Meta Settings Editor (Time Limit, Test Name, Subject) */}
-      <div className="glass-card animate-fade-in" style={{ padding: '14px 18px', marginBottom: 18, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-        <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.86rem', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="glass-card animate-fade-in" style={{ padding: '16px 20px', marginBottom: 18, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
+        <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.88rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>⚙️</span> કસોટી સેટિંગ્સ & સમય મર્યાદા (Test Settings & Timer):
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12, alignItems: 'flex-end' }}>
           <div>
-            <label style={{ ...darkLbl, fontSize: '0.72rem' }}>કસોટીનું નામ</label>
-            <input className="input-dark" value={testData.testName || ''} onChange={e => setTestData(d => ({ ...d, testName: e.target.value }))} style={{ padding: '7px 10px', fontSize: '0.82rem' }} />
+            <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block' }}>કસોટીનું નામ</label>
+            <input
+              className="input-dark"
+              value={testData.testName || ''}
+              onChange={e => setTestData(d => ({ ...d, testName: e.target.value }))}
+              style={{ height: 38, padding: '0 12px', fontSize: '0.84rem', borderRadius: 8, boxSizing: 'border-box' }}
+            />
           </div>
           <div>
-            <label style={{ ...darkLbl, fontSize: '0.72rem' }}>વિષય (Subject)</label>
-            <input className="input-dark" value={testData.subject || ''} onChange={e => setTestData(d => ({ ...d, subject: e.target.value }))} style={{ padding: '7px 10px', fontSize: '0.82rem' }} />
+            <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block' }}>વિષય (Subject)</label>
+            <input
+              className="input-dark"
+              value={testData.subject || ''}
+              onChange={e => setTestData(d => ({ ...d, subject: e.target.value }))}
+              style={{ height: 38, padding: '0 12px', fontSize: '0.84rem', borderRadius: 8, boxSizing: 'border-box' }}
+            />
           </div>
           <div>
-            <label style={{ ...darkLbl, fontSize: '0.72rem' }}>સમય મર્યાદા (Timer)</label>
+            <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block' }}>સમય મર્યાદા (Timer)</label>
             <select
               className="input-dark"
               value={testData.timeLimit === 0 ? 0 : testData.timeLimit <= 300 ? testData.timeLimit : testData.timeLimit}
               onChange={e => setTestData(d => ({ ...d, timeLimit: Number(e.target.value) }))}
-              style={{ padding: '7px 10px', fontSize: '0.82rem' }}>
+              style={{ height: 38, padding: '0 10px', fontSize: '0.84rem', borderRadius: 8, boxSizing: 'border-box' }}>
               <option value={0}>♾️ સમય મર્યાદા નથી (No Limit)</option>
               <option value={30}>⏱️ 30 સેકન્ડ / પ્રશ્ન</option>
               <option value={45}>⏱️ 45 સેકન્ડ / પ્રશ્ન</option>
@@ -3170,7 +3279,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
               <option value={3600}>⏳ 60 મિનિટ (આખી કસોટી)</option>
             </select>
           </div>
-          <div style={{ alignSelf: 'flex-end' }}>
+          <div>
+            <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block', visibility: 'hidden' }}>&nbsp;</label>
             <button
               onClick={async () => {
                 try {
@@ -3185,7 +3295,25 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   showToast('સેવ કરવામાં ભૂલ.', 'error');
                 }
               }}
-              style={{ width: '100%', background: 'linear-gradient(135deg,#2563eb,#3b82f6)', color: 'white', border: 'none', padding: '9px 14px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+              style={{
+                width: '100%',
+                height: 38,
+                background: 'linear-gradient(135deg,#2563eb,#3b82f6)',
+                color: 'white',
+                border: 'none',
+                padding: '0 16px',
+                borderRadius: 8,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontSize: '0.84rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                fontFamily: 'Hind Vadodara, sans-serif',
+                boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                boxSizing: 'border-box'
+              }}>
               💾 સેટિંગ્સ સેવ કરો
             </button>
           </div>
@@ -3193,13 +3321,29 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
       </div>
 
       {/* Add Question Button Banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ color: '#a5b4fc', fontSize: '0.88rem', fontWeight: 800 }}>
-          📋 કસોટીના પ્રશ્નો ({testData.questions.length}):
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ color: '#a5b4fc', fontSize: '0.92rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>📋</span> કસોટીના પ્રશ્નો ({testData.questions.length}):
         </div>
         <button onClick={() => setShowAdd(!showAdd)}
-          style={{ background: 'linear-gradient(135deg,#1d4ed8,#2563eb)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Hind Vadodara, sans-serif' }}>
-          <Plus size={14} /> {showAdd ? 'Cancel' : '➕ નવો પ્રશ્ન ઉમેરો'}
+          style={{
+            height: 36,
+            background: showAdd ? 'rgba(239,68,68,0.18)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+            border: showAdd ? '1px solid rgba(239,68,68,0.35)' : 'none',
+            color: showAdd ? '#fca5a5' : 'white',
+            padding: '0 16px',
+            borderRadius: 8,
+            fontWeight: 800,
+            cursor: 'pointer',
+            fontSize: '0.82rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'Hind Vadodara, sans-serif',
+            boxShadow: showAdd ? 'none' : '0 2px 8px rgba(37,99,235,0.25)'
+          }}>
+          {showAdd ? <X size={15} /> : <Plus size={15} />}
+          {showAdd ? 'રદ્દ કરો (Cancel)' : 'નવો પ્રશ્ન ઉમેરો'}
         </button>
       </div>
 
@@ -3374,19 +3518,23 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <button onClick={() => setPhonePreviewQ(q)}
-                        style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
-                        <Eye size={13} /> 📱 મોબાઇલ વ્યૂ
+                        title="મોબાઇલ પ્રિવ્યૂ જુઓ"
+                        style={{ height: 30, background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8', padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                        <Eye size={13} /> મોબાઇલ વ્યૂ
                       </button>
                       <button onClick={() => {
                         setEditingQId(q.id);
                         setEditForm({ ...q });
-                      }} style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                      }}
+                        title="પ્રશ્નમાં સુધારો કરો"
+                        style={{ height: 30, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                         <Edit3 size={13} /> Edit (સુધારો)
                       </button>
                       <button onClick={() => handleDeleteQuestion(q.id)}
-                        style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', padding: '5px 8px', borderRadius: 6, cursor: 'pointer' }}>
+                        title="આ પ્રશ્ન ડિલીટ કરો"
+                        style={{ height: 30, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '0 8px', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
