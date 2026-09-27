@@ -4,6 +4,18 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// ─── 🛡️ Global Process Crash Shield (Zero-Downtime Immunity) ───────
+// Intercepts unhandled async promise rejections and uncaught exceptions so Node.js process NEVER abruptly exits
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 [Global Safety Shield] Intercepted Unhandled Rejection:', reason?.message || reason);
+  if (reason?.stack) console.error(reason.stack);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('🚨 [Global Safety Shield] Intercepted Uncaught Exception:', err?.message || err);
+  if (err?.stack) console.error(err.stack);
+});
+
 const authRoutes = require('./routes/auth');
 const questionsRoutes = require('./routes/questions');
 const submissionsRoutes = require('./routes/submissions');
@@ -548,6 +560,18 @@ setInterval(async () => {
     console.warn('⚠️ [OTP Cleanup Cron Error]:', err.message);
   }
 }, 60 * 1000);
+
+// ─── 🛡️ Global Express Error Shield ──────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('🚨 [Express Error Shield]:', err?.message || err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'સર્વર આંતરિક ક્ષતિ (Internal Server Error). કૃપા કરીને ફરી પ્રયાસ કરો.'
+  });
+});
 
 // ─── Start ────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {

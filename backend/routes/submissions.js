@@ -7,8 +7,15 @@ const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/c
 
 const router = express.Router();
 
-// Memory cache for recent generated PDF URLs: submissionId -> { url, expiresAt }
+// Memory cache for recent generated PDF URLs: submissionId -> url (capped at 150 entries to prevent memory leak)
 const scorecardPdfUrlCache = new Map();
+function setScorecardPdfCache(id, url) {
+  if (scorecardPdfUrlCache.size >= 150) {
+    const oldestKey = scorecardPdfUrlCache.keys().next().value;
+    if (oldestKey !== undefined) scorecardPdfUrlCache.delete(oldestKey);
+  }
+  scorecardPdfUrlCache.set(id, url);
+}
 
 // ─── Helper: Auto-calculate MCQ score with Negative Marking (Supports Option E / Skip) ────
 function calculateMCQScore(answers, questions) {
@@ -801,7 +808,7 @@ router.post('/:id/send-whatsapp', async (req, res) => {
       uploadPdfToCloudinary(pdfBuffer, filename, `scorecard_${id}`)
         .then(res => {
           if (res?.url) {
-            scorecardPdfUrlCache.set(id, res.url);
+            setScorecardPdfCache(id, res.url);
             console.log(`☁️ [Cloudinary] Scorecard #${id} saved: ${res.url}`);
           }
         })
