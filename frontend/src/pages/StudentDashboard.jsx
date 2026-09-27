@@ -66,7 +66,8 @@ import {
   sendOTP, verifyOTP, getQuestions, getMySubmissions, getStudentHistoryByMobile,
   getSubmissionReview, getLeaderboard, getTestWiseLeaderboard, getMaterials, getMarketingItems,
   sendWhatsAppScorecard,
-  sendPragatiWhatsApp
+  sendPragatiWhatsApp,
+  checkStudentEnrollment
 } from '../services/api';
 import { LeaderboardUI } from '../components/Leaderboard';
 import {
@@ -733,6 +734,7 @@ export default function StudentDashboard() {
   const [waTargetMobile, setWaTargetMobile]           = useState('');
   const [waSuccessModal, setWaSuccessModal]           = useState(null);
   const [sendingPragatiWa, setSendingPragatiWa]       = useState(false);
+  const [enrolledLockModal, setEnrolledLockModal]     = useState({ isOpen: false, testName: '' });
 
   // Extract unique subjects from student's submissions
   const uniqueSubjects = useMemo(() => {
@@ -950,7 +952,7 @@ export default function StudentDashboard() {
   };
 
   // ─── Launch Exam Directly from Live Tab ────────────────────
-  const handleStartExam = (testQuestions) => {
+  const handleStartExam = async (testQuestions) => {
     const firstQ = testQuestions && testQuestions[0];
     const tCode = firstQ?.testCode;
     const isAlreadyDone = tCode && submissions.some(s => s.testCode === tCode);
@@ -959,6 +961,33 @@ export default function StudentDashboard() {
       setActiveTab('results');
       return;
     }
+
+    // Check if test is restricted to Trinetra enrolled students
+    const isEnrolledOnly = testQuestions?.some(q => q.isEnrolledOnly);
+    if (isEnrolledOnly) {
+      let isEnrolled = !!user?.isEnrolled;
+      const studentMobile = user?.mobile;
+
+      if (!isEnrolled && studentMobile) {
+        try {
+          const res = await checkStudentEnrollment(studentMobile);
+          if (res.data?.isEnrolled) {
+            isEnrolled = true;
+          }
+        } catch (e) {
+          console.error('Enrollment check failed:', e);
+        }
+      }
+
+      if (!isEnrolled) {
+        setEnrolledLockModal({
+          isOpen: true,
+          testName: firstQ?.testName || 'કસોટી'
+        });
+        return;
+      }
+    }
+
     startExam(testQuestions);
     navigate('/exam');
   };
@@ -2780,6 +2809,22 @@ export default function StudentDashboard() {
                           }}>
                             ID: {t.testCode}
                           </span>
+                          {t.questions?.some(q => q.isEnrolledOnly) && (
+                            <span style={{
+                              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                              color: '#ffffff',
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              padding: '3px 10px',
+                              borderRadius: 8,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)'
+                            }}>
+                              🔒 ત્રિનેત્ર એડમિશન સ્પેશિયલ
+                            </span>
+                          )}
                         </div>
 
                         {/* Test Title */}
@@ -5287,6 +5332,110 @@ export default function StudentDashboard() {
                   <>🚀 WhatsApp PDF મોકલો</>
                 )}
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── 🔒 TRINETRA ENROLLED ADMISSION RESTRICTION MODAL ── */}
+      {enrolledLockModal.isOpen && typeof document !== 'undefined' && createPortal(
+        <div className="student-modal-backdrop" style={{ zIndex: 10000020, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
+          <div className="card animate-fade-in" style={{
+            width: '100%',
+            maxWidth: 480,
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
+            border: '2px solid #818cf8',
+            borderRadius: 24,
+            padding: '32px 24px',
+            color: 'white',
+            textAlign: 'center',
+            boxShadow: '0 25px 60px rgba(79,70,229,0.4), 0 0 40px rgba(129,140,248,0.25)',
+            position: 'relative'
+          }}>
+            {/* Lock Icon Badge */}
+            <div style={{
+              width: 76,
+              height: 76,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.4rem',
+              margin: '0 auto 18px',
+              boxShadow: '0 8px 24px rgba(79,70,229,0.5)'
+            }}>
+              🔒
+            </div>
+
+            <span style={{
+              background: 'rgba(239,68,68,0.2)',
+              color: '#fca5a5',
+              border: '1px solid rgba(239,68,68,0.4)',
+              fontSize: '0.76rem',
+              fontWeight: 900,
+              padding: '4px 14px',
+              borderRadius: 20,
+              display: 'inline-block',
+              marginBottom: 12
+            }}>
+              એડમિશન મર્યાદિત કસોટી (Restricted Access)
+            </span>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', margin: '0 0 10px' }}>
+              ત્રિનેત્ર એકેડેમી પ્રવેશ જરૂરી છે!
+            </h3>
+
+            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 700 }}>કસોટીનું નામ:</div>
+              <div style={{ color: '#a5b4fc', fontSize: '0.98rem', fontWeight: 900, marginTop: 2 }}>{enrolledLockModal.testName}</div>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.88rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+              આ કસોટી ફક્ત <strong>ત્રિનેત્ર ઓનલાઇન એકેડેમી</strong> ના નિયમિત એડમિશન લીધેલા (Enrolled) વિદ્યાર્થીઓ માટે જ માન્ય છે.<br />
+              જો તમે એડમિશન લીધું હોય છતાં આ મેસેજ દેખાય છે, તો શિક્ષક દ્વારા તમારો મોબાઈલ નંબર એડમિશન લિસ્ટમાં ઉમેરાવવો પડશે.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setEnrolledLockModal({ isOpen: false, testName: '' })}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  color: '#cbd5e1',
+                  padding: '13px',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}>
+                બંધ કરો
+              </button>
+
+              <a
+                href={`https://wa.me/918200405300?text=${encodeURIComponent(`નમસ્તે સર, હું ત્રિનેત્ર એપ્લિકેશન પર "${enrolledLockModal.testName}" કસોટી આપવા માંગુ છું. મારો મોબાઈલ નંબર: ${user?.mobile || ''} છે. મને એડમિશન બેચમાં એડ કરવા વિનંતી.`)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  flex: 1.5,
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: '13px',
+                  borderRadius: 12,
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.4)'
+                }}>
+                💬 WhatsApp પર સંપર્ક કરો
+              </a>
             </div>
           </div>
         </div>,

@@ -386,4 +386,169 @@ router.post('/send-daily-report', authMiddleware, teacherOnly, async (req, res) 
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// 🎓 TRINETRA ENROLLED STUDENTS (BATCH & ADMISSION CONTROL)
+// ═══════════════════════════════════════════════════════════════
+
+// ─── GET /api/teacher/enrolled-students ─────────────────────────
+// Fetch list of enrolled Trinetra students
+router.get('/enrolled-students', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { q } = req.query;
+    let where = {};
+    if (q && q.trim()) {
+      const searchTerm = q.trim();
+      where = {
+        OR: [
+          { mobile: { contains: searchTerm } },
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { batch: { contains: searchTerm, mode: 'insensitive' } }
+        ]
+      };
+    }
+    const students = await prisma.enrolledStudent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    });
+    const totalCount = await prisma.enrolledStudent.count();
+    res.json({ success: true, students, totalCount });
+  } catch (err) {
+    console.error('Fetch Enrolled Students Error:', err);
+    res.status(500).json({ error: 'એડમિશન વિદ્યાર્થીઓ લોડ કરવામાં ભૂલ.' });
+  }
+});
+
+// ─── POST /api/teacher/enrolled-students/bulk ──────────────────
+// Bulk import enrolled students from Excel or CSV
+router.post('/enrolled-students/bulk', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { students, defaultBatch = 'Trinetra Regular' } = req.body;
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ error: 'વિદ્યાર્થીઓની યાદી (array) જરૂરી છે.' });
+    }
+
+    let addedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (const item of students) {
+      const rawMobile = item.mobile || item.phone || item.Mobile || item.Phone || item['મોબાઈલ'] || item['મોબાઇલ'] || '';
+      const clean = String(rawMobile).replace(/\D/g, '').slice(-10);
+
+      // Validate 10-digit Indian mobile format (starts with 6-9)
+      if (clean.length === 10 && /^[6-9]/.test(clean)) {
+        const studentName = (item.name || item.Name || item['વિદ્યાર્થીનું નામ'] || item['નામ'] || '').trim() || null;
+        const studentBatch = (item.batch || item.Batch || item['બેચ'] || defaultBatch || 'Trinetra Regular').trim();
+
+        const existing = await prisma.enrolledStudent.findUnique({
+          where: { mobile: clean }
+        });
+
+        if (existing) {
+          await prisma.enrolledStudent.update({
+            where: { mobile: clean },
+            data: {
+              name: studentName || existing.name,
+              batch: studentBatch || existing.batch,
+              isActive: true,
+              updatedAt: new Date()
+            }
+          });
+          updatedCount++;
+        } else {
+          await prisma.enrolledStudent.create({
+            data: {
+              mobile: clean,
+              name: studentName,
+              batch: studentBatch,
+              isActive: true
+            }
+          });
+          addedCount++;
+        }
+      } else {
+        skippedCount++;
+      }
+    }
+
+    const totalEnrolled = await prisma.enrolledStudent.count();
+
+    res.json({
+      success: true,
+      message: `✅ એડમિશન પ્રક્રિયા પૂર્ણ: ${addedCount} નવા ઉમેરાયા, ${updatedCount} અપડેટ થયા${skippedCount > 0 ? `, ${skippedCount} અમાન્ય નંબર છોડી દીધા` : ''}!`,
+      addedCount,
+      updatedCount,
+      skippedCount,
+      totalEnrolled
+    });
+  } catch (err) {
+    console.error('Bulk Import Enrolled Students Error:', err);
+    res.status(500).json({ error: 'એક્સેલ ડેટા ઉમેરવામાં ભૂલ આવી: ' + err.message });
+  }
+});
+
+// ─── POST /api/teacher/enrolled-students ───────────────────────
+// Add single enrolled student
+router.post('/enrolled-students', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { mobile, name, batch = 'Trinetra Regular' } = req.body;
+    const clean = String(mobile || '').replace(/\D/g, '').slice(-10);
+
+    if (clean.length !== 10 || !/^[6-9]/.test(clean)) {
+      return res.status(400).json({ error: 'માન્ય ૧૦ આંકડાનો ભારતીય મોબાઈલ નંબર દાખલ કરો.' });
+    }
+
+    const record = await prisma.enrolledStudent.upsert({
+      where: { mobile: clean },
+      update: {
+        name: (name || '').trim() || undefined,
+        batch: (batch || 'Trinetra Regular').trim(),
+        isActive: true,
+        updatedAt: new Date()
+      },
+      create: {
+        mobile: clean,
+        name: (name || '').trim() || null,
+        batch: (batch || 'Trinetra Regular').trim(),
+        isActive: true
+      }
+    });
+
+    res.json({
+      success: true,
+      student: record,
+      message: `✅ મોબાઈલ ${clean} સફળતાપૂર્વક ત્રિનેત્ર એડમિશન લિસ્ટમાં ઉમેરાઈ ગયો!`
+    });
+  } catch (err) {
+    console.error('Add Single Enrolled Student Error:', err);
+    res.status(500).json({ error: 'વિદ્યાર્થી ઉમેરવામાં ભૂલ આવી.' });
+  }
+});
+
+// ─── DELETE /api/teacher/enrolled-students/:id ──────────────────
+// Remove single student from enrolled list
+router.delete('/enrolled-students/:id', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.enrolledStudent.delete({ where: { id } });
+    res.json({ success: true, message: 'વિદ્યાર્થી એડમિશન લિસ્ટમાંથી દૂર કરવામાં આવ્યો.' });
+  } catch (err) {
+    console.error('Delete Enrolled Student Error:', err);
+    res.status(500).json({ error: 'વિદ્યાર્થી દૂર કરવામાં ભૂલ આવી.' });
+  }
+});
+
+// ─── DELETE /api/teacher/enrolled-students ──────────────────────
+// Clear all enrolled students
+router.delete('/enrolled-students', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const deleted = await prisma.enrolledStudent.deleteMany({});
+    res.json({ success: true, message: `🗑️ ત્રિનેત્ર એડમિશન લિસ્ટના તમામ (${deleted.count}) રેકોર્ડ્સ સાફ થઈ ગયા.` });
+  } catch (err) {
+    console.error('Clear All Enrolled Students Error:', err);
+    res.status(500).json({ error: 'લિસ્ટ સાફ કરવામાં ભૂલ આવી.' });
+  }
+});
+
 module.exports = router;
+

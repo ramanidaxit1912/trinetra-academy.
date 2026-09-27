@@ -61,7 +61,7 @@ import ExamEngine from '../components/ExamEngine';
 import PhotoAnswerUpload from '../components/PhotoAnswerUpload';
 import ResultCard from '../components/ResultCard';
 import { useStore } from '../store/useStore';
-import { sendOTP, verifyOTP, getQuestions, submitTest, getSubmissionReview, getActiveTestSession, discardActiveTestSession } from '../services/api';
+import { sendOTP, verifyOTP, getQuestions, submitTest, getSubmissionReview, getActiveTestSession, discardActiveTestSession, checkStudentEnrollment } from '../services/api';
 import { clearShuffledTestCache } from '../utils/shuffleUtils';
 
 const isImg = (val) => {
@@ -107,6 +107,7 @@ export default function ExamPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(2);
   const [tabSwitchViolations, setTabSwitchViolations] = useState(0);
+  const [enrolledLockModal, setEnrolledLockModal] = useState({ isOpen: false, testName: '' });
   const navigate = useNavigate();
 
   const checkAndSetResumable = async (testQuestions) => {
@@ -265,14 +266,64 @@ export default function ExamPage() {
     setLoading(false);
   };
 
-  const handleSelectTestToRule = (testQuestions) => {
+  const handleSelectTestToRule = async (testQuestions) => {
+    // Check enrollment restriction
+    if (testQuestions?.some(q => q.isEnrolledOnly)) {
+      let isEnrolled = !!user?.isEnrolled;
+      const studentMobile = user?.mobile || form?.mobile;
+
+      if (!isEnrolled && studentMobile) {
+        try {
+          const res = await checkStudentEnrollment(studentMobile);
+          if (res.data?.isEnrolled) {
+            isEnrolled = true;
+          }
+        } catch (e) {
+          console.error('Enrollment check failed:', e);
+        }
+      }
+
+      if (!isEnrolled) {
+        setEnrolledLockModal({
+          isOpen: true,
+          testName: testQuestions[0]?.testName || 'કસોટી'
+        });
+        return;
+      }
+    }
+
     setSelectedTestQuestions(testQuestions);
     setAgreeRules(false);
     checkAndSetResumable(testQuestions);
     setStep(STEPS.RULES);
   };
 
-  const handleStartExamAfterRules = () => {
+  const handleStartExamAfterRules = async () => {
+    // Check enrollment restriction before entering exam
+    if (selectedTestQuestions?.some(q => q.isEnrolledOnly)) {
+      let isEnrolled = !!user?.isEnrolled;
+      const studentMobile = user?.mobile || form?.mobile;
+
+      if (!isEnrolled && studentMobile) {
+        try {
+          const res = await checkStudentEnrollment(studentMobile);
+          if (res.data?.isEnrolled) {
+            isEnrolled = true;
+          }
+        } catch (e) {
+          console.error('Enrollment check failed:', e);
+        }
+      }
+
+      if (!isEnrolled) {
+        setEnrolledLockModal({
+          isOpen: true,
+          testName: selectedTestQuestions[0]?.testName || 'કસોટી'
+        });
+        return;
+      }
+    }
+
     startExam(selectedTestQuestions);
     setStep(STEPS.EXAM);
   };
@@ -655,13 +706,27 @@ export default function ExamPage() {
               return (
                 <div key={t.testCode} className="card animate-fade-in" style={{ padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: alreadyDone ? '1.5px solid #cbd5e1' : '1.5px solid #e2e8f0', background: alreadyDone ? '#f8fafc' : 'white', borderRadius: 14 }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                       <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: 20 }}>
                         📚 {t.subject}
                       </span>
-                      <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 800, padding: '3px 8px', borderRadius: 6 }}>
-                        ID: {t.testCode}
-                      </span>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {t.questions?.some(q => q.isEnrolledOnly) && (
+                          <span style={{
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                            color: '#ffffff',
+                            fontSize: '0.72rem',
+                            fontWeight: 900,
+                            padding: '3px 8px',
+                            borderRadius: 6
+                          }}>
+                            🔒 એડમિશન સ્પેશિયલ
+                          </span>
+                        )}
+                        <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 800, padding: '3px 8px', borderRadius: 6 }}>
+                          ID: {t.testCode}
+                        </span>
+                      </div>
                     </div>
 
                     <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px 0' }}>
@@ -1041,6 +1106,107 @@ export default function ExamPage() {
               style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '1rem', background: 'linear-gradient(135deg,#1e3a8a,#2563eb)' }}>
               📜 સીધા રિઝલ્ટ ડેશબોર્ડ પર જાઓ →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 🔒 TRINETRA ENROLLED ADMISSION RESTRICTION MODAL ── */}
+      {enrolledLockModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', zIndex: 10000020, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="card animate-fade-in" style={{
+            maxWidth: 460,
+            width: '100%',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
+            borderRadius: 24,
+            padding: '32px 24px',
+            textAlign: 'center',
+            boxShadow: '0 25px 60px rgba(79,70,229,0.4), 0 0 40px rgba(129,140,248,0.25)',
+            border: '2px solid #818cf8',
+            color: 'white'
+          }}>
+            <div style={{
+              width: 76,
+              height: 76,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.4rem',
+              margin: '0 auto 16px',
+              boxShadow: '0 8px 24px rgba(79,70,229,0.5)'
+            }}>
+              🔒
+            </div>
+
+            <span style={{
+              background: 'rgba(239,68,68,0.2)',
+              color: '#fca5a5',
+              border: '1px solid rgba(239,68,68,0.4)',
+              fontSize: '0.76rem',
+              fontWeight: 900,
+              padding: '4px 14px',
+              borderRadius: 20,
+              display: 'inline-block',
+              marginBottom: 12
+            }}>
+              એડમિશન મર્યાદિત કસોટી (Restricted Access)
+            </span>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', margin: '0 0 10px' }}>
+              ત્રિનેત્ર એકેડેમી પ્રવેશ જરૂરી છે!
+            </h3>
+
+            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 700 }}>કસોટીનું નામ:</div>
+              <div style={{ color: '#a5b4fc', fontSize: '0.98rem', fontWeight: 900, marginTop: 2 }}>{enrolledLockModal.testName}</div>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.88rem', lineHeight: 1.6, margin: '0 0 24px' }}>
+              આ કસોટી ફક્ત <strong>ત્રિનેત્ર ઓનલાઇન એકેડેમી</strong> ના નિયમિત એડમિશન લીધેલા (Enrolled) વિદ્યાર્થીઓ માટે જ માન્ય છે.<br />
+              જો તમે એડમિશન લીધું હોય છતાં આ મેસેજ દેખાય છે, તો શિક્ષક દ્વારા તમારો મોબાઈલ નંબર એડમિશન લિસ્ટમાં ઉમેરાવવો પડશે.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setEnrolledLockModal({ isOpen: false, testName: '' })}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  color: '#cbd5e1',
+                  padding: '13px',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}>
+                બંધ કરો
+              </button>
+
+              <a
+                href={`https://wa.me/918200405300?text=${encodeURIComponent(`નમસ્તે સર, હું ત્રિનેત્ર એપ્લિકેશન પર "${enrolledLockModal.testName}" કસોટી આપવા માંગુ છું. મારો મોબાઈલ નંબર: ${user?.mobile || form?.mobile || ''} છે. મને એડમિશન બેચમાં એડ કરવા વિનંતી.`)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  flex: 1.5,
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: '13px',
+                  borderRadius: 12,
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.4)'
+                }}>
+                💬 WhatsApp પર સંપર્ક કરો
+              </a>
+            </div>
           </div>
         </div>
       )}

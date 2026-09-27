@@ -96,6 +96,23 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
   }
 
   try {
+    // Check if test is Enrolled Only:
+    const enrolledOnlyQ = await prisma.question.findFirst({
+      where: { testCode, isEnrolledOnly: true }
+    });
+    if (enrolledOnlyQ) {
+      const student = await prisma.student.findUnique({ where: { id: studentId } });
+      const cleanMob = String(student?.mobile || req.user?.mobile || '').replace(/\D/g, '').slice(-10);
+      const isEnrolled = await prisma.enrolledStudent.findFirst({
+        where: { mobile: cleanMob, isActive: true }
+      });
+      if (!isEnrolled) {
+        return res.status(403).json({
+          error: '🔒 આ કસોટી ફક્ત ત્રિનેત્ર એકેડેમીના પ્રવેશ મેળવેલ (Admitted) વિદ્યાર્થીઓ માટે જ છે. પ્રવેશ મેળવવા માટે એકેડેમીનો સંપર્ક કરો.'
+        });
+      }
+    }
+
     const existing = await prisma.submission.findFirst({
       where: {
         studentId,
@@ -231,6 +248,19 @@ router.post('/', authMiddleware, async (req, res) => {
       allTestQuestions = await prisma.question.findMany({
         where: { testCode }
       });
+      const isEnrolledOnlyTest = allTestQuestions.some(q => q.isEnrolledOnly);
+      if (isEnrolledOnlyTest) {
+        const student = await prisma.student.findUnique({ where: { id: studentId } });
+        const cleanMob = String(student?.mobile || req.user?.mobile || '').replace(/\D/g, '').slice(-10);
+        const isEnrolled = await prisma.enrolledStudent.findFirst({
+          where: { mobile: cleanMob, isActive: true }
+        });
+        if (!isEnrolled) {
+          return res.status(403).json({
+            error: '🔒 આ કસોટી ફક્ત ત્રિનેત્ર એકેડેમીના પ્રવેશ મેળવેલ (Admitted) વિદ્યાર્થીઓ માટે જ છે. પ્રવેશ મેળવવા માટે એકેડેમીનો સંપર્ક કરો.'
+          });
+        }
+      }
     }
 
     const validQuestionIds = answers

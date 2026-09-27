@@ -153,7 +153,7 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
     text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
     image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
-    scheduledAt, negativeMarking
+    scheduledAt, negativeMarking, isEnrolledOnly
   } = req.body;
 
   if (!text || !text.trim()) {
@@ -200,6 +200,7 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
         optionD_img: (optionD_img || '').trim() || null,
         optionE_img: (optionE_img || '').trim() || null,
         negativeMarking: negativeMarking !== undefined ? parseFloat(negativeMarking) : 0,
+        isEnrolledOnly: isEnrolledOnly !== undefined ? Boolean(isEnrolledOnly) : false,
         isActive: isActive !== undefined ? isActive : false,
         orderIndex: (maxOrder?.orderIndex || 0) + 1
       }
@@ -349,10 +350,10 @@ router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
 });
 
 // ─── PUT /api/questions/test/:testCode/meta ──────────────────
-// Update test metadata (timeLimit, testName, subject) for all questions in test (teacher only)
+// Update test metadata (timeLimit, testName, subject, isEnrolledOnly) for all questions in test (teacher only)
 router.put('/test/:testCode/meta', authMiddleware, teacherOnly, async (req, res) => {
   const { testCode } = req.params;
-  const { testName, subject, timeLimit } = req.body;
+  const { testName, subject, timeLimit, isEnrolledOnly } = req.body;
   try {
     invalidateQuestionsCache();
     await prisma.question.updateMany({
@@ -360,7 +361,8 @@ router.put('/test/:testCode/meta', authMiddleware, teacherOnly, async (req, res)
       data: {
         ...(testName !== undefined && { testName: testName.trim(), chapter: testName.trim() }),
         ...(subject !== undefined && { subject: subject.trim() }),
-        ...(timeLimit !== undefined && { timeLimit: parseInt(timeLimit) })
+        ...(timeLimit !== undefined && { timeLimit: parseInt(timeLimit) }),
+        ...(isEnrolledOnly !== undefined && { isEnrolledOnly: Boolean(isEnrolledOnly) })
       }
     });
     res.json({ success: true, message: 'કસોટીની વિગતો સફળતાપૂર્વક અપડેટ થઈ.' });
@@ -378,7 +380,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
     text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
     image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
-    scheduledAt, negativeMarking
+    scheduledAt, negativeMarking, isEnrolledOnly
   } = req.body;
 
   try {
@@ -410,6 +412,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
         ...(optionD_img !== undefined && { optionD_img: optionD_img || null }),
         ...(optionE_img !== undefined && { optionE_img: optionE_img || null }),
         ...(negativeMarking !== undefined && { negativeMarking: parseFloat(negativeMarking) }),
+        ...(isEnrolledOnly !== undefined && { isEnrolledOnly: Boolean(isEnrolledOnly) }),
         ...(isActive !== undefined && { isActive })
       }
     });
@@ -719,7 +722,7 @@ Return ONLY a JSON array of question objects. Do not wrap in markdown quotes.
 // ─── POST /api/questions/bulk-save ────────────────────────────
 // Save an array of questions into the database under a test code (teacher only)
 router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
-  const { questions, testCode, testName, subject, timeLimit, isActive } = req.body;
+  const { questions, testCode, testName, subject, timeLimit, isActive, isEnrolledOnly } = req.body;
 
   if (!Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ error: 'સાચવવા માટે પ્રશ્નો મળ્યા નથી.' });
@@ -730,6 +733,7 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
   const finalSubject  = (subject || questions[0]?.subject || 'સામાન્ય').trim();
   const finalTimeLimit = parseInt(timeLimit) || 60;
   const finalIsActive  = isActive !== undefined ? isActive : false;
+  const finalIsEnrolledOnly = isEnrolledOnly !== undefined ? Boolean(isEnrolledOnly) : false;
 
   try {
     const maxOrder = await prisma.question.findFirst({
@@ -759,6 +763,7 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
           testCode: finalTestCode,
           testName: finalTestName,
           timeLimit: finalTimeLimit,
+          isEnrolledOnly: finalIsEnrolledOnly,
           isActive: finalIsActive,
           orderIndex: currentOrder++
         }

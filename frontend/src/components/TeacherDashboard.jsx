@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
 import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
+import EnrolledStudentsManager from './EnrolledStudentsManager';
 import { Camera, Zap } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -2947,7 +2948,10 @@ function ManualTestCreator({ showToast, onDone }) {
 ═══════════════════════════════════════════════════════ */
 function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
   const { teacherProfile } = useStore();
-  const [testData, setTestData]     = useState(test);
+  const [testData, setTestData]     = useState({
+    ...test,
+    isEnrolledOnly: test.isEnrolledOnly !== undefined ? Boolean(test.isEnrolledOnly) : Boolean(test.questions?.[0]?.isEnrolledOnly)
+  });
   const [editingQId, setEditingQId] = useState(null);
   const [editForm, setEditForm]     = useState({});
   const [showAdd, setShowAdd]       = useState(false);
@@ -3101,6 +3105,15 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
             <span style={{ background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.35)', color: '#c084fc', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
               🔀 શફલિંગ સક્રિય
             </span>
+            {testData.isEnrolledOnly ? (
+              <span style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', color: '#fca5a5', fontSize: '0.7rem', fontWeight: 900, padding: '2px 8px', borderRadius: 6 }}>
+                🔒 ત્રિનેત્ર એડમિશન સ્પેશિયલ
+              </span>
+            ) : (
+              <span style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
+                🌐 પબ્લિક (સૌ માટે)
+              </span>
+            )}
           </div>
 
           <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.25rem', margin: '0 0 4px 0', letterSpacing: '-0.3px', lineHeight: 1.3 }}>
@@ -3236,12 +3249,12 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
         </div>
       </div>
 
-      {/* Test Meta Settings Editor (Time Limit, Test Name, Subject) */}
+      {/* Test Meta Settings Editor (Time Limit, Test Name, Subject, Access Level) */}
       <div className="glass-card animate-fade-in" style={{ padding: '16px 20px', marginBottom: 18, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
         <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.88rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>⚙️</span> કસોટી સેટિંગ્સ & સમય મર્યાદા (Test Settings & Timer):
+          <span>⚙️</span> કસોટી સેટિંગ્સ & એક્સેસ કંટ્રોલ (Test Settings & Access Level):
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12, alignItems: 'flex-end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, alignItems: 'flex-end' }}>
           <div>
             <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block' }}>કસોટીનું નામ</label>
             <input
@@ -3280,6 +3293,25 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
             </select>
           </div>
           <div>
+            <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block' }}>પ્રવેશ મર્યાદા (Access Level)</label>
+            <select
+              className="input-dark"
+              value={testData.isEnrolledOnly ? 'enrolled' : 'public'}
+              onChange={e => setTestData(d => ({ ...d, isEnrolledOnly: e.target.value === 'enrolled' }))}
+              style={{
+                height: 38,
+                padding: '0 10px',
+                fontSize: '0.84rem',
+                borderRadius: 8,
+                boxSizing: 'border-box',
+                border: testData.isEnrolledOnly ? '1.5px solid #ef4444' : '1px solid rgba(255,255,255,0.12)',
+                color: testData.isEnrolledOnly ? '#fca5a5' : '#86efac'
+              }}>
+              <option value="public">🌐 પબ્લિક (સૌ માટે ખુલ્લી)</option>
+              <option value="enrolled">🔒 ત્રિનેત્ર એડમિશન (Trinetra Only)</option>
+            </select>
+          </div>
+          <div>
             <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 5, display: 'block', visibility: 'hidden' }}>&nbsp;</label>
             <button
               onClick={async () => {
@@ -3287,7 +3319,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   await updateTestMeta(testData.testCode, {
                     testName: testData.testName,
                     subject: testData.subject,
-                    timeLimit: testData.timeLimit
+                    timeLimit: testData.timeLimit,
+                    isEnrolledOnly: Boolean(testData.isEnrolledOnly)
                   });
                   showToast('✅ કસોટી સેટિંગ્સ સેવ થઈ ગઈ!', 'success');
                   if (onSaved) onSaved();
@@ -9389,6 +9422,7 @@ function StudentAnswers({ showToast }) {
    STUDENT LOGINS
 ═══════════════════════════════════════════════════════ */
 function StudentLogins({ showToast }) {
+  const [activeSubTab, setActiveSubTab] = useState('admission'); // 'admission' | 'logins'
   const [students, setStudents] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
@@ -9691,8 +9725,65 @@ function StudentLogins({ showToast }) {
 
   return (
     <div className="animate-fade-in">
-      {/* ── Top Summary & Master Access Banner ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
+      {/* ── Sub-tab Switcher: Enrolled Admission Students vs Registered Student Logins ── */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 16,
+        padding: '5px',
+        background: 'rgba(15, 23, 42, 0.65)',
+        borderRadius: 12,
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        width: 'fit-content',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          onClick={() => setActiveSubTab('admission')}
+          style={{
+            height: 38,
+            padding: '0 18px',
+            borderRadius: 8,
+            border: activeSubTab === 'admission' ? '1.5px solid #f59e0b' : 'none',
+            background: activeSubTab === 'admission' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35))' : 'transparent',
+            color: activeSubTab === 'admission' ? '#fbbf24' : '#94a3b8',
+            fontWeight: 800,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'Hind Vadodara, sans-serif'
+          }}>
+          <ShieldCheck size={16} /> 🎓 ત્રિનેત્ર એડમિશન (Excel Bulk Whitelist)
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('logins')}
+          style={{
+            height: 38,
+            padding: '0 18px',
+            borderRadius: 8,
+            border: activeSubTab === 'logins' ? '1.5px solid #38bdf8' : 'none',
+            background: activeSubTab === 'logins' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.35))' : 'transparent',
+            color: activeSubTab === 'logins' ? '#38bdf8' : '#94a3b8',
+            fontWeight: 800,
+            fontSize: '0.84rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'Hind Vadodara, sans-serif'
+          }}>
+          <Users size={16} /> 📱 તમામ લૉગિન & OTP કંટ્રોલ (Logins & Sessions)
+        </button>
+      </div>
+
+      {activeSubTab === 'admission' ? (
+        <EnrolledStudentsManager showToast={showToast} />
+      ) : (
+        <>
+          {/* ── Top Summary & Master Access Banner ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
         {[{ l: 'Total Students', v: students.length, g: 'stat-grad-blue' }, { l: 'Active Today', v: students.filter(s => new Date(s.updatedAt || s.lastLoginAt) > new Date(Date.now() - 86400000)).length, g: 'stat-grad-green' }].map((s, i) => (
           <div key={i} className={`stat-grad-card ${s.g}`}><div style={{ fontSize: '1.8rem', fontWeight: 900 }}><CountUp target={s.v} /></div><div style={{ fontSize: '0.75rem', opacity: 0.85 }}>{s.l}</div></div>
         ))}
@@ -9966,6 +10057,8 @@ function StudentLogins({ showToast }) {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );

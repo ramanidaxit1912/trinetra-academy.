@@ -61,6 +61,7 @@ model Question {
   optionD_img     String?  // Optional image for Option D
   optionE_img     String?  // Optional image for Option E
   negativeMarking Float?   @default(0) // Negative marks for wrong answer e.g. 0, 0.25, 0.33, 0.5, 1.0
+  isEnrolledOnly  Boolean? @default(false) // Whether only enrolled/whitelisted students can take this test
   createdAt       DateTime @default(now())
 
   @@index([isActive, testCode])
@@ -154,5 +155,19 @@ model MarketingItem {
   @@index([isActive, category])
   @@map("marketing_items")
 }
+
+model EnrolledStudent {
+  id        Int      @id @default(autoincrement())
+  mobile    String   @unique
+  name      String?
+  batch     String?  @default("Trinetra Regular")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([mobile])
+  @@map("enrolled_students")
+}
+
 
 

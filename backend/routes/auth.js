@@ -299,11 +299,22 @@ router.post('/verify-otp', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );
 
+    // Check if student is an enrolled Trinetra Admission student
+    const enrolledRecord = await prisma.enrolledStudent.findFirst({
+      where: { mobile: cleanMobile.slice(-10), isActive: true }
+    });
+
     res.json({
       success: true,
       token,
       sessionId,
-      student: { id: student.id, name: student.name, mobile: student.mobile }
+      student: {
+        id: student.id,
+        name: student.name,
+        mobile: student.mobile,
+        isEnrolled: Boolean(enrolledRecord),
+        batch: enrolledRecord?.batch || null
+      }
     });
   } catch (err) {
     console.error('Verify OTP Error:', err);
@@ -335,13 +346,46 @@ router.get('/check-session', require('../middleware/authMiddleware').authMiddlew
       });
     }
 
+    const enrolledRecord = await prisma.enrolledStudent.findFirst({
+      where: { mobile: String(student.mobile).slice(-10), isActive: true }
+    });
+
     res.json({
       success: true,
       valid: true,
-      student: { id: student.id, name: student.name, mobile: student.mobile }
+      student: {
+        id: student.id,
+        name: student.name,
+        mobile: student.mobile,
+        isEnrolled: Boolean(enrolledRecord),
+        batch: enrolledRecord?.batch || null
+      }
     });
   } catch (err) {
     res.status(500).json({ error: 'Session check failed' });
+  }
+});
+
+// ─── GET /api/auth/check-enrollment/:mobile ───────────────────
+// Check if a student mobile number is enrolled in Trinetra Academy
+router.get('/check-enrollment/:mobile', async (req, res) => {
+  try {
+    const rawMobile = req.params.mobile || '';
+    const clean = String(rawMobile).replace(/\D/g, '').slice(-10);
+    if (!clean || clean.length !== 10) {
+      return res.status(400).json({ error: 'અમાન્ય મોબાઈલ નંબર.' });
+    }
+    const record = await prisma.enrolledStudent.findFirst({
+      where: { mobile: clean, isActive: true }
+    });
+    res.json({
+      isEnrolled: Boolean(record),
+      batch: record?.batch || null,
+      name: record?.name || null
+    });
+  } catch (err) {
+    console.error('Check Enrollment Error:', err);
+    res.status(500).json({ error: 'ચકાસણીમાં ભૂલ આવી.' });
   }
 });
 
