@@ -11162,8 +11162,15 @@ function StudentLogins({ showToast }) {
    👑 🏆 TEACHER LEADERBOARD SECTION — 3D Podium & Ranking
 ═══════════════════════════════════════════════════════ */
 function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showToast }) {
-  const [selectedGroupKey, setSelectedGroupKey] = useState('ALL');
+  const [selectedGroupKey, setSelectedGroupKey] = useState(testGroups[0]?.key || 'ALL');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // If testGroups loads asynchronously, select the first test automatically
+  useEffect(() => {
+    if ((!selectedGroupKey || selectedGroupKey === 'ALL') && testGroups.length > 0) {
+      setSelectedGroupKey(testGroups[0].key);
+    }
+  }, [testGroups]);
 
   // Celebratory confetti burst on load or trigger
   const triggerConfetti = () => {
@@ -11504,11 +11511,13 @@ ${topperList}
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <span style={{
               background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
-              color: 'white', padding: '4px 14px', borderRadius: 20,
-              fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px',
-              boxShadow: '0 4px 12px rgba(245,158,11,0.4)'
+              color: 'white', padding: '6px 18px', borderRadius: 20,
+              fontSize: '0.8rem', fontWeight: 900, letterSpacing: '0.4px',
+              boxShadow: '0 4px 14px rgba(245,158,11,0.4)',
+              display: 'inline-flex', alignItems: 'center', gap: 6
             }}>
-              👑 કસોટી વિજેતાઓ (TOP 3 PODIUM)
+              <span>👑</span>
+              <span>{activeGroup ? `${activeGroup.testName} — કસોટી વિજેતાઓ (TOP 3 PODIUM)` : 'ઓવરઓલ કસોટી વિજેતાઓ (TOP 3 PODIUM)'}</span>
             </span>
           </div>
 
