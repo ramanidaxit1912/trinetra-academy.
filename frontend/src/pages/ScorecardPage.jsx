@@ -55,17 +55,54 @@ export default function ScorecardPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 60, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
         <Navbar />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }} className="animate-bounce">📊</div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#38bdf8', marginBottom: 8 }}>
-              સત્તાવાર સ્કોરકાર્ડ લોડ થઈ રહ્યું છે...
-            </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>કૃપા કરીને થોડી ક્ષણો રાહ જુઓ ✨</p>
+        <div style={{ maxWidth: 940, margin: '20px auto', padding: '0 12px' }}>
+          {/* Top bar skeleton */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="skeleton-pulse" style={{ width: 90, height: 24, borderRadius: 8, background: 'rgba(255,255,255,0.08)' }} />
+            <div className="skeleton-pulse" style={{ width: 200, height: 34, borderRadius: 12, background: 'rgba(255,255,255,0.08)' }} />
+            <div className="skeleton-pulse" style={{ width: 130, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.08)' }} />
+          </div>
+
+          {/* Student Profile & Test Title Skeleton */}
+          <div style={{ background: '#111827', borderRadius: 20, padding: '24px 20px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <div className="skeleton-pulse" style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(56,189,248,0.15)', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton-pulse" style={{ width: '45%', height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.1)', marginBottom: 10 }} />
+                <div className="skeleton-pulse" style={{ width: '30%', height: 16, borderRadius: 6, background: 'rgba(255,255,255,0.06)' }} />
+              </div>
+            </div>
+
+            {/* 4 Stat Boxes Skeleton */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+              {[1, 2, 3, 4].map(n => (
+                <div key={n} className="skeleton-pulse" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, padding: '16px 12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                  <div style={{ width: '50%', height: 12, borderRadius: 4, background: 'rgba(255,255,255,0.08)', margin: '0 auto 10px' }} />
+                  <div style={{ width: '70%', height: 26, borderRadius: 6, background: 'rgba(56,189,248,0.18)', margin: '0 auto' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Certificate / Solution Card Skeleton */}
+          <div style={{ background: '#111827', borderRadius: 20, padding: '28px 20px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+            <div className="skeleton-pulse" style={{ width: '50%', height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.1)', margin: '0 auto 18px' }} />
+            <div className="skeleton-pulse" style={{ width: '75%', height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.05)', margin: '0 auto 12px' }} />
+            <div className="skeleton-pulse" style={{ width: '65%', height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.05)', margin: '0 auto 28px' }} />
+            <div className="skeleton-pulse" style={{ width: '100%', height: 320, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.08)' }} />
           </div>
         </div>
+        <style>{`
+          @keyframes skeletonPulse {
+            0%, 100% { opacity: 0.35; }
+            50% { opacity: 0.85; }
+          }
+          .skeleton-pulse {
+            animation: skeletonPulse 1.3s ease-in-out infinite;
+          }
+        `}</style>
       </div>
     );
   }
