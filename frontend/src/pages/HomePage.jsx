@@ -745,7 +745,7 @@ export default function HomePage() {
       )}
 
       {/* ── Footer ── */}
-      <footer style={{
+      <footer id="contact" style={{
         background: '#060911', color: '#64748b',
         textAlign: 'center', padding: '28px 16px 36px',
         borderTop: '1px solid rgba(255,255,255,0.06)'
