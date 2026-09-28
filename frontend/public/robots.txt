@@ -1,0 +1,11 @@
+# Robots.txt for Trinetra Online Academy
+User-agent: *
+Allow: /
+Disallow: /teacher
+Disallow: /trinetra-secure-desk
+
+# Host
+Host: https://trinetraacademy.in
+
+# Sitemaps
+Sitemap: https://trinetraacademy.in/sitemap.xml
