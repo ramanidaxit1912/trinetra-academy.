@@ -13027,6 +13027,21 @@ function MarketingManager({ showToast }) {
     } catch { fetchItems(); showToast?.('Toggle ક્ষતિ', 'error'); }
   };
 
+  const toggleBestSeller = async (item) => {
+    const isCurrentlyBest = Boolean(item.badge && item.badge.toUpperCase().includes('BEST'));
+    const newBadge = isCurrentlyBest ? '' : 'BEST SELLER';
+    const newTagColor = isCurrentlyBest ? '#2563eb' : '#ea580c';
+    const updated = { ...item, badge: newBadge, tagColor: newTagColor };
+    setItems(prev => prev.map(x => x.id === item.id ? updated : x));
+    try {
+      await updateMarketingItem(item.id, { badge: newBadge, tagColor: newTagColor });
+      showToast?.(isCurrentlyBest ? 'Best Seller બંધ કર્યો.' : '🔥 Best Seller સક્રિય કર્યો!', 'success');
+    } catch {
+      fetchItems();
+      showToast?.('Best Seller toggle ક્ષતિ', 'error');
+    }
+  };
+
   const FILTER_TABS = [
     { id: 'ALL', label: '🌐 બધા' },
     { id: 'HOME', label: '🏠 Home Live' },
@@ -13131,6 +13146,7 @@ function MarketingManager({ showToast }) {
             const isHome = item.showInHome !== false;
             const isPdf  = item.showInPdf  !== false;
             const isLive = item.isActive   !== false;
+            const isBestSeller = Boolean(item.badge && item.badge.toUpperCase().includes('BEST'));
             return (
               <div key={item.id} style={{
                 background: '#1e293b', borderRadius: 14,
@@ -13166,6 +13182,14 @@ function MarketingManager({ showToast }) {
                       padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
                     }} title="PDF Brochure ON/OFF">
                       📑 {isPdf ? 'ON' : 'OFF'}
+                    </button>
+                    <button onClick={() => toggleBestSeller(item)} style={{
+                      background: isBestSeller ? 'rgba(234,88,12,0.25)' : 'rgba(148,163,184,0.1)',
+                      border: `1px solid ${isBestSeller ? '#ea580c' : '#475569'}`,
+                      color: isBestSeller ? '#fdba74' : '#64748b',
+                      padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
+                    }} title="Best Seller Tag ON/OFF">
+                      🔥 {isBestSeller ? 'Best: ON' : 'Best: OFF'}
                     </button>
                   </div>
                 </div>
@@ -13385,6 +13409,22 @@ function MarketingManager({ showToast }) {
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#6ee7b7', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
                       <input type="checkbox" checked={form.showInPdf} onChange={e => setForm(f => ({ ...f, showInPdf: e.target.checked }))} style={{ accentColor: '#10b981', width: 16, height: 16 }} />
                       📑 PDF Brochure Catalog
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fdba74', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(form.badge && form.badge.toUpperCase().includes('BEST'))}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setForm(f => ({
+                            ...f,
+                            badge: checked ? 'BEST SELLER' : '',
+                            tagColor: checked ? '#ea580c' : (f.tagColor || '#2563eb')
+                          }));
+                        }}
+                        style={{ accentColor: '#ea580c', width: 16, height: 16 }}
+                      />
+                      🔥 Best Seller ટેગ
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#4ade80', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
                       <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} style={{ accentColor: '#22c55e', width: 16, height: 16 }} />

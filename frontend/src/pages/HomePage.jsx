@@ -220,38 +220,47 @@ export default function HomePage() {
                 onClick={() => setZoomPoster(currentPoster.imageUrl)}
                 style={{
                   width: '100%',
-                  height: 'clamp(260px, 42vw, 340px)',
+                  height: 'clamp(260px, 44vw, 350px)',
                   borderRadius: 14,
                   overflow: 'hidden',
                   position: 'relative',
                   cursor: 'zoom-in',
-                  background: '#0b0f19'
+                  background: '#0b0f19',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
                 title="ક્લિક કરીને મોટું પોસ્ટર જુઓ (Zoom HD)"
               >
-                {/* Poster Badge */}
+                {/* Poster Badge (e.g. BEST SELLER) */}
                 {currentPoster.badge && (
                   <div style={{
                     position: 'absolute', top: 12, left: 12,
-                    background: currentPoster.tagColor || '#f59e0b',
+                    background: currentPoster.tagColor || (currentPoster.badge.toUpperCase().includes('BEST') ? '#ea580c' : '#f59e0b'),
                     color: 'white', fontWeight: 900, fontSize: '0.74rem',
-                    padding: '4px 10px', borderRadius: 20, zIndex: 3,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                    border: '1px solid rgba(255,255,255,0.3)'
+                    padding: '4px 11px', borderRadius: 20, zIndex: 3,
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    letterSpacing: '0.4px',
+                    display: 'inline-flex', alignItems: 'center', gap: 4
                   }}>
-                    {currentPoster.badge}
+                    {currentPoster.badge.toUpperCase().includes('BEST') ? '🔥 BEST SELLER' : currentPoster.badge}
                   </div>
                 )}
 
-                {/* Zoom Icon Hint */}
+                {/* Zoom Icon Hint (Bottom Right as in reference image) */}
                 <div style={{
-                  position: 'absolute', top: 12, right: 12,
-                  background: 'rgba(0,0,0,0.6)', color: 'white',
-                  borderRadius: '50%', width: 28, height: 28,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 3, backdropFilter: 'blur(4px)'
+                  position: 'absolute', bottom: 10, right: 10,
+                  background: 'rgba(0,0,0,0.72)', color: '#ffffff',
+                  fontSize: '0.74rem', fontWeight: 800,
+                  padding: '4px 10px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  backdropFilter: 'blur(4px)', zIndex: 3,
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
                 }}>
-                  <Maximize2 size={14} />
+                  <Maximize2 size={13} /> Zoom
                 </div>
 
                 <img
@@ -259,7 +268,7 @@ export default function HomePage() {
                   alt={currentPoster.title || 'Marketing Poster'}
                   style={{
                     width: '100%', height: '100%',
-                    objectFit: 'cover',
+                    objectFit: 'contain',
                     opacity: fadeIn ? 1 : 0,
                     transition: 'opacity 0.25s ease-in-out',
                     display: 'block'
@@ -269,36 +278,10 @@ export default function HomePage() {
                   }}
                 />
 
-                {/* Overlay Poster Title & Price on Image bottom */}
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
-                  padding: '16px 14px 10px',
-                  color: 'white',
-                  zIndex: 2
-                }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#fbbf24', marginBottom: 2 }}>
-                    {currentPoster.title}
-                  </div>
-                  {currentPoster.subtitle && (
-                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {currentPoster.subtitle}
-                    </div>
-                  )}
-                  {currentPoster.price && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                      <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.05rem' }}>{currentPoster.price}</span>
-                      {currentPoster.oldPrice && (
-                        <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '0.8rem' }}>{currentPoster.oldPrice}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 {/* Left/Right Navigation Arrows */}
                 <button
                   type="button"
-                  onClick={handlePrev}
+                  onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                   style={{
                     position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
                     background: 'rgba(0,0,0,0.65)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
@@ -312,7 +295,7 @@ export default function HomePage() {
 
                 <button
                   type="button"
-                  onClick={handleNext}
+                  onClick={(e) => { e.stopPropagation(); handleNext(); }}
                   style={{
                     position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                     background: 'rgba(0,0,0,0.65)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
@@ -323,6 +306,56 @@ export default function HomePage() {
                 >
                   <ChevronRight size={18} />
                 </button>
+              </div>
+
+              {/* Test Details Below Poster Frame (Matching Reference Image) */}
+              <div style={{ padding: '14px 6px 4px' }}>
+                <h3 style={{
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: 'clamp(1.1rem, 3.2vw, 1.28rem)',
+                  margin: '0 0 6px',
+                  lineHeight: 1.35,
+                  letterSpacing: '0.2px'
+                }}>
+                  {currentPoster.title}
+                </h3>
+
+                {currentPoster.subtitle && (
+                  <div style={{
+                    color: '#fbbf24',
+                    fontSize: 'clamp(0.86rem, 2.4vw, 0.95rem)',
+                    fontWeight: 700,
+                    marginBottom: 8,
+                    lineHeight: 1.4
+                  }}>
+                    {currentPoster.subtitle}
+                  </div>
+                )}
+
+                {(currentPoster.price || currentPoster.oldPrice) && (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
+                    {currentPoster.oldPrice && (
+                      <span style={{
+                        color: '#64748b',
+                        textDecoration: 'line-through',
+                        fontSize: '0.96rem',
+                        fontWeight: 700
+                      }}>
+                        {currentPoster.oldPrice}
+                      </span>
+                    )}
+                    {currentPoster.price && (
+                      <span style={{
+                        color: '#22c55e',
+                        fontWeight: 900,
+                        fontSize: 'clamp(1.25rem, 3.6vw, 1.45rem)'
+                      }}>
+                        {currentPoster.price}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Bottom Direct Action Bar on Carousel Card */}
