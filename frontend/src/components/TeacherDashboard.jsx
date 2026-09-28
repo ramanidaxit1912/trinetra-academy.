@@ -1,3 +1,4 @@
+import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
@@ -16,6 +17,7 @@ import {
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
 } from '../services/api';
 import {
+  Trophy, Award, Crown, Medal, Search, Flame,
   LogOut, Plus, Trash2, Eye, CheckCircle, Users, Clock, BarChart2, Edit3, Play, Square,
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
@@ -1307,30 +1309,107 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
               }
             </div>
 
-            {/* Top Performers Leaderboard */}
-            <div className="glass-card" style={{ padding: 18 }}>
-              <SectionHeader title="🏆 Top Performers" action="All →" onAction={() => setActiveTab('history')} />
-              {topStudents.length === 0
-                ? <Empty msg="No data yet" />
-                : topStudents.map((s, i) => {
-                  const pct = s.totalMarks ? Math.round((s.score / s.totalMarks) * 100) : 0;
-                  const rowClass = ['lb-row-gold','lb-row-silver','lb-row-bronze'][i] || '';
-                  const medals = ['🥇','🥈','🥉'];
-                  return (
-                    <div key={s.id} className={rowClass} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 10px', borderRadius: 10, marginBottom: 4 }}>
-                      <span style={{ fontSize: i < 3 ? '1.3rem' : '0.9rem', width: 24, textAlign: 'center', flexShrink: 0 }}>{medals[i] || `#${i+1}`}</span>
-                      <Avatar name={s.student?.name} size={32} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.student?.name}</div>
-                        <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginTop: 5 }}>
-                          <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: pct >= 60 ? '#22c55e' : '#f59e0b' }} />
+            {/* 👑 Ultra-Premium Top Performers Mini-Podium */}
+            <div className="glass-card" style={{
+              padding: '18px',
+              background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              border: '1.5px solid rgba(245, 158, 11, 0.35)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(245, 158, 11, 0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1.25rem' }}>👑</span>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', margin: 0 }}>
+                    ટોપ પર્ફોર્મર્સ લીડરબોર્ડ
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  style={{
+                    color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: 8,
+                    padding: '4px 10px', cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
+                    display: 'inline-flex', alignItems: 'center', gap: 4
+                  }}
+                >
+                  સંપૂર્ણ લીડરબોર્ડ →
+                </button>
+              </div>
+
+              {topStudents.length === 0 ? (
+                <Empty msg="કોઈ ડેટા ઉપલબ્ધ નથી" />
+              ) : (
+                <>
+                  {/* Mini Top 3 Podium Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                    {[
+                      { idx: 1, s: topStudents[1], medal: '🥈', bg: 'linear-gradient(180deg, rgba(148,163,184,0.2) 0%, rgba(51,65,85,0.4) 100%)', border: '#94a3b8', color: '#e2e8f0', rankText: '2nd' },
+                      { idx: 0, s: topStudents[0], medal: '👑 🥇', bg: 'linear-gradient(180deg, rgba(245,158,11,0.3) 0%, rgba(180,83,9,0.5) 100%)', border: '#f59e0b', color: '#fef08a', rankText: '1st Topper', glow: '0 0 15px rgba(245,158,11,0.3)' },
+                      { idx: 2, s: topStudents[2], medal: '🥉', bg: 'linear-gradient(180deg, rgba(234,88,12,0.2) 0%, rgba(120,53,15,0.4) 100%)', border: '#ea580c', color: '#fed7aa', rankText: '3rd' },
+                    ].map((pod, i) => {
+                      if (!pod.s) return null;
+                      return (
+                        <div key={i} style={{
+                          background: pod.bg,
+                          border: `1.5px solid ${pod.border}`,
+                          borderRadius: 12,
+                          padding: '10px 6px',
+                          textAlign: 'center',
+                          boxShadow: pod.glow || 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{pod.medal}</span>
+                          <Avatar name={pod.s.student?.name} size={30} />
+                          <div style={{ color: 'white', fontWeight: 800, fontSize: '0.74rem', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pod.s.student?.name}
+                          </div>
+                          <div style={{ color: '#22c55e', fontWeight: 900, fontSize: '0.86rem' }}>
+                            {pod.s.score} <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>ગુણ</span>
+                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* List for 4th onwards (if any) */}
+                  {topStudents.slice(3, 5).map((s, i) => (
+                    <div key={s.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px',
+                      borderRadius: 8, background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)', marginBottom: 4
+                    }}>
+                      <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, width: 22, textAlign: 'center' }}>
+                        #{i + 4}
+                      </span>
+                      <Avatar name={s.student?.name} size={24} />
+                      <div style={{ flex: 1, minWidth: 0, color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.student?.name}
                       </div>
-                      <div style={{ color: '#22c55e', fontWeight: 900, fontSize: '0.9rem', flexShrink: 0 }}>{s.score}</div>
+                      <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.82rem' }}>
+                        {s.score}
+                      </div>
                     </div>
-                  );
-                })
-              }
+                  ))}
+
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    style={{
+                      width: '100%', marginTop: 8,
+                      background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                      color: 'white', border: 'none', padding: '8px 12px',
+                      borderRadius: 8, fontWeight: 900, fontSize: '0.78rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
+                      fontFamily: 'Hind Vadodara, sans-serif'
+                    }}
+                  >
+                    👑 સંપૂર્ણ લીડરબોર્ડ અને WhatsApp શેરિંગ જુઓ →
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Question Bank */}
@@ -11078,10 +11157,734 @@ function StudentLogins({ showToast }) {
 /* ═══════════════════════════════════════════════════════
    TEST HISTORY (TEST-WISE ATTENDANCE & RESULTS)
 ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+   👑 🏆 TEACHER LEADERBOARD SECTION — 3D Podium & Ranking
+═══════════════════════════════════════════════════════ */
+function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showToast }) {
+  const [selectedGroupKey, setSelectedGroupKey] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Celebratory confetti burst on load or trigger
+  const triggerConfetti = () => {
+    try {
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch {}
+  };
+
+  useEffect(() => {
+    triggerConfetti();
+  }, [selectedGroupKey]);
+
+  const activeGroup = selectedGroupKey === 'ALL'
+    ? null
+    : testGroups.find(g => g.key === selectedGroupKey) || null;
+
+  const rawSubs = activeGroup ? activeGroup.submissions : displayedSubs;
+
+  // Compute enriched ranking with tie-breaking
+  const rankedStudents = useMemo(() => {
+    if (!rawSubs || rawSubs.length === 0) return [];
+
+    const enriched = rawSubs.map(s => {
+      let correct = 0, wrong = 0, skipped = 0;
+      if (Array.isArray(s.answers) && s.answers.length > 0) {
+        s.answers.forEach(a => {
+          const opt = (a.selectedOpt || a.text || '').toUpperCase();
+          if (!opt || opt === 'E' || a.isSkipped) skipped++;
+          else if (a.isCorrect === true) correct++;
+          else if (a.isCorrect === false) wrong++;
+        });
+      }
+      const score = Number(s.mcqScore ?? s.score ?? 0);
+      const totalMarks = Number(s.totalMarks || s.totalMCQ || activeGroup?.totalMarks || 1);
+      const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
+      const accuracy = (correct + wrong) > 0 ? Math.round((correct / (correct + wrong)) * 100) : pct;
+      const duration = s.duration || s.timeTaken || 0;
+      const submittedAt = new Date(s.submittedAt || s.createdAt || 0).getTime();
+
+      return {
+        ...s,
+        score,
+        totalMarks,
+        pct,
+        accuracy,
+        correct,
+        wrong,
+        skipped,
+        duration,
+        submittedAt
+      };
+    });
+
+    // Multi-factor sorting:
+    // 1. Score desc
+    // 2. Accuracy % desc
+    // 3. Duration asc (faster)
+    // 4. SubmittedAt asc
+    enriched.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+      if (a.duration && b.duration && a.duration !== b.duration) return a.duration - b.duration;
+      return a.submittedAt - b.submittedAt;
+    });
+
+    // Assign rank with tie detection
+    let currentRank = 1;
+    return enriched.map((student, idx, arr) => {
+      if (idx > 0) {
+        const prev = arr[idx - 1];
+        const isTie = student.score === prev.score && student.accuracy === prev.accuracy;
+        if (!isTie) {
+          currentRank = idx + 1;
+        }
+      }
+      const isTiedWithPrev = idx > 0 && student.score === arr[idx - 1].score && student.accuracy === arr[idx - 1].accuracy;
+      const isTiedWithNext = idx < arr.length - 1 && student.score === arr[idx + 1].score && student.accuracy === arr[idx + 1].accuracy;
+
+      return {
+        ...student,
+        rank: currentRank,
+        isTied: isTiedWithPrev || isTiedWithNext
+      };
+    });
+  }, [rawSubs, activeGroup]);
+
+  // Filtered by student name / mobile search
+  const filteredStudents = useMemo(() => {
+    if (!searchTerm.trim()) return rankedStudents;
+    const term = searchTerm.toLowerCase();
+    return rankedStudents.filter(s =>
+      (s.student?.name || '').toLowerCase().includes(term) ||
+      String(s.student?.mobile || '').includes(term)
+    );
+  }, [rankedStudents, searchTerm]);
+
+  // Top 3 Podium Candidates
+  const top1 = rankedStudents.find(s => s.rank === 1) || rankedStudents[0];
+  const top2 = rankedStudents.find(s => s.rank === 2) || (rankedStudents[1] && rankedStudents[1].id !== top1?.id ? rankedStudents[1] : null);
+  const top3 = rankedStudents.find(s => s.rank === 3) || (rankedStudents[2] && rankedStudents[2].id !== top1?.id && rankedStudents[2].id !== top2?.id ? rankedStudents[2] : null);
+
+  const totalParticipants = rankedStudents.length;
+  const topScore = top1 ? top1.score : 0;
+  const maxMarks = top1?.totalMarks || 100;
+  const avgScore = totalParticipants > 0
+    ? (rankedStudents.reduce((acc, s) => acc + s.score, 0) / totalParticipants).toFixed(1)
+    : 0;
+  const passRate = totalParticipants > 0
+    ? Math.round((rankedStudents.filter(s => s.pct >= 40).length / totalParticipants) * 100)
+    : 0;
+
+  // 1-Click WhatsApp Class Broadcast Summary
+  const handleShareToppersWhatsApp = () => {
+    if (rankedStudents.length === 0) {
+      showToast?.('શેર કરવા માટે કોઈ પરિણામ મળ્યું નથી.', 'error');
+      return;
+    }
+    const testTitle = activeGroup ? activeGroup.testName : 'ઓલ ગુજરાત મોક ટેસ્ટ બેચ';
+    const topperList = rankedStudents.slice(0, 5).map((s, idx) => {
+      const medal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `🏅 #${s.rank}`;
+      const tieNote = s.isTied ? ' (સંયુક્ત રેન્ક)' : '';
+      return `${medal} *${s.student?.name || 'વિદ્યાર્થી'}* — ${s.score}/${s.totalMarks} ગુણ (${s.pct}%)${tieNote}`;
+    }).join('\n');
+
+    const shareText = `🏆 *ત્રિનેત્ર ઓનલાઇન એકેડેમી - કસોટી પરિણામ વિજેતાઓ* 🏆
+━━━━━━━━━━━━━━━━━━━━
+📝 *કસોટી:* ${testTitle}
+👥 *કુલ પરીક્ષાર્થીઓ:* ${totalParticipants}
+🎯 *સર્વોચ્ચ સ્કોર (Topper):* ${topScore}/${maxMarks}
+━━━━━━━━━━━━━━━━━━━━
+👑 *ટોચના રેન્કર્સ (Top Performers):*
+${topperList}
+━━━━━━━━━━━━━━━━━━━━
+💐 તમામ વિદ્યાર્થીઓને ઉત્કૃષ્ટ પ્રદર્શન બદલ ખૂબ ખૂબ અભિનંદન! 💐
+
+🌐 *તમારું વ્યક્તિગત પરિણામ જોવા માટે:*
+👉 https://trinetraacademy.in`;
+
+    navigator.clipboard?.writeText(shareText);
+    showToast?.('✅ ટોપર્સ લિસ્ટ કોપી થઈ ગયું! WhatsApp ખુલી રહ્યું છે...', 'success');
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  // Helper for single student WhatsApp greeting
+  const getPersonalStudentWhatsApp = (s) => {
+    const testTitle = activeGroup ? activeGroup.testName : s.testName || 'કસોટી';
+    const rankTitle = s.rank === 1 ? '૧મો રેન્ક (Gold Topper 🥇)' : s.rank === 2 ? '૨જો રેન્ક (Silver 🥈)' : s.rank === 3 ? '૩જો રેન્ક (Bronze 🥉)' : `${s.rank}મો રેન્ક`;
+    const text = `*ત્રિનેત્ર ઓનલાઇન એકેડેમી - હાર્દિક અભિનંદન! 💐*
+
+નમસ્તે *${s.student?.name || 'વિદ્યાર્થી'}*,
+તમે ત્રિનેત્ર એકેડેમીની *${testTitle}* માં *${rankTitle}* પ્રાપ્ત કર્યો છે! 🏆
+
+🎯 *મેળવેલ ગુણ:* ${s.score} / ${s.totalMarks} (${s.pct}%)
+📊 *ચોકસાઈ (Accuracy):* ${s.accuracy}%
+
+આગળની પરીક્ષાઓ માટે પણ તમને ખૂબ ખૂબ શુભેચ્છાઓ! ✨
+🌐 https://trinetraacademy.in`;
+
+    return `https://wa.me/91${s.student?.mobile}?text=${encodeURIComponent(text)}`;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      
+      {/* ── 🌟 Header Bar with WhatsApp Share & Confetti ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
+        border: '1.5px solid rgba(245, 158, 11, 0.4)',
+        borderRadius: 18,
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 12,
+        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.5), 0 0 30px rgba(245, 158, 11, 0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 46, height: 46, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.5rem', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+          }}>
+            👑
+          </div>
+          <div>
+            <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', margin: 0, letterSpacing: '0.2px' }}>
+              ત્રિનેત્ર સુપર લીડરબોર્ડ (Toppers Stage)
+            </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '3px 0 0' }}>
+              3D પોડિયમ, સ્માર્ટ ટાઈ-બ્રેકિંગ રેન્કિંગ અને ૧-ક્લિક WhatsApp પરિણામ શેરિંગ
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={triggerConfetti}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#fef08a',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              padding: '8px 14px',
+              borderRadius: 10,
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            🎉 સેલિબ્રેશન
+          </button>
+
+          <button
+            onClick={handleShareToppersWhatsApp}
+            style={{
+              background: 'linear-gradient(135deg, #25d366 0%, #16a34a 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: 10,
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 14px rgba(37, 211, 102, 0.4)',
+              fontFamily: 'Hind Vadodara, sans-serif'
+            }}
+          >
+            📢 આખું ટોપર્સ લિસ્ટ WhatsApp શેર
+          </button>
+        </div>
+      </div>
+
+      {/* ── 🎯 Test Selector Pills ── */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: 16,
+        padding: '12px 14px'
+      }}>
+        <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>🎯</span> કસોટી પસંદ કરો ({testGroups.length} કસોટીઓ ઉપલબ્ધ):
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+          <button
+            onClick={() => setSelectedGroupKey('ALL')}
+            style={{
+              padding: '7px 14px', borderRadius: 20, fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              border: selectedGroupKey === 'ALL' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+              background: selectedGroupKey === 'ALL' ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)',
+              color: selectedGroupKey === 'ALL' ? 'white' : '#cbd5e1',
+              boxShadow: selectedGroupKey === 'ALL' ? '0 4px 14px rgba(217,119,6,0.4)' : 'none'
+            }}
+          >
+            🌐 તમામ કસોટીઓ ({displayedSubs.length})
+          </button>
+
+          {testGroups.map(group => {
+            const isSel = selectedGroupKey === group.key;
+            return (
+              <button
+                key={group.key}
+                onClick={() => setSelectedGroupKey(group.key)}
+                style={{
+                  padding: '7px 14px', borderRadius: 20, fontWeight: isSel ? 900 : 700, fontSize: '0.78rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  border: isSel ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                  background: isSel ? 'linear-gradient(135deg, #0284c7, #1e3a8a)' : 'rgba(255,255,255,0.04)',
+                  color: isSel ? 'white' : '#94a3b8',
+                  boxShadow: isSel ? '0 4px 14px rgba(2,132,199,0.4)' : 'none',
+                  display: 'inline-flex', alignItems: 'center', gap: 6
+                }}
+              >
+                <span>📝 {group.testName}</span>
+                <span style={{ background: isSel ? '#ffffff' : 'rgba(255,255,255,0.15)', color: isSel ? '#0f172a' : '#cbd5e1', padding: '1px 6px', borderRadius: 10, fontSize: '0.68rem', fontWeight: 900 }}>
+                  {group.studentsCount}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── 📊 Test Overview Metrics ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+        {[
+          { l: '👑 ટોપર સ્કોર', v: `${topScore} / ${maxMarks}`, c: '#f59e0b', g: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(180,83,9,0.1))' },
+          { l: '📊 સરેરાશ સ્કોર', v: `${avgScore}`, c: '#38bdf8', g: 'linear-gradient(135deg, rgba(56,189,248,0.2), rgba(30,58,138,0.1))' },
+          { l: '👥 કુલ પરીક્ષાર્થીઓ', v: totalParticipants, c: '#4ade80', g: 'linear-gradient(135deg, rgba(74,222,128,0.2), rgba(21,128,61,0.1))' },
+          { l: '🎯 પાસિંગ રેટ (%)', v: `${passRate}%`, c: '#c084fc', g: 'linear-gradient(135deg, rgba(192,132,252,0.2), rgba(107,33,168,0.1))' },
+        ].map((m, i) => (
+          <div key={i} style={{
+            background: m.g, border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '12px 14px', textAlign: 'center'
+          }}>
+            <div style={{ color: m.c, fontWeight: 900, fontSize: '1.25rem', lineHeight: 1.2 }}>
+              {m.v}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: 4, fontWeight: 700 }}>
+              {m.l}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── 👑 3D OLYMPIC PODIUM STAGE ── */}
+      {totalParticipants === 0 ? (
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.6)', borderRadius: 20, padding: '50px 20px',
+          textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: 10 }}>📭</div>
+          <h3 style={{ color: 'white', fontWeight: 800 }}>કોઈ વિદ્યાર્થીનું પરિણામ નથી</h3>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>વિદ્યાર્થીઓ કસોટી આપશે એટલે ટોચના રેન્કર્સ અહીં 3D પોડિયમ પર ચમકશે!</p>
+        </div>
+      ) : (
+        <div style={{
+          background: 'radial-gradient(ellipse at bottom, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.85) 70%)',
+          borderRadius: 24,
+          padding: '24px 16px 20px',
+          border: '1.5px solid rgba(245, 158, 11, 0.3)',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <span style={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+              color: 'white', padding: '4px 14px', borderRadius: 20,
+              fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px',
+              boxShadow: '0 4px 12px rgba(245,158,11,0.4)'
+            }}>
+              👑 કસોટી વિજેતાઓ (TOP 3 PODIUM)
+            </span>
+          </div>
+
+          {/* Podium 3-Column Layout: [2nd Silver] [1st Gold Topper] [3rd Bronze] */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 'clamp(8px, 2vw, 20px)',
+            width: '100%',
+            maxWidth: 680,
+            alignItems: 'flex-end',
+            marginBottom: 10
+          }}>
+            
+            {/* 🥈 2ND PLACE (SILVER) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {top2 ? (
+                <>
+                  <div style={{ position: 'relative', marginBottom: 8, textAlign: 'center' }}>
+                    <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: '1.4rem' }}>🥈</span>
+                    <Avatar name={top2.student?.name} size={50} />
+                  </div>
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.86rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {top2.student?.name}
+                  </div>
+                  <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '1.1rem', margin: '2px 0' }}>
+                    {top2.score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{top2.totalMarks}</span>
+                  </div>
+                  <div style={{ color: '#86efac', fontSize: '0.7rem', fontWeight: 800 }}>
+                    {top2.pct}% • {top2.accuracy}% Acc
+                  </div>
+                  {top2.isTied && (
+                    <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 4, marginTop: 2 }}>
+                      🤝 સંયુક્ત રેન્ક
+                    </span>
+                  )}
+                  {top2.student?.mobile && (
+                    <a
+                      href={getPersonalStudentWhatsApp(top2)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        marginTop: 6, background: 'rgba(37,211,102,0.18)', border: '1px solid rgba(37,211,102,0.4)',
+                        color: '#4ade80', padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800,
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4
+                      }}
+                    >
+                      💬 શાબાશી
+                    </a>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: '#64748b', fontSize: '0.74rem' }}>ખાલી</div>
+              )}
+
+              {/* Silver Pillar */}
+              <div style={{
+                width: '100%',
+                height: 140,
+                marginTop: 10,
+                borderRadius: '12px 12px 4px 4px',
+                background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)',
+                border: '1.5px solid #94a3b8',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4
+              }}>
+                <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>🥈</span>
+                <span style={{ color: '#f1f5f9', fontWeight: 900, fontSize: '0.9rem' }}>૨જો રેન્ક</span>
+                <span style={{ color: '#cbd5e1', fontSize: '0.7rem', fontWeight: 700 }}>SILVER</span>
+              </div>
+            </div>
+
+            {/* 👑 🥇 1ST PLACE (GOLD TOPPER) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {top1 ? (
+                <>
+                  <div style={{ position: 'relative', marginBottom: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.8rem', animation: 'bounce 1.5s infinite', lineHeight: 1, marginBottom: 2 }}>
+                      👑
+                    </div>
+                    <div style={{
+                      borderRadius: '50%',
+                      padding: 3,
+                      background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                      boxShadow: '0 0 20px rgba(245,158,11,0.6)'
+                    }}>
+                      <Avatar name={top1.student?.name} size={64} />
+                    </div>
+                  </div>
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.96rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {top1.student?.name}
+                  </div>
+                  <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.35rem', margin: '2px 0' }}>
+                    {top1.score} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/{top1.totalMarks}</span>
+                  </div>
+                  <div style={{ color: '#fbbf24', fontSize: '0.74rem', fontWeight: 900 }}>
+                    ⭐ {top1.pct}% • {top1.accuracy}% Acc
+                  </div>
+                  {top1.isTied && (
+                    <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 4, marginTop: 2 }}>
+                      🤝 સંયુક્ત રેન્ક
+                    </span>
+                  )}
+                  {top1.student?.mobile && (
+                    <a
+                      href={getPersonalStudentWhatsApp(top1)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        marginTop: 6, background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                        color: 'white', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900,
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4,
+                        boxShadow: '0 2px 10px rgba(34,197,94,0.4)'
+                      }}
+                    >
+                      💬 શાબાશી આપો
+                    </a>
+                  )}
+                </>
+              ) : null}
+
+              {/* Gold Pillar (Tallest) */}
+              <div style={{
+                width: '100%',
+                height: 190,
+                marginTop: 10,
+                borderRadius: '14px 14px 4px 4px',
+                background: 'linear-gradient(180deg, #f59e0b 0%, #b45309 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: '0 12px 30px rgba(245,158,11,0.35), inset 0 2px 4px rgba(255,255,255,0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5
+              }}>
+                <span style={{ fontSize: '2.4rem', lineHeight: 1 }}>🥇</span>
+                <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1rem', textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}>
+                  ૧મો રેન્ક
+                </span>
+                <span style={{ background: '#78350f', color: '#fef08a', fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: 10 }}>
+                  👑 GOLD TOPPER
+                </span>
+              </div>
+            </div>
+
+            {/* 🥉 3RD PLACE (BRONZE) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {top3 ? (
+                <>
+                  <div style={{ position: 'relative', marginBottom: 8, textAlign: 'center' }}>
+                    <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: '1.4rem' }}>🥉</span>
+                    <Avatar name={top3.student?.name} size={46} />
+                  </div>
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.84rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {top3.student?.name}
+                  </div>
+                  <div style={{ color: '#fb923c', fontWeight: 900, fontSize: '1.05rem', margin: '2px 0' }}>
+                    {top3.score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{top3.totalMarks}</span>
+                  </div>
+                  <div style={{ color: '#fed7aa', fontSize: '0.7rem', fontWeight: 800 }}>
+                    {top3.pct}% • {top3.accuracy}% Acc
+                  </div>
+                  {top3.isTied && (
+                    <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 4, marginTop: 2 }}>
+                      🤝 સંયુક્ત રેન્ક
+                    </span>
+                  )}
+                  {top3.student?.mobile && (
+                    <a
+                      href={getPersonalStudentWhatsApp(top3)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        marginTop: 6, background: 'rgba(37,211,102,0.18)', border: '1px solid rgba(37,211,102,0.4)',
+                        color: '#4ade80', padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800,
+                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4
+                      }}
+                    >
+                      💬 શાબાશી
+                    </a>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: '#64748b', fontSize: '0.74rem' }}>ખાલી</div>
+              )}
+
+              {/* Bronze Pillar */}
+              <div style={{
+                width: '100%',
+                height: 115,
+                marginTop: 10,
+                borderRadius: '10px 10px 4px 4px',
+                background: 'linear-gradient(180deg, #ea580c 0%, #7c2d12 100%)',
+                border: '1.5px solid #fdba74',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4
+              }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>🥉</span>
+                <span style={{ color: '#ffedd5', fontWeight: 900, fontSize: '0.85rem' }}>૩જો રેન્ક</span>
+                <span style={{ color: '#fed7aa', fontSize: '0.65rem', fontWeight: 700 }}>BRONZE</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── 📋 COMPLETE RANKING TABLE (Rank 4 to N) ── */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.6)',
+        borderRadius: 18,
+        padding: '18px',
+        border: '1px solid rgba(255, 255, 255, 0.08)'
+      }}>
+        
+        {/* Table Title & Search */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div>
+            <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>
+              📜 સંપૂર્ણ વિદ્યાર્થી રેન્કિંગ યાદી ({filteredStudents.length})
+            </h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '2px 0 0' }}>
+              મેળવેલ ગુણ, ચોકસાઈ ટકાવારી અને વ્યક્તિગત WhatsApp સંદેશ
+            </p>
+          </div>
+
+          <div style={{ maxWidth: 280, width: '100%' }}>
+            <input
+              className="input-dark"
+              placeholder="🔍 વિદ્યાર્થીનું નામ શોધો..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ width: '100%', fontSize: '0.8rem', padding: '7px 12px' }}
+            />
+          </div>
+        </div>
+
+        {/* Students Ranking Rows */}
+        {filteredStudents.length === 0 ? (
+          <Empty msg="કોઈ વિદ્યાર્થી મળ્યો નથી" />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {filteredStudents.map((s, idx) => {
+              const isTopper = s.rank <= 3;
+              const rankColor = s.rank === 1 ? '#f59e0b' : s.rank === 2 ? '#94a3b8' : s.rank === 3 ? '#ea580c' : '#38bdf8';
+              const rankMedal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`;
+
+              return (
+                <div
+                  key={s.id || idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    background: isTopper
+                      ? 'linear-gradient(90deg, rgba(245,158,11,0.08) 0%, rgba(15,23,42,0.4) 100%)'
+                      : 'rgba(255,255,255,0.02)',
+                    border: isTopper
+                      ? '1px solid rgba(245,158,11,0.25)'
+                      : '1px solid rgba(255,255,255,0.05)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {/* Rank Badge */}
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: isTopper ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: `1.5px solid ${rankColor}`,
+                    color: rankColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: isTopper ? '1.1rem' : '0.84rem',
+                    flexShrink: 0
+                  }}>
+                    {rankMedal}
+                  </div>
+
+                  {/* Avatar & Name */}
+                  <Avatar name={s.student?.name} size={36} />
+
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <div style={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{s.student?.name || 'વિદ્યાર્થી'}</span>
+                      {s.isTied && (
+                        <span style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px', borderRadius: 4 }}>
+                          🤝 Tied
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: 2 }}>
+                      {s.student?.mobile ? `📞 ${s.student.mobile}` : ''} • {s.testName || activeGroup?.testName || 'કસોટી'}
+                    </div>
+                  </div>
+
+                  {/* Accuracy Stats */}
+                  <div style={{ minWidth: 80, textAlign: 'center', display: 'none', md: 'block' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#86efac', fontWeight: 800 }}>
+                      ✓ {s.correct} | ✗ {s.wrong}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                      {s.accuracy}% ચોકસાઈ
+                    </div>
+                  </div>
+
+                  {/* Score & Progress */}
+                  <div style={{ minWidth: 100, textAlign: 'right' }}>
+                    <div style={{
+                      fontWeight: 900,
+                      fontSize: '0.98rem',
+                      color: s.pct >= 60 ? '#22c55e' : s.pct >= 40 ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {s.score} <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>/{s.totalMarks}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, marginTop: 4 }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${s.pct}%`,
+                        borderRadius: 2,
+                        background: s.pct >= 60 ? '#22c55e' : s.pct >= 40 ? '#f59e0b' : '#ef4444'
+                      }} />
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 2 }}>
+                      {s.pct}% ગુણ
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Action Button */}
+                  {s.student?.mobile && (
+                    <a
+                      href={getPersonalStudentWhatsApp(s)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Send Congratulation Message on WhatsApp"
+                      style={{
+                        background: '#25d366',
+                        color: 'white',
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        textDecoration: 'none',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
+                        flexShrink: 0
+                      }}
+                    >
+                      💬 WhatsApp
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
 function TestHistory({ showToast }) {
   const [subs, setSubs]               = useState([]);
   const [loading, setLoading]         = useState(true);
-  const [activeTab, setActiveTab]     = useState('testWise'); // 'testWise' | 'all'
+  const [activeTab, setActiveTab]     = useState('leaderboard'); // 'leaderboard' | 'testWise' | 'all'
   const [filterDate, setFilterDate]   = useState('all');      // 'all' | 'today'
   const [searchTerm, setSearchTerm]   = useState('');
   const [expandedTest, setExpandedTest] = useState(null);
@@ -11729,10 +12532,24 @@ ${statusText}
       {/* ── Tabs, Search & Filters ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         {/* View Mode Tabs */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => setActiveTab('leaderboard')}
+            style={{
+              padding: '8px 16px', borderRadius: 9, fontWeight: 900, cursor: 'pointer', fontSize: '0.84rem',
+              border: `1.5px solid ${activeTab === 'leaderboard' ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
+              background: activeTab === 'leaderboard' ? 'linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(217,119,6,0.15) 100%)' : 'rgba(255,255,255,0.03)',
+              color: activeTab === 'leaderboard' ? '#fbbf24' : '#94a3b8',
+              fontFamily: 'Hind Vadodara, sans-serif',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: activeTab === 'leaderboard' ? '0 0 16px rgba(245,158,11,0.25)' : 'none'
+            }}>
+            👑 🏆 પ્રીમિયમ લીડરબોર્ડ (Podium)
+          </button>
           <button onClick={() => setActiveTab('testWise')}
             style={{
-              padding: '7px 14px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem',
+              padding: '8px 14px', borderRadius: 9, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem',
               border: `1.5px solid ${activeTab === 'testWise' ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
               background: activeTab === 'testWise' ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.03)',
               color: activeTab === 'testWise' ? '#38bdf8' : '#94a3b8',
@@ -11783,6 +12600,12 @@ ${statusText}
       {/* ── Content Area ── */}
       {loading ? (
         <Loader />
+      ) : activeTab === 'leaderboard' ? (
+        <TeacherLeaderboardSection
+          testGroups={testGroups}
+          displayedSubs={displayedSubs}
+          showToast={showToast}
+        />
       ) : activeTab === 'testWise' ? (
         /* ════════════════════════════════════════════════════════════════════════
            TAB 1: TEST-WISE GROUPED VIEW
