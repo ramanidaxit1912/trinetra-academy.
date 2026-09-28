@@ -207,11 +207,11 @@ export default function HomePage() {
           {/* Right Marketing Carousel Container */}
           <div style={{ flex: '1 1 340px', maxWidth: 420, margin: '0 auto', width: '100%', zIndex: 1 }}>
             <div style={{
-              background: 'linear-gradient(145deg, rgba(30,58,138,0.5), rgba(15,23,42,0.85))',
-              borderRadius: 20,
-              padding: 12,
-              border: '1.5px solid rgba(245,158,11,0.3)',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(245,158,11,0.1)',
+              background: 'linear-gradient(180deg, #131d31 0%, #0c1322 100%)',
+              borderRadius: 22,
+              padding: '13px 13px 15px',
+              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 24px 60px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(37, 99, 235, 0.15)',
               position: 'relative'
             }}>
               
@@ -220,16 +220,17 @@ export default function HomePage() {
                 onClick={() => setZoomPoster(currentPoster.imageUrl)}
                 style={{
                   width: '100%',
-                  height: 'clamp(260px, 44vw, 350px)',
-                  borderRadius: 14,
+                  height: 'clamp(260px, 44vw, 340px)',
+                  borderRadius: 15,
                   overflow: 'hidden',
                   position: 'relative',
                   cursor: 'zoom-in',
-                  background: '#0b0f19',
+                  background: '#070b14',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1px solid rgba(255,255,255,0.08)'
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: 'inset 0 0 20px rgba(0,0,0,0.6)'
                 }}
                 title="ક્લિક કરીને મોટું પોસ્ટર જુઓ (Zoom HD)"
               >
@@ -252,13 +253,13 @@ export default function HomePage() {
                 {/* Zoom Icon Hint (Bottom Right as in reference image) */}
                 <div style={{
                   position: 'absolute', bottom: 10, right: 10,
-                  background: 'rgba(0,0,0,0.72)', color: '#ffffff',
+                  background: 'rgba(15, 23, 42, 0.82)', color: '#ffffff',
                   fontSize: '0.74rem', fontWeight: 800,
-                  padding: '4px 10px', borderRadius: 8,
+                  padding: '4px 11px', borderRadius: 20,
                   display: 'flex', alignItems: 'center', gap: 5,
-                  backdropFilter: 'blur(4px)', zIndex: 3,
-                  border: '1px solid rgba(255,255,255,0.18)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                  backdropFilter: 'blur(8px)', zIndex: 3,
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                 }}>
                   <Maximize2 size={13} /> Zoom
                 </div>
@@ -284,9 +285,10 @@ export default function HomePage() {
                   onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                   style={{
                     position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                    background: 'rgba(0,0,0,0.65)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
-                    width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', zIndex: 4, backdropFilter: 'blur(4px)'
+                    background: 'rgba(15, 23, 42, 0.75)', color: 'white', border: '1px solid rgba(255,255,255,0.25)',
+                    width: 33, height: 33, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', zIndex: 4, backdropFilter: 'blur(6px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                   }}
                   aria-label="Previous Poster"
                 >
@@ -298,9 +300,10 @@ export default function HomePage() {
                   onClick={(e) => { e.stopPropagation(); handleNext(); }}
                   style={{
                     position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                    background: 'rgba(0,0,0,0.65)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
-                    width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', zIndex: 4, backdropFilter: 'blur(4px)'
+                    background: 'rgba(15, 23, 42, 0.75)', color: 'white', border: '1px solid rgba(255,255,255,0.25)',
+                    width: 33, height: 33, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', zIndex: 4, backdropFilter: 'blur(6px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                   }}
                   aria-label="Next Poster"
                 >
@@ -308,39 +311,57 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Test Details Below Poster Frame (Matching Reference Image) */}
-              <div style={{ padding: '14px 6px 4px' }}>
+              {/* Test Details Below Poster Frame (Premium Redesigned) */}
+              <div style={{
+                padding: '14px 6px 6px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6
+              }}>
+                {/* Title */}
                 <h3 style={{
                   color: '#ffffff',
                   fontWeight: 900,
-                  fontSize: 'clamp(1.1rem, 3.2vw, 1.28rem)',
-                  margin: '0 0 6px',
-                  lineHeight: 1.35,
-                  letterSpacing: '0.2px'
+                  fontSize: 'clamp(1.15rem, 3.4vw, 1.32rem)',
+                  margin: 0,
+                  lineHeight: 1.32,
+                  letterSpacing: '-0.01em',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.5)'
                 }}>
                   {currentPoster.title}
                 </h3>
 
+                {/* Subtitle (Golden Amber) */}
                 {currentPoster.subtitle && (
                   <div style={{
-                    color: '#fbbf24',
-                    fontSize: 'clamp(0.86rem, 2.4vw, 0.95rem)',
+                    color: '#f59e0b',
+                    fontSize: 'clamp(0.88rem, 2.5vw, 0.98rem)',
                     fontWeight: 700,
-                    marginBottom: 8,
-                    lineHeight: 1.4
+                    lineHeight: 1.45,
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.4)'
                   }}>
                     {currentPoster.subtitle}
                   </div>
                 )}
 
+                {/* Price & Discount Row */}
                 {(currentPoster.price || currentPoster.oldPrice) && (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 12,
+                    marginTop: 3,
+                    paddingTop: 2
+                  }}>
                     {currentPoster.oldPrice && (
                       <span style={{
                         color: '#64748b',
                         textDecoration: 'line-through',
-                        fontSize: '0.96rem',
-                        fontWeight: 700
+                        fontSize: '1.05rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.2px'
                       }}>
                         {currentPoster.oldPrice}
                       </span>
@@ -349,36 +370,105 @@ export default function HomePage() {
                       <span style={{
                         color: '#22c55e',
                         fontWeight: 900,
-                        fontSize: 'clamp(1.25rem, 3.6vw, 1.45rem)'
+                        fontSize: 'clamp(1.4rem, 4vw, 1.65rem)',
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                        textShadow: '0 2px 14px rgba(34, 197, 94, 0.45)'
                       }}>
                         {currentPoster.price}
                       </span>
                     )}
+                    {currentPoster.oldPrice && currentPoster.price && (
+                      <span style={{
+                        background: 'rgba(34, 197, 94, 0.12)',
+                        color: '#4ade80',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: 6,
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        letterSpacing: '0.3px'
+                      }}>
+                        ઓફર પ્રાઇસ
+                      </span>
+                    )}
                   </div>
                 )}
+
+                {/* Premium Feature Micro-Badges */}
+                <div style={{
+                  display: 'flex',
+                  gap: 6,
+                  flexWrap: 'wrap',
+                  marginTop: 4
+                }}>
+                  <span style={{
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    color: '#93c5fd',
+                    borderRadius: 6,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    ⚡ ઓનલાઈન મોક ટેસ્ટ
+                  </span>
+                  <span style={{
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    color: '#6ee7b7',
+                    borderRadius: 6,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    📄 પ્રેક્ટિસ PDF
+                  </span>
+                  <span style={{
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    color: '#fcd34d',
+                    borderRadius: 6,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    🏆 ઓલ ગુજરાત રેન્ક
+                  </span>
+                </div>
               </div>
 
               {/* Bottom Direct Action Bar on Carousel Card */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10, padding: '0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 8, padding: '0 4px' }}>
                 <a
                   href="https://play.google.com/store/apps/details?id=co.bolton.unhnx"
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #38bdf8 100%)',
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%)',
                     color: 'white',
-                    padding: '9px 14px',
-                    borderRadius: 8,
+                    padding: '10px 16px',
+                    borderRadius: 10,
                     fontWeight: 900,
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     textDecoration: 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 8,
                     flex: 1,
                     justifyContent: 'center',
-                    boxShadow: '0 4px 14px rgba(37,99,235,0.4)',
-                    border: '1px solid rgba(255,255,255,0.2)'
+                    boxShadow: '0 6px 18px rgba(37,99,235,0.45)',
+                    border: '1px solid rgba(255,255,255,0.22)',
+                    letterSpacing: '0.2px'
                   }}
                 >
                   📱 એપ્લિકેશન પર મેળવો
@@ -390,18 +480,19 @@ export default function HomePage() {
                     style={{
                       background: 'rgba(255,255,255,0.08)',
                       color: '#93c5fd',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      padding: '8px 12px',
-                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      padding: '10px 14px',
+                      borderRadius: 10,
                       fontWeight: 800,
-                      fontSize: '0.82rem',
+                      fontSize: '0.84rem',
                       textDecoration: 'none',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 5,
+                      backdropFilter: 'blur(6px)'
                     }}
                   >
-                    ટેસ્ટ <ExternalLink size={13} />
+                    ટેસ્ટ <ExternalLink size={14} />
                   </Link>
                 )}
               </div>
