@@ -5,7 +5,7 @@ Disallow: /teacher
 Disallow: /trinetra-secure-desk
 
 # Host
-Host: https://trinetraacademy.in
+Host: https://trinetra-academy.vercel.app
 
 # Sitemaps
-Sitemap: https://trinetraacademy.in/sitemap.xml
+Sitemap: https://trinetra-academy.vercel.app/sitemap.xml
