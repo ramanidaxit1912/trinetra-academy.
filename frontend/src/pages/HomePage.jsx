@@ -346,54 +346,108 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Price & Discount Row */}
-                {(currentPoster.price || currentPoster.oldPrice) && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: 12,
-                    marginTop: 3,
-                    paddingTop: 2
-                  }}>
-                    {currentPoster.oldPrice && (
-                      <span style={{
-                        color: '#64748b',
-                        textDecoration: 'line-through',
-                        fontSize: '1.05rem',
-                        fontWeight: 700,
-                        letterSpacing: '0.2px'
-                      }}>
-                        {currentPoster.oldPrice}
-                      </span>
-                    )}
-                    {currentPoster.price && (
-                      <span style={{
-                        color: '#22c55e',
+                {/* Price & Deal Container (High-Conversion Attractive Design) */}
+                {(currentPoster.price || currentPoster.oldPrice) && (() => {
+                  const cleanPriceNum = (str) => {
+                    if (!str) return null;
+                    const n = parseInt(String(str).replace(/[^\d]/g, ''), 10);
+                    return isNaN(n) ? null : n;
+                  };
+                  const formatCurrency = (val) => {
+                    if (!val) return '';
+                    const s = String(val).trim();
+                    return s.startsWith('₹') ? s : `₹${s}`;
+                  };
+
+                  const pOld = cleanPriceNum(currentPoster.oldPrice);
+                  const pNew = cleanPriceNum(currentPoster.price);
+                  const discountPercent = (pOld && pNew && pOld > pNew)
+                    ? Math.round(((pOld - pNew) / pOld) * 100)
+                    : null;
+                  const savingsAmount = (pOld && pNew && pOld > pNew) ? (pOld - pNew) : null;
+
+                  return (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%)',
+                      border: '1.5px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: 14,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      marginTop: 6,
+                      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                    }}>
+                      {/* Left Price Group */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                          {/* Discounted Offer Price */}
+                          {currentPoster.price && (
+                            <div style={{ display: 'flex', alignItems: 'flex-start', color: '#22c55e' }}>
+                              <span style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: 1, marginRight: 2, color: '#4ade80' }}>₹</span>
+                              <span style={{
+                                fontSize: 'clamp(1.45rem, 4.2vw, 1.85rem)',
+                                fontWeight: 900,
+                                lineHeight: 1,
+                                letterSpacing: '-0.02em',
+                                textShadow: '0 0 16px rgba(34, 197, 94, 0.5)'
+                              }}>
+                                {pNew !== null ? pNew : currentPoster.price.replace(/[^\d]/g, '') || currentPoster.price}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Strikethrough Old Price */}
+                          {currentPoster.oldPrice && (
+                            <span style={{
+                              color: '#94a3b8',
+                              textDecoration: 'line-through',
+                              fontSize: '1.02rem',
+                              fontWeight: 700,
+                              letterSpacing: '0.2px'
+                            }}>
+                              {formatCurrency(currentPoster.oldPrice)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Savings Subtext */}
+                        {savingsAmount ? (
+                          <div style={{ color: '#86efac', fontSize: '0.74rem', fontWeight: 800, marginTop: 3 }}>
+                            🎉 તમારી બચત: ₹{savingsAmount}
+                          </div>
+                        ) : (
+                          <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, marginTop: 2 }}>
+                            ⚡ સ્પેશિયલ ઓફર પ્રાઇસ
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Flaming Discount Tag */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, #ef4444 0%, #ea580c 50%, #f59e0b 100%)',
+                        color: '#ffffff',
+                        padding: '6px 14px',
+                        borderRadius: 20,
+                        fontSize: '0.78rem',
                         fontWeight: 900,
-                        fontSize: 'clamp(1.4rem, 4vw, 1.65rem)',
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1,
-                        textShadow: '0 2px 14px rgba(34, 197, 94, 0.45)'
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        boxShadow: '0 4px 14px rgba(234, 88, 12, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        letterSpacing: '0.4px',
+                        textTransform: 'uppercase',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                       }}>
-                        {currentPoster.price}
-                      </span>
-                    )}
-                    {currentPoster.oldPrice && currentPoster.price && (
-                      <span style={{
-                        background: 'rgba(34, 197, 94, 0.12)',
-                        color: '#4ade80',
-                        border: '1px solid rgba(34, 197, 94, 0.3)',
-                        borderRadius: 6,
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        letterSpacing: '0.3px'
-                      }}>
-                        ઓફર પ્રાઇસ
-                      </span>
-                    )}
-                  </div>
-                )}
+                        <span style={{ fontSize: '0.9rem' }}>🔥</span>
+                        <span>{discountPercent ? `${discountPercent}% OFF` : 'ઓફર પ્રાઇસ'}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Premium Feature Micro-Badges */}
                 <div style={{
