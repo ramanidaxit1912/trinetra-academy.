@@ -835,7 +835,7 @@ export function LeaderboardUI({
                         {/* Silver 3D Pillar */}
                         <div style={{
                           width: '100%',
-                          height: 110,
+                          minHeight: 124,
                           borderRadius: '10px 10px 4px 4px',
                           background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)',
                           border: '1.5px solid #94a3b8',
@@ -844,8 +844,8 @@ export function LeaderboardUI({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 3,
-                          padding: '6px 4px',
+                          gap: 4,
+                          padding: '8px 4px 10px',
                           boxSizing: 'border-box'
                         }}>
                           <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>🥈</span>
@@ -853,12 +853,27 @@ export function LeaderboardUI({
                           <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.85rem' }}>
                             {top2.mcqScore}/{top2.totalMCQ}
                           </span>
-                          <span style={{ background: '#334155', color: '#cbd5e1', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 8 }}>
+                          <span style={{ background: '#334155', color: '#cbd5e1', fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 8, whiteSpace: 'nowrap' }}>
                             SILVER • {top2.percentage}%
                           </span>
                           {getSubmissionTimeInfo(top2).duration && (
-                            <span style={{ color: '#93c5fd', fontSize: '0.62rem', fontWeight: 800, marginTop: 1 }}>
-                              ⏱️ {getSubmissionTimeInfo(top2).duration}
+                            <span style={{
+                              background: 'rgba(15, 23, 42, 0.65)',
+                              color: '#93c5fd',
+                              border: '1px solid rgba(147, 197, 253, 0.4)',
+                              fontSize: '0.6rem',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: 10,
+                              marginTop: 2,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <span>⏱️</span>
+                              <span>{getSubmissionTimeInfo(top2).duration}</span>
                             </span>
                           )}
                         </div>
@@ -925,7 +940,7 @@ export function LeaderboardUI({
                         {/* Gold 3D Pillar (Tallest) */}
                         <div style={{
                           width: '100%',
-                          height: 145,
+                          minHeight: 156,
                           borderRadius: '12px 12px 4px 4px',
                           background: 'linear-gradient(180deg, #f59e0b 0%, #b45309 100%)',
                           border: '2px solid #fbbf24',
@@ -935,7 +950,7 @@ export function LeaderboardUI({
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: 4,
-                          padding: '6px 4px',
+                          padding: '10px 4px 12px',
                           boxSizing: 'border-box'
                         }}>
                           <span style={{ fontSize: '1.9rem', lineHeight: 1 }}>🥇</span>
@@ -945,12 +960,27 @@ export function LeaderboardUI({
                           <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.95rem' }}>
                             {top1.mcqScore}/{top1.totalMCQ}
                           </span>
-                          <span style={{ background: '#78350f', color: '#fef08a', fontSize: '0.64rem', fontWeight: 900, padding: '2px 8px', borderRadius: 10 }}>
+                          <span style={{ background: '#78350f', color: '#fef08a', fontSize: '0.64rem', fontWeight: 900, padding: '2px 8px', borderRadius: 10, whiteSpace: 'nowrap' }}>
                             👑 GOLD TOPPER • {top1.percentage}%
                           </span>
                           {getSubmissionTimeInfo(top1).duration && (
-                            <span style={{ color: '#fef08a', fontSize: '0.64rem', fontWeight: 900, marginTop: 1 }}>
-                              ⏱️ {getSubmissionTimeInfo(top1).duration}
+                            <span style={{
+                              background: 'rgba(69, 26, 3, 0.8)',
+                              color: '#fef08a',
+                              border: '1px solid rgba(254, 240, 138, 0.5)',
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '2px 8px',
+                              borderRadius: 10,
+                              marginTop: 2,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <span>⏱️</span>
+                              <span>{getSubmissionTimeInfo(top1).duration}</span>
                             </span>
                           )}
                         </div>
@@ -1010,7 +1040,7 @@ export function LeaderboardUI({
                         {/* Bronze 3D Pillar */}
                         <div style={{
                           width: '100%',
-                          height: 95,
+                          minHeight: 110,
                           borderRadius: '10px 10px 4px 4px',
                           background: 'linear-gradient(180deg, #ea580c 0%, #7c2d12 100%)',
                           border: '1.5px solid #fdba74',
@@ -1019,8 +1049,8 @@ export function LeaderboardUI({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 3,
-                          padding: '6px 4px',
+                          gap: 4,
+                          padding: '8px 4px 10px',
                           boxSizing: 'border-box'
                         }}>
                           <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>🥉</span>
@@ -1028,12 +1058,27 @@ export function LeaderboardUI({
                           <span style={{ color: '#fb923c', fontWeight: 900, fontSize: '0.82rem' }}>
                             {top3.mcqScore}/{top3.totalMCQ}
                           </span>
-                          <span style={{ background: '#7c2d12', color: '#fed7aa', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 8 }}>
+                          <span style={{ background: '#7c2d12', color: '#fed7aa', fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 8, whiteSpace: 'nowrap' }}>
                             BRONZE • {top3.percentage}%
                           </span>
                           {getSubmissionTimeInfo(top3).duration && (
-                            <span style={{ color: '#fed7aa', fontSize: '0.62rem', fontWeight: 800, marginTop: 1 }}>
-                              ⏱️ {getSubmissionTimeInfo(top3).duration}
+                            <span style={{
+                              background: 'rgba(15, 23, 42, 0.65)',
+                              color: '#fed7aa',
+                              border: '1px solid rgba(253, 186, 116, 0.4)',
+                              fontSize: '0.6rem',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: 10,
+                              marginTop: 2,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <span>⏱️</span>
+                              <span>{getSubmissionTimeInfo(top3).duration}</span>
                             </span>
                           )}
                         </div>
