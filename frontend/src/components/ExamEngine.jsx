@@ -823,19 +823,19 @@ export default function ExamEngine({ onFinish }) {
         </div>
       )}
 
-      {/* 🛡️ Dynamic Anti-Leak Diagonal Watermark Layer */}
+      {/* 🛡️ Dynamic Anti-Leak Diagonal Watermark Layer (Floats directly over questions & options) */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           pointerEvents: 'none',
-          zIndex: 4,
+          zIndex: 999,
           overflow: 'hidden',
-          opacity: 0.05,
+          opacity: 0.12,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-          gap: '80px 40px',
-          padding: 20,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: '60px 30px',
+          padding: 16,
           userSelect: 'none',
           WebkitUserSelect: 'none'
         }}
@@ -845,14 +845,14 @@ export default function ExamEngine({ onFinish }) {
             key={i}
             style={{
               transform: 'rotate(-25deg)',
-              fontSize: '0.85rem',
+              fontSize: '0.88rem',
               fontWeight: 900,
-              color: '#000000',
+              color: '#b91c1c',
               whiteSpace: 'nowrap',
-              letterSpacing: '1px'
+              letterSpacing: '0.5px'
             }}
           >
-            TRINETRA • {user?.name || 'STUDENT'} • {user?.mobile || ''}
+            🔒 {user?.name || 'STUDENT'} • {user?.mobile || ''} • TRINETRA
           </div>
         ))}
       </div>
