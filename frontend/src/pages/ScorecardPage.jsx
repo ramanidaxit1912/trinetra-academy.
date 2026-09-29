@@ -164,7 +164,7 @@ export default function ScorecardPage() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 110, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 60, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
       <Navbar />
 
       <style>{`
@@ -216,16 +216,7 @@ export default function ScorecardPage() {
         }
 
         /* Responsive rules for mobile phone view */
-        .mobile-sticky-dock {
-          display: none;
-        }
         @media (max-width: 768px) {
-          .mobile-sticky-dock {
-            display: flex !important;
-          }
-          .desktop-only-action {
-            display: none !important;
-          }
           .scorecard-header-bar {
             flex-direction: column !important;
             align-items: stretch !important;
@@ -242,6 +233,9 @@ export default function ScorecardPage() {
             padding: 8px 6px !important;
             font-size: 0.82rem !important;
           }
+          .scorecard-hero-card {
+            padding: 14px 14px !important;
+          }
         }
       `}</style>
 
@@ -250,7 +244,7 @@ export default function ScorecardPage() {
 
       <div style={{ maxWidth: 940, margin: '20px auto', padding: '0 12px' }}>
 
-        {/* ── Top Bar: Back to Home + Mode Switcher + Desktop Quick Actions ── */}
+        {/* ── Top Bar: Back to Home + Mode Switcher ── */}
         <div className="scorecard-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
           <Link
             to="/"
@@ -315,29 +309,6 @@ export default function ScorecardPage() {
               📝 પ્રશ્નવાર સોલ્યુશન
             </button>
           </div>
-
-          {/* Desktop Only Print Button */}
-          <div className="desktop-only-action" style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={handlePrint}
-              className="btn-touch"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#e2e8f0',
-                padding: '8px 14px',
-                borderRadius: 10,
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              🖨️ પ્રિન્ટ
-            </button>
-          </div>
         </div>
 
         {/* ── 🌟 Mobile & Desktop Hero Action Card ── */}
@@ -381,8 +352,30 @@ export default function ScorecardPage() {
             </div>
           </div>
 
-          {/* Action Buttons: WhatsApp Share + Pulsing Emerald Download Button */}
+          {/* Action Buttons: Print + WhatsApp Share + Download Scorecard PDF */}
           <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={handlePrint}
+              className="btn-touch"
+              title="પ્રિન્ટ કરો"
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#e2e8f0',
+                padding: '10px 16px',
+                borderRadius: 12,
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>🖨️</span>
+              <span>પ્રિન્ટ</span>
+            </button>
+
             <button
               onClick={handleShareWhatsApp}
               className="btn-touch"
@@ -410,7 +403,7 @@ export default function ScorecardPage() {
               disabled={downloadingPdf}
               className="btn-download-glow btn-touch btn-shimmer"
               style={{
-                flex: '1 1 220px',
+                flex: '1 1 200px',
                 minHeight: 46,
                 background: downloadingPdf
                   ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
@@ -612,94 +605,6 @@ export default function ScorecardPage() {
           </div>
         )}
 
-      </div>
-
-      {/* ── 📱 Mobile Floating Sticky Dock (Always accessible by thumb!) ── */}
-      <div
-        className="mobile-sticky-dock"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999,
-          background: 'rgba(11, 19, 41, 0.94)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-          padding: '10px 16px',
-          paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 10,
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.6)'
-        }}
-      >
-        <div style={{ flex: '0 1 auto', minWidth: 0 }}>
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            મેળવેલ ગુણ
-          </div>
-          <div style={{ fontSize: '0.94rem', fontWeight: 900, color: '#38bdf8' }}>
-            {score}/{totalMarks} <span style={{ fontSize: '0.74rem', color: isPassing ? '#34d399' : '#f87171' }}>({pct}%)</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleShareWhatsApp}
-          className="btn-touch"
-          title="વોટ્સએપ શેર"
-          style={{
-            background: 'rgba(34, 197, 94, 0.18)',
-            border: '1px solid rgba(34, 197, 94, 0.45)',
-            color: '#4ade80',
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.25rem',
-            flexShrink: 0
-          }}
-        >
-          💬
-        </button>
-
-        <button
-          onClick={handleDownloadPdf}
-          disabled={downloadingPdf}
-          className="btn-download-glow btn-touch btn-shimmer"
-          style={{
-            flex: '1 1 180px',
-            height: 44,
-            background: downloadingPdf
-              ? 'linear-gradient(135deg, #059669, #047857)'
-              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            border: 'none',
-            color: '#ffffff',
-            padding: '0 16px',
-            borderRadius: 12,
-            fontSize: '0.88rem',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            boxShadow: '0 4px 16px rgba(16,185,129,0.45)'
-          }}
-        >
-          {downloadingPdf ? (
-            <>
-              <span className="spinner-ring" />
-              <span>ડાઉનલોડ થાય છે...</span>
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '1.1rem' }}>📥</span>
-              <span>Download PDF</span>
-            </>
-          )}
-        </button>
       </div>
     </div>
   );
