@@ -9206,6 +9206,108 @@ function StudentAnswers({ showToast }) {
   const toggleTestGroup = (testCode) =>
     setExpandedTests(prev => ({ ...prev, [testCode]: !prev[testCode] }));
 
+  // ─── 🎨 Dynamic 3D Subject Theme & Icon Helper for Test Groups ─────
+  const getTestGroupTheme = (group) => {
+    const s = String(group.subject || group.testName || '').toLowerCase();
+    if (s.includes('વિજ્ઞાન') || s.includes('science')) {
+      return {
+        icon: '🔬',
+        gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+        glow: 'rgba(16, 185, 129, 0.45)',
+        border: 'rgba(16, 185, 129, 0.4)',
+        badgeBg: 'rgba(16, 185, 129, 0.14)',
+        badgeColor: '#34d399'
+      };
+    }
+    if (s.includes('ગણિત') || s.includes('math')) {
+      return {
+        icon: '📐',
+        gradient: 'linear-gradient(135deg, #2563eb 0%, #6366f1 100%)',
+        glow: 'rgba(37, 99, 235, 0.45)',
+        border: 'rgba(37, 99, 235, 0.4)',
+        badgeBg: 'rgba(37, 99, 235, 0.14)',
+        badgeColor: '#60a5fa'
+      };
+    }
+    if (s.includes('ગુજરાતી') || s.includes('gujarati')) {
+      return {
+        icon: '📚',
+        gradient: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)',
+        glow: 'rgba(225, 29, 72, 0.45)',
+        border: 'rgba(225, 29, 72, 0.4)',
+        badgeBg: 'rgba(225, 29, 72, 0.14)',
+        badgeColor: '#fb7185'
+      };
+    }
+    if (s.includes('અંગ્રેજી') || s.includes('english')) {
+      return {
+        icon: '🔤',
+        gradient: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+        glow: 'rgba(124, 58, 237, 0.45)',
+        border: 'rgba(124, 58, 237, 0.4)',
+        badgeBg: 'rgba(124, 58, 237, 0.14)',
+        badgeColor: '#c084fc'
+      };
+    }
+    if (s.includes('સામાજિક') || s.includes('ભૂગોળ') || s.includes('ઇતિહાસ') || s.includes('social')) {
+      return {
+        icon: '🌍',
+        gradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+        glow: 'rgba(217, 119, 6, 0.45)',
+        border: 'rgba(217, 119, 6, 0.4)',
+        badgeBg: 'rgba(217, 119, 6, 0.14)',
+        badgeColor: '#fbbf24'
+      };
+    }
+    if (s.includes('તર્ક') || s.includes('રીઝનિંગ') || s.includes('reasoning') || s.includes('માનસિક')) {
+      return {
+        icon: '🧠',
+        gradient: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+        glow: 'rgba(8, 145, 178, 0.45)',
+        border: 'rgba(8, 145, 178, 0.4)',
+        badgeBg: 'rgba(8, 145, 178, 0.14)',
+        badgeColor: '#38bdf8'
+      };
+    }
+    if (s.includes('સામાન્ય જ્ઞાન') || s.includes('gk') || s.includes('બંધારણ') || s.includes('કરંટ')) {
+      return {
+        icon: '💡',
+        gradient: 'linear-gradient(135deg, #c026d3 0%, #ec4899 100%)',
+        glow: 'rgba(192, 38, 211, 0.45)',
+        border: 'rgba(192, 38, 211, 0.4)',
+        badgeBg: 'rgba(192, 38, 211, 0.14)',
+        badgeColor: '#f472b6'
+      };
+    }
+    if (group.hasMCQ && !group.hasDesc) {
+      return {
+        icon: '⚡',
+        gradient: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
+        glow: 'rgba(37, 99, 235, 0.45)',
+        border: 'rgba(37, 99, 235, 0.4)',
+        badgeBg: 'rgba(37, 99, 235, 0.14)',
+        badgeColor: '#60a5fa'
+      };
+    }
+    if (!group.hasMCQ && group.hasDesc) {
+      return {
+        icon: '📝',
+        gradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+        glow: 'rgba(217, 119, 6, 0.45)',
+        border: 'rgba(217, 119, 6, 0.4)',
+        badgeBg: 'rgba(217, 119, 6, 0.14)',
+        badgeColor: '#fbbf24'
+      };
+    }
+    return {
+      icon: '💎',
+      gradient: 'linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%)',
+      glow: 'rgba(124, 58, 237, 0.45)',
+      border: 'rgba(124, 58, 237, 0.4)',
+      badgeBg: 'rgba(124, 58, 237, 0.14)',
+      badgeColor: '#a78bfa'
+    };
+  };
 
   return (
     <div className="animate-fade-in">
@@ -9346,127 +9448,234 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div key={group.testCode} className="sa-test-group">
 
-                    {/* ── Test Group Header Card ── */}
-                    <div
-                      className="sa-test-group-header"
-                      onClick={() => toggleTestGroup(group.testCode)}
-                      style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}
-                    >
-                      {/* Top Row: Icon + Test Name + Subject + Badges + Student Count & Toggle Arrow */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 200, flex: 1 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-                            {testType === 'MCQ' ? '🔵' : testType === 'DESC' ? '📝' : '⚡'}
-                          </div>
-                          <div>
-                            <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.3 }}>
-                              {group.testName}
+                    {/* ── 🌟 Ultra-Luxury 3D VIP Test Group Header Card ── */}
+                    {(() => {
+                      const subTheme = getTestGroupTheme(group);
+                      return (
+                        <div
+                          className="sa-test-group-header"
+                          onClick={() => toggleTestGroup(group.testCode)}
+                          style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}
+                        >
+                          {/* Top Row: 3D Subject Avatar + Test Name + Subject Badges + Student Count & Toggle Arrow */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200, flex: 1 }}>
+                              {/* 3D Floating Avatar */}
+                              <div style={{
+                                width: 46,
+                                height: 46,
+                                borderRadius: 13,
+                                background: subTheme.gradient,
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.45rem',
+                                flexShrink: 0,
+                                boxShadow: `0 6px 18px -2px ${subTheme.glow}`,
+                                border: '1.5px solid rgba(255,255,255,0.3)'
+                              }}>
+                                {subTheme.icon}
+                              </div>
+                              <div>
+                                <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.12rem', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+                                  {group.testName}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 4, flexWrap: 'wrap' }}>
+                                  <span style={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: 800,
+                                    color: '#38bdf8',
+                                    background: 'rgba(56,189,248,0.12)',
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid rgba(56,189,248,0.3)'
+                                  }}>
+                                    🏷️ {group.testCode}
+                                  </span>
+                                  {group.subject && group.subject !== '—' && (
+                                    <span style={{
+                                      background: subTheme.badgeBg,
+                                      color: subTheme.badgeColor,
+                                      fontWeight: 800,
+                                      padding: '2px 8px',
+                                      borderRadius: 6,
+                                      border: `1px solid ${subTheme.border}`
+                                    }}>
+                                      {subTheme.icon} {group.subject}
+                                    </span>
+                                  )}
+                                  <span style={{
+                                    background: typeBg,
+                                    color: typeColor,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                    border: `1px solid ${typeColor}44`
+                                  }}>
+                                    {typeLabel}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 2, flexWrap: 'wrap' }}>
-                              <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 6px', borderRadius: 4, border: '1px solid rgba(56,189,248,0.25)' }}>
-                                🏷️ {group.testCode}
+
+                            {/* Dropdown Toggle Badge */}
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{
+                                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))',
+                                color: '#38bdf8',
+                                fontSize: '0.82rem',
+                                fontWeight: 900,
+                                padding: '6px 12px',
+                                borderRadius: 10,
+                                border: '1.5px solid rgba(56,189,248,0.4)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                👥 {group.subs.length} વિદ્યાર્થી
                               </span>
-                              {group.subject && group.subject !== '—' && (
-                                <span style={{ color: '#94a3b8' }}>• {group.subject}</span>
-                              )}
-                              <span style={{ background: typeBg, color: typeColor, fontSize: '0.68rem', fontWeight: 800, padding: '1px 7px', borderRadius: 10, border: `1px solid ${typeColor}44` }}>
-                                {typeLabel}
+                              <span style={{
+                                background: isOpen ? 'linear-gradient(135deg, #0284c7, #2563eb)' : 'rgba(255,255,255,0.06)',
+                                color: '#ffffff',
+                                width: 32,
+                                height: 32,
+                                borderRadius: 9,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem',
+                                fontWeight: 900,
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                boxShadow: isOpen ? '0 2px 10px rgba(37,99,235,0.4)' : 'none',
+                                transition: 'all 0.25s ease',
+                                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                              }}>
+                                ▼
                               </span>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Dropdown Toggle Badge */}
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, padding: '5px 10px', borderRadius: 8, border: '1px solid rgba(56,189,248,0.3)', whiteSpace: 'nowrap' }}>
-                            👥 {group.subs.length} વિદ્યાર્થી
-                          </span>
-                          <span style={{ background: isOpen ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)', color: isOpen ? '#38bdf8' : '#94a3b8', width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900, transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                            ▼
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Bottom Row: Score Badges + Action Buttons */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
-                        {/* Score & Status Badges */}
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ background: 'rgba(234,179,8,0.15)', color: '#fde047', fontSize: '0.74rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.3)', whiteSpace: 'nowrap' }}>
-                            🏆 {highestScore}/{maxPossibleMarks}
-                          </span>
-                          <span style={{ background: 'rgba(59,130,246,0.15)', color: '#93c5fd', fontSize: '0.74rem', fontWeight: 900, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)', whiteSpace: 'nowrap' }}>
-                            📊 {avgScore}m
-                          </span>
-                          {pendingInGroup > 0 ? (
-                            <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.74rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)', whiteSpace: 'nowrap' }}>
-                              ⏳ {pendingInGroup} બાકી
-                            </span>
-                          ) : (
-                            <span style={{ background: 'rgba(34,197,94,0.18)', color: '#4ade80', fontSize: '0.74rem', fontWeight: 800, padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.35)', whiteSpace: 'nowrap' }}>
-                              ✅ પૂર્ણ
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            onClick={(e) => openMasterTestModal(group, e)}
-                            style={{
-                              background: 'linear-gradient(135deg,#7c3aed,#9333ea)',
-                              color: 'white',
-                              border: 'none',
-                              padding: '7px 14px',
-                              borderRadius: 8,
-                              fontSize: '0.78rem',
-                              fontWeight: 900,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              fontFamily: 'Hind Vadodara, sans-serif',
-                              boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
-                              whiteSpace: 'nowrap'
-                            }}
-                            title="આ કસોટીના તમામ પ્રશ્નો અને Answer Key જુઓ/એડિટ કરો"
-                          >
-                            <Edit3 size={13} /> 📝 Answer Key
-                          </button>
-
-                          {group.hasMCQ && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReEvaluate(group.testCode);
-                              }}
-                              disabled={reEvaluating[group.testCode]}
-                              style={{
-                                background: 'linear-gradient(135deg,#2563eb,#3b82f6)',
-                                color: 'white',
-                                border: 'none',
-                                padding: '7px 14px',
-                                borderRadius: 8,
+                          {/* Bottom Row: Score Badges + Action Buttons */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
+                            {/* Score & Status Badges */}
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span style={{
+                                background: 'rgba(234,179,8,0.15)',
+                                color: '#fde047',
                                 fontSize: '0.78rem',
                                 fontWeight: 900,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                fontFamily: 'Hind Vadodara, sans-serif',
-                                boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
-                                opacity: reEvaluating[group.testCode] ? 0.6 : 1,
+                                padding: '5px 10px',
+                                borderRadius: 8,
+                                border: '1.5px solid rgba(234,179,8,0.35)',
                                 whiteSpace: 'nowrap'
-                              }}
-                              title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
-                            >
-                              <RotateCw size={13} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
-                            </button>
-                          )}
+                              }}>
+                                🏆 સર્વોચ્ચ: {highestScore}/{maxPossibleMarks}
+                              </span>
+                              <span style={{
+                                background: 'rgba(59,130,246,0.15)',
+                                color: '#93c5fd',
+                                fontSize: '0.78rem',
+                                fontWeight: 900,
+                                padding: '5px 10px',
+                                borderRadius: 8,
+                                border: '1.5px solid rgba(59,130,246,0.35)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                📊 સરેરાશ: {avgScore} ગુણ
+                              </span>
+                              {pendingInGroup > 0 ? (
+                                <span style={{
+                                  background: 'rgba(245,158,11,0.2)',
+                                  color: '#fbbf24',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  padding: '5px 10px',
+                                  borderRadius: 8,
+                                  border: '1.5px solid rgba(245,158,11,0.45)',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  ⏳ {pendingInGroup} તપાસવાની બાકી
+                                </span>
+                              ) : (
+                                <span style={{
+                                  background: 'rgba(34,197,94,0.18)',
+                                  color: '#4ade80',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  padding: '5px 10px',
+                                  borderRadius: 8,
+                                  border: '1.5px solid rgba(34,197,94,0.45)',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  ✅ તમામ પૂર્ણ
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => openMasterTestModal(group, e)}
+                                style={{
+                                  background: 'linear-gradient(135deg,#7c3aed 0%,#9333ea 100%)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: 9,
+                                  fontSize: '0.82rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  fontFamily: 'Hind Vadodara, sans-serif',
+                                  boxShadow: '0 4px 14px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                                  whiteSpace: 'nowrap',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                title="આ કસોટીના તમામ પ્રશ્નો અને Answer Key જુઓ/એડિટ કરો"
+                              >
+                                <Edit3 size={14} /> 📝 Answer Key
+                              </button>
+
+                              {group.hasMCQ && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReEvaluate(group.testCode);
+                                  }}
+                                  disabled={reEvaluating[group.testCode]}
+                                  style={{
+                                    background: 'linear-gradient(135deg,#0284c7 0%,#2563eb 100%)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: 9,
+                                    fontSize: '0.82rem',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontFamily: 'Hind Vadodara, sans-serif',
+                                    boxShadow: '0 4px 14px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                                    opacity: reEvaluating[group.testCode] ? 0.6 : 1,
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
+                                >
+                                  <RotateCw size={14} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                     {/* Progress Bar under header */}
                     <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: 5, overflow: 'hidden' }}>
                       <div
@@ -9474,6 +9683,7 @@ function StudentAnswers({ showToast }) {
                           height: '100%',
                           width: `${progressPct}%`,
                           background: progressPct === 100 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #3b82f6, #38bdf8)',
+                          boxShadow: progressPct === 100 ? '0 0 10px rgba(16,185,129,0.7)' : '0 0 10px rgba(56,189,248,0.7)',
                           transition: 'width 0.3s ease-in-out'
                         }}
                       />
@@ -9540,42 +9750,106 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div key={sub.id} className="glass-card animate-fade-in"
                     style={{
-                      padding: 18,
-                      borderRadius: 14,
+                      padding: '16px 18px',
+                      borderRadius: 16,
                       border: pureMcq
                         ? '1.5px solid rgba(59,130,246,0.35)'
-                        : (isGraded ? '1.5px solid rgba(34,197,94,0.4)' : '1.5px solid rgba(245,158,11,0.5)'),
-                      background: '#0f172a',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 4px 18px rgba(0,0,0,0.35)'
+                        : (isGraded ? '1.5px solid rgba(34,197,94,0.45)' : '1.5px solid rgba(245,158,11,0.55)'),
+                      background: 'linear-gradient(145deg, #0e172a 0%, #090f1d 100%)',
+                      transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)'
                     }}>
 
                     {/* Top Row: Student info + Status Badges */}
-                    <div className="sa-card-toprow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div className="sa-card-toprow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Avatar name={sub.student?.name} size={42} />
+                        {/* 3D Vibrant Student Avatar */}
+                        <div style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900,
+                          fontSize: '1.2rem',
+                          flexShrink: 0,
+                          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                          border: '2px solid rgba(255, 255, 255, 0.25)'
+                        }}>
+                          {(sub.student?.name || 'S').trim().charAt(0).toUpperCase()}
+                        </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.02rem' }}>{sub.student?.name}</span>
+                            <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+                              {sub.student?.name}
+                            </span>
                             {sub.testCode && (
-                              <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 900, padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(56,189,248,0.4)' }}>
+                              <span style={{
+                                background: 'rgba(56,189,248,0.12)',
+                                color: '#38bdf8',
+                                fontSize: '0.74rem',
+                                fontFamily: 'monospace',
+                                fontWeight: 900,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(56,189,248,0.35)'
+                              }}>
                                 🏷️ ID: {sub.testCode}
                               </span>
                             )}
                             {pureMcq ? (
-                              <span style={{ background: 'rgba(59,130,246,0.25)', color: '#93c5fd', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.35)' }}>
+                              <span style={{
+                                background: 'rgba(59,130,246,0.18)',
+                                color: '#93c5fd',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 9px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(59,130,246,0.35)'
+                              }}>
                                 🔵 ફક્ત MCQ (ઓટો ગણતરી)
                               </span>
+                            ) : isGraded ? (
+                              <span style={{
+                                background: 'rgba(34,197,94,0.18)',
+                                color: '#86efac',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 9px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(34,197,94,0.35)'
+                              }}>
+                                ✅ તપાસાઈ ગયેલ ({sub.teacherMarks} ગુણ)
+                              </span>
                             ) : (
-                              <span style={{ background: 'rgba(245,158,11,0.25)', color: '#fcd34d', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.35)' }}>
-                                📝 વર્ણાત્મક (મેન્યુઅલ તપાસણી)
+                              <span style={{
+                                background: 'rgba(245,158,11,0.18)',
+                                color: '#fde68a',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '2px 9px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(245,158,11,0.35)'
+                              }}>
+                                ⏳ વર્ણાત્મક (તપાસવાની બાકી)
                               </span>
                             )}
                           </div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 3, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-                            <span>📞 {sub.student?.mobile} • 📚 {sub.testName || sub.subject || 'સામાન્ય કસોટી'} • 📅 {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+
+                          {/* Subline Details */}
+                          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 4, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>📞 {sub.student?.mobile}</span>
+                            <span>•</span>
+                            <span style={{ color: '#e2e8f0', fontWeight: 600 }}>📗 {sub.testName || sub.subject || 'સામાન્ય કસોટી'}</span>
+                            <span>•</span>
+                            <span>🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+
+                            {/* Anti-cheat badges if any */}
                             {(sub.ipAddress || (sub.remarks && sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1])) && (
-                              <span style={{ color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 7px', borderRadius: 6, fontSize: '0.74rem', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 600 }}>
+                              <span style={{ color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 7px', borderRadius: 6, fontSize: '0.72rem', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 600 }}>
                                 🌐 {sub.ipAddress || sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1]}
                               </span>
                             )}
@@ -9588,7 +9862,7 @@ function StudentAnswers({ showToast }) {
                                   background: 'rgba(239,68,68,0.18)',
                                   padding: '1px 8px',
                                   borderRadius: 6,
-                                  fontSize: '0.74rem',
+                                  fontSize: '0.72rem',
                                   border: '1px solid rgba(239,68,68,0.4)',
                                   fontWeight: 800,
                                   display: 'inline-flex',
@@ -9611,14 +9885,13 @@ function StudentAnswers({ showToast }) {
                                     background: 'rgba(245,158,11,0.18)',
                                     padding: '1px 8px',
                                     borderRadius: 6,
-                                    fontSize: '0.74rem',
+                                    fontSize: '0.72rem',
                                     border: '1px solid rgba(245,158,11,0.4)',
                                     fontWeight: 800,
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: 3
-                                  }}
-                                >
+                                  }}>
                                   📸 {ssMatch[1]} વાર સ્ક્રીનશોટ {ssQMatch ? `(${ssQMatch[1]})` : ''}
                                 </span>
                               );
@@ -9630,46 +9903,93 @@ function StudentAnswers({ showToast }) {
                       {/* Marks Pills & Toggle Button */}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* MCQ Marks */}
-                        <span style={{ background: '#1e293b', color: '#60a5fa', fontWeight: 900, padding: '5px 12px', borderRadius: 8, fontSize: '0.82rem', border: '1px solid rgba(59,130,246,0.3)' }}>
-                          MCQ: <strong>{mcqVal}m</strong>
+                        <span style={{
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          color: '#60a5fa',
+                          fontWeight: 900,
+                          padding: '6px 12px',
+                          borderRadius: 9,
+                          fontSize: '0.82rem',
+                          border: '1px solid rgba(59,130,246,0.3)',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                        }}>
+                          MCQ: <strong style={{ color: '#93c5fd' }}>{mcqVal} ગુણ</strong>
                         </span>
 
                         {/* Descriptive Status if not pure MCQ */}
                         {!pureMcq && (
                           isGraded ? (
-                            <span style={{ background: 'rgba(34,197,94,0.25)', color: '#4ade80', fontWeight: 900, padding: '5px 12px', borderRadius: 8, fontSize: '0.82rem', border: '1.5px solid #22c55e', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              ✅ તપાસાઈ ગયેલ ({sub.teacherMarks}m)
+                            <span style={{
+                              background: 'rgba(34,197,94,0.2)',
+                              color: '#4ade80',
+                              fontWeight: 900,
+                              padding: '6px 12px',
+                              borderRadius: 9,
+                              fontSize: '0.82rem',
+                              border: '1.5px solid rgba(34,197,94,0.5)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}>
+                              ✅ તપાસેલ ({sub.teacherMarks} ગુણ)
                             </span>
                           ) : (
-                            <span style={{ background: 'rgba(245,158,11,0.25)', color: '#fbbf24', fontWeight: 900, padding: '5px 12px', borderRadius: 8, fontSize: '0.82rem', border: '1.5px solid #f59e0b', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              ⏳ તપાસવાની બાકી છે
+                            <span style={{
+                              background: 'rgba(245,158,11,0.2)',
+                              color: '#fbbf24',
+                              fontWeight: 900,
+                              padding: '6px 12px',
+                              borderRadius: 9,
+                              fontSize: '0.82rem',
+                              border: '1.5px solid rgba(245,158,11,0.5)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}>
+                              ⏳ તપાસવાની બાકી
                             </span>
                           )
                         )}
 
                         {/* Combined Total */}
-                        <span style={{ background: '#1e293b', color: '#f8fafc', fontWeight: 900, padding: '5px 12px', borderRadius: 8, fontSize: '0.85rem', border: '1px solid rgba(255,255,255,0.15)' }}>
-                          🏆 કુલ: <strong style={{ color: totalScored >= (maxMarks * 0.7) ? '#4ade80' : '#fbbf24' }}>{totalScored}</strong>/{maxMarks}
+                        <span style={{
+                          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
+                          color: '#f8fafc',
+                          fontWeight: 900,
+                          padding: '6px 14px',
+                          borderRadius: 9,
+                          fontSize: '0.88rem',
+                          border: '1.5px solid rgba(255,255,255,0.18)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.25)'
+                        }}>
+                          🏆 કુલ: <strong style={{ color: totalScored >= (maxMarks * 0.7) ? '#4ade80' : '#fbbf24', fontSize: '1rem' }}>{totalScored}</strong>/{maxMarks}
                         </span>
 
                         {/* Action Toggle Button */}
-                        <button onClick={() => handleToggleSub(sub.id)}
+                        <button
+                          onClick={() => handleToggleSub(sub.id)}
                           style={{
-                            background: isSelected ? 'linear-gradient(135deg,#1d4ed8,#2563eb)' : '#1e293b',
-                            border: isSelected ? '1.5px solid #60a5fa' : '1.5px solid rgba(255,255,255,0.18)',
-                            color: isSelected ? '#ffffff' : '#e2e8f0',
-                            padding: '8px 15px',
-                            borderRadius: 8,
+                            background: isSelected
+                              ? 'linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%)'
+                              : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)',
+                            border: isSelected ? '1.5px solid #f87171' : '1.5px solid #93c5fd',
+                            color: '#ffffff',
+                            padding: '8px 16px',
+                            borderRadius: 10,
                             fontWeight: 900,
                             cursor: 'pointer',
                             fontSize: '0.82rem',
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
                             gap: 6,
                             fontFamily: 'Hind Vadodara, sans-serif',
-                            boxShadow: isSelected ? '0 0 14px rgba(37,99,235,0.4)' : 'none'
+                            boxShadow: isSelected
+                              ? '0 4px 14px rgba(239,68,68,0.45)'
+                              : '0 4px 16px rgba(37,99,235,0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
+                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                           }}>
-                          <Eye size={14} /> {isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? '👁️ વિદ્યાર્થીના જવાબો & સાચો જવાબ જુઓ' : '👁️ જવાબો & માર્ક્સ તપાસો')}
+                          <Eye size={15} />
+                          <span>{isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? 'વિદ્યાર્થીના જવાબો & સાચો જવાબ જુઓ' : 'જવાબો & માર્ક્સ તપાસો')}</span>
                         </button>
                       </div>
                     </div>

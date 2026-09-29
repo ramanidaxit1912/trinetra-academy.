@@ -2695,35 +2695,33 @@ textarea.input-dark {
   display: block;
 }
 
-/* ─── Test Grouped Container & Header Styles ─── */
+/* ─── 🌟 Ultra-Luxury 3D VIP Test Group & Submission Styles ─── */
 .sa-test-group {
-  background: #090e17;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: linear-gradient(145deg, #0e172a 0%, #080d1a 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.22);
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  transition: border-color 0.2s;
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sa-test-group:hover {
-  border-color: rgba(56, 189, 248, 0.3);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.65), 0 0 20px -2px rgba(56, 189, 248, 0.15);
 }
 
 .sa-test-group-header {
-  padding: 12px 18px;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.95) 100%);
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   cursor: pointer;
   user-select: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: all 0.25s ease;
 }
 .sa-test-group-header:hover {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 1));
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 1) 100%);
 }
 
 .sa-tg-left {
@@ -2781,11 +2779,12 @@ textarea.input-dark {
 }
 
 .sa-test-student-list {
-  padding: 14px;
+  padding: 14px 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* ─── Side-by-Side Split View (Desktop) ─── */
