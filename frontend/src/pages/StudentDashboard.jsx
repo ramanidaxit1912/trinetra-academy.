@@ -574,6 +574,105 @@ const STUDY_MATERIALS = [
   },
 ];
 
+// ─── 🎨 Dynamic 3D Subject Theme & Icon Helper ─────────────────────
+function getSubjectTheme(subject = '') {
+  const s = String(subject || '').toLowerCase();
+  if (s.includes('વિજ્ઞાન') || s.includes('science')) {
+    return {
+      icon: '🔬',
+      name: 'વિજ્ઞાન',
+      gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+      badgeBg: 'rgba(16, 185, 129, 0.12)',
+      badgeBorder: '#a7f3d0',
+      badgeColor: '#047857',
+      accentColor: '#10b981',
+      shadow: 'rgba(16, 185, 129, 0.35)'
+    };
+  }
+  if (s.includes('ગણિત') || s.includes('math')) {
+    return {
+      icon: '📐',
+      name: 'ગણિત',
+      gradient: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+      badgeBg: 'rgba(37, 99, 235, 0.12)',
+      badgeBorder: '#bfdbfe',
+      badgeColor: '#1d4ed8',
+      accentColor: '#3b82f6',
+      shadow: 'rgba(37, 99, 235, 0.35)'
+    };
+  }
+  if (s.includes('ગુજરાતી') || s.includes('gujarati')) {
+    return {
+      icon: '📚',
+      name: 'ગુજરાતી',
+      gradient: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)',
+      badgeBg: 'rgba(225, 29, 72, 0.12)',
+      badgeBorder: '#fecdd3',
+      badgeColor: '#be123c',
+      accentColor: '#f43f5e',
+      shadow: 'rgba(225, 29, 72, 0.35)'
+    };
+  }
+  if (s.includes('અંગ્રેજી') || s.includes('english')) {
+    return {
+      icon: '🔤',
+      name: 'અંગ્રેજી',
+      gradient: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+      badgeBg: 'rgba(124, 58, 237, 0.12)',
+      badgeBorder: '#e9d5ff',
+      badgeColor: '#6b21a8',
+      accentColor: '#8b5cf6',
+      shadow: 'rgba(124, 58, 237, 0.35)'
+    };
+  }
+  if (s.includes('સામાજિક') || s.includes('ભૂગોળ') || s.includes('ઇતિહાસ') || s.includes('social')) {
+    return {
+      icon: '🌍',
+      name: 'સામાજિક વિજ્ઞાન',
+      gradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+      badgeBg: 'rgba(217, 119, 6, 0.12)',
+      badgeBorder: '#fde68a',
+      badgeColor: '#b45309',
+      accentColor: '#f59e0b',
+      shadow: 'rgba(217, 119, 6, 0.35)'
+    };
+  }
+  if (s.includes('તર્ક') || s.includes('રીઝનિંગ') || s.includes('reasoning') || s.includes('માનસિક')) {
+    return {
+      icon: '🧠',
+      name: 'તાર્કિક કસોટી',
+      gradient: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+      badgeBg: 'rgba(8, 145, 178, 0.12)',
+      badgeBorder: '#a5f3fc',
+      badgeColor: '#0e7490',
+      accentColor: '#06b6d4',
+      shadow: 'rgba(8, 145, 178, 0.35)'
+    };
+  }
+  if (s.includes('સામાન્ય જ્ઞાન') || s.includes('gk') || s.includes('બંધારણ') || s.includes('કરંટ')) {
+    return {
+      icon: '💡',
+      name: 'સામાન્ય જ્ઞાન (GK)',
+      gradient: 'linear-gradient(135deg, #c026d3 0%, #ec4899 100%)',
+      badgeBg: 'rgba(192, 38, 211, 0.12)',
+      badgeBorder: '#f5d0fe',
+      badgeColor: '#a21caf',
+      accentColor: '#db2777',
+      shadow: 'rgba(192, 38, 211, 0.35)'
+    };
+  }
+  return {
+    icon: '🎯',
+    name: subject || 'સ્પર્ધાત્મક કસોટી',
+    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+    badgeBg: 'rgba(37, 99, 235, 0.12)',
+    badgeBorder: '#bfdbfe',
+    badgeColor: '#1d4ed8',
+    accentColor: '#3b82f6',
+    shadow: 'rgba(37, 99, 235, 0.35)'
+  };
+}
+
 export default function StudentDashboard() {
   const { user, loginStudent, logout, startExam } = useStore();
   const navigate = useNavigate();
@@ -2751,19 +2850,26 @@ export default function StudentDashboard() {
               <div className="live-test-grid">
                 {liveTests.map(t => {
                   const alreadyDone = submissions.some(s => s.testCode === t.testCode);
+                  const subTheme = getSubjectTheme(t.subject);
+                  const twMatch = testWiseLeaderboard?.find(tw => tw.testCode === t.testCode || tw.testName === t.testName);
+                  const participantCount = twMatch?.participants || 0;
 
                   return (
                     <div
                       key={t.testCode}
                       className={`card live-test-card ${alreadyDone ? 'live-test-card-done' : 'live-test-card-active'} animate-fade-in`}>
-                      {/* Top ambient glow strip */}
+                      {/* 🌈 Top Dynamic Ambient Running Neon Strip */}
                       <div style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
                         right: 0,
                         height: 5,
-                        background: alreadyDone ? '#94a3b8' : 'linear-gradient(90deg, #22c55e, #10b981, #3b82f6)'
+                        background: alreadyDone
+                          ? 'linear-gradient(90deg, #10b981, #059669)'
+                          : 'linear-gradient(90deg, #ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444)',
+                        backgroundSize: '200% 100%',
+                        animation: alreadyDone ? 'none' : 'liveNeonStripFlow 3.5s linear infinite'
                       }} />
 
                       <div>
@@ -2771,8 +2877,8 @@ export default function StudentDashboard() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
                           {alreadyDone ? (
                             <span style={{
-                              background: '#dcfce7',
-                              color: '#15803d',
+                              background: '#ecfdf5',
+                              color: '#047857',
                               fontSize: '0.74rem',
                               fontWeight: 900,
                               padding: '4px 12px',
@@ -2780,123 +2886,195 @@ export default function StudentDashboard() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 6,
-                              border: '1px solid #86efac'
+                              border: '1px solid #a7f3d0',
+                              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.12)'
                             }}>
                               ✓ પૂર્ણ થયેલ (Completed)
                             </span>
                           ) : (
-                            <span style={{
-                              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                              color: '#ffffff',
-                              fontSize: '0.74rem',
-                              fontWeight: 900,
-                              padding: '4px 12px',
-                              borderRadius: 20,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              boxShadow: '0 3px 10px rgba(239,68,68,0.35)'
-                            }}>
-                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffffff', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
-                              🔴 LIVE NOW
-                            </span>
+                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                              <span style={{
+                                position: 'absolute',
+                                left: 8,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                background: 'rgba(239, 68, 68, 0.65)',
+                                animation: 'liveRadarWaveRing 1.8s infinite ease-out'
+                              }} />
+                              <span style={{
+                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                color: '#ffffff',
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                padding: '4px 12px 4px 10px',
+                                borderRadius: 20,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: '0 3px 12px rgba(239, 68, 68, 0.4)',
+                                position: 'relative'
+                              }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffffff', display: 'inline-block', animation: 'liveDotGlow 1.2s infinite' }} />
+                                🔴 LIVE NOW
+                              </span>
+                            </div>
                           )}
-                          <span style={{
-                            background: '#f8fafc',
-                            color: '#1e3a8a',
-                            fontSize: '0.72rem',
-                            fontFamily: 'monospace',
-                            fontWeight: 900,
-                            padding: '3px 9px',
-                            borderRadius: 8,
-                            border: '1px solid #cbd5e1'
-                          }}>
-                            ID: {t.testCode}
-                          </span>
-                          {t.questions?.some(q => q.isEnrolledOnly) && (
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{
-                              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                              color: '#ffffff',
+                              background: '#f8fafc',
+                              color: '#1e3a8a',
                               fontSize: '0.72rem',
+                              fontFamily: 'monospace',
                               fontWeight: 900,
-                              padding: '3px 10px',
+                              padding: '3px 9px',
                               borderRadius: 8,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)'
+                              border: '1px solid #cbd5e1'
                             }}>
-                              🔒 ત્રિનેત્ર એડમિશન સ્પેશિયલ
+                              ID: {t.testCode}
                             </span>
-                          )}
-                          {t.scheduledEndAt && (
-                            <span style={{
-                              background: '#fef2f2',
-                              color: '#dc2626',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              padding: '3px 10px',
-                              borderRadius: 8,
-                              border: '1px solid #fecaca',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}>
-                              🛑 સમાપ્તિ: {new Date(t.scheduledEndAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                            </span>
-                          )}
+                            {t.questions?.some(q => q.isEnrolledOnly) && (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                                color: '#ffffff',
+                                fontSize: '0.72rem',
+                                fontWeight: 900,
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)'
+                              }}>
+                                🔒 એડમિશન સ્પેશિયલ
+                              </span>
+                            )}
+                            {t.scheduledEndAt && (
+                              <span style={{
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                border: '1px solid #fecaca',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                🛑 સમાપ્તિ: {new Date(t.scheduledEndAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Test Title */}
-                        <h3 style={{
-                          fontSize: '1.18rem',
-                          fontWeight: 900,
-                          color: '#0f172a',
-                          margin: '0 0 10px',
-                          lineHeight: 1.35
-                        }}>
-                          {t.testName}
-                        </h3>
-
-                        {/* Subject & Time Pills */}
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                          <span style={{
-                            background: '#dbeafe',
-                            color: '#1e40af',
-                            fontSize: '0.74rem',
-                            fontWeight: 800,
-                            padding: '3px 10px',
-                            borderRadius: 8,
-                            border: '1px solid #bfdbfe'
+                        {/* 🔬 Subject 3D Floating Avatar & Title */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 10, marginBottom: 12 }}>
+                          <div style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: 14,
+                            background: subTheme.gradient,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.45rem',
+                            flexShrink: 0,
+                            boxShadow: `0 6px 16px -2px ${subTheme.shadow}`,
+                            border: '1.5px solid rgba(255, 255, 255, 0.4)'
                           }}>
-                            📚 {t.subject}
-                          </span>
-                          <span style={{
-                            background: '#fef3c7',
-                            color: '#92400e',
-                            fontSize: '0.74rem',
-                            fontWeight: 800,
-                            padding: '3px 10px',
-                            borderRadius: 8,
-                            border: '1px solid #fde68a'
-                          }}>
-                            ⏱️ {t.timeLimit} મિનિટ
-                          </span>
+                            {subTheme.icon}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                              <span style={{
+                                background: subTheme.badgeBg,
+                                color: subTheme.badgeColor,
+                                border: `1.5px solid ${subTheme.badgeBorder}`,
+                                fontSize: '0.72rem',
+                                fontWeight: 900,
+                                padding: '2px 9px',
+                                borderRadius: 7,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                {subTheme.icon} {subTheme.name}
+                              </span>
+                              {t.subject && t.subject !== subTheme.name && (
+                                <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 700 }}>
+                                  ({t.subject})
+                                </span>
+                              )}
+                            </div>
+                            <h3 style={{
+                              fontSize: '1.18rem',
+                              fontWeight: 900,
+                              color: '#0f172a',
+                              margin: 0,
+                              lineHeight: 1.35
+                            }}>
+                              {t.testName}
+                            </h3>
+                          </div>
                         </div>
 
-                        {/* 3-Box Stats Strip */}
-                        <div className="live-card-stats-strip">
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>પ્રશ્નો</div>
-                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1rem', marginTop: 1 }}>📋 {t.questions.length}</div>
+                        {/* 📊 4-Item 3D Glass Detail Chips Grid */}
+                        <div className="live-test-chips-grid">
+                          {/* Chip 1: ❓ પ્રશ્નો */}
+                          <div className="live-test-chip" style={{
+                            background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
+                            borderColor: '#bfdbfe'
+                          }}>
+                            <div style={{ color: '#1e40af', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                              કુલ પ્રશ્નો
+                            </div>
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <span>❓</span> {t.questions?.length || 0}
+                            </div>
                           </div>
-                          <div style={{ textAlign: 'center', borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>કુલ ગુણ</div>
-                            <div style={{ color: '#2563eb', fontWeight: 900, fontSize: '1rem', marginTop: 1 }}>💯 {t.totalMarks}</div>
+
+                          {/* Chip 2: ⏱️ સમય */}
+                          <div className="live-test-chip" style={{
+                            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                            borderColor: '#fde68a'
+                          }}>
+                            <div style={{ color: '#92400e', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                              સમય મર્યાદા
+                            </div>
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <span>⏱️</span> {t.timeLimit || 0}m
+                            </div>
                           </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>પ્રકાર</div>
-                            <div style={{ color: '#059669', fontWeight: 900, fontSize: '0.82rem', marginTop: 2 }}>{t.mcqCount}M + {t.descCount}D</div>
+
+                          {/* Chip 3: 👥 સ્પર્ધકો */}
+                          <div className="live-test-chip" style={{
+                            background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+                            borderColor: '#e9d5ff'
+                          }}>
+                            <div style={{ color: '#6b21a8', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                              સ્પર્ધકો
+                            </div>
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <span>👥</span> {participantCount > 0 ? participantCount : 'લાઇવ'}
+                            </div>
+                          </div>
+
+                          {/* Chip 4: 💯 ગુણ */}
+                          <div className="live-test-chip" style={{
+                            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                            borderColor: '#bbf7d0'
+                          }}>
+                            <div style={{ color: '#166534', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                              કુલ ગુણ
+                            </div>
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <span>💯</span> {t.totalMarks || (t.questions?.length || 0)}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2909,13 +3087,17 @@ export default function StudentDashboard() {
                             setResultSearch(t.testCode || t.testName);
                           }}
                           className="live-result-btn">
-                          📊 તમારું પરિણામ જુઓ (View Result) →
+                          <span>📊</span> તમારું પરિણામ જુઓ (View Result) →
                         </button>
                       ) : (
                         <button
                           onClick={() => handleStartExam(t.questions)}
                           className="live-start-btn">
-                          <Play size={18} fill="white" /> 🚀 કસોટી શરૂ કરો (Start Test)
+                          <span style={{ display: 'inline-flex', animation: 'playArrowNudge 1.3s infinite ease-in-out' }}>
+                            <Play size={18} fill="white" />
+                          </span>
+                          <span>▶️ કસોટી શરૂ કરો (Start Test)</span>
+                          <ArrowRight size={18} />
                         </button>
                       )}
                     </div>

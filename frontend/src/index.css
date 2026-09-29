@@ -2001,37 +2001,96 @@ textarea.input-dark {
   transform: scale(0.97);
 }
 
+/* 🌟 3D Vibrant Live Test Card Styles & Animations */
+@keyframes liveNeonStripFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes liveRadarWaveRing {
+  0% { transform: scale(0.85); opacity: 0.95; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+
+@keyframes liveDotGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.65); }
+}
+
+@keyframes shimmerSweep3D {
+  0% { transform: translateX(-160%) skewX(-20deg); }
+  100% { transform: translateX(260%) skewX(-20deg); }
+}
+
+@keyframes playArrowNudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
 .live-test-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .live-test-card {
-  padding: 20px;
-  border-radius: 18px;
+  padding: 22px 20px 20px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 .live-test-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-6px) scale(1.012);
+  box-shadow: 0 20px 38px -8px rgba(37, 99, 235, 0.22), 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+  border-color: #93c5fd;
 }
 
 .live-test-card-active {
-  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
-  border: 2px solid #86efac;
-  box-shadow: 0 10px 28px rgba(34, 197, 94, 0.12);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1.5px solid #bfdbfe;
 }
 
 .live-test-card-done {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border: 2px solid #cbd5e1;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+  border: 1.5px solid #bbf7d0;
+}
+
+.live-test-card-done:hover {
+  border-color: #86efac;
+  box-shadow: 0 18px 34px -8px rgba(16, 185, 129, 0.18), 0 6px 14px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* 4-Item 3D Glass Detail Chips Grid */
+.live-test-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.live-test-chip {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 9px 6px;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.live-test-chip:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .live-card-stats-strip {
@@ -2046,31 +2105,50 @@ textarea.input-dark {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 
+/* 3D Shimmering Start Exam Button */
 .live-start-btn {
   width: 100%;
   justify-content: center;
   padding: 13px 18px;
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 900;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   border: none;
-  color: white;
+  color: #ffffff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   user-select: none;
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
 }
+
 .live-start-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+  box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
+
 .live-start-btn:active {
-  transform: scale(0.98);
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.live-start-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -80%;
+  width: 55%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-22deg);
+  animation: shimmerSweep3D 2.8s infinite;
+  pointer-events: none;
 }
 
 .live-result-btn {
@@ -2079,9 +2157,9 @@ textarea.input-dark {
   padding: 13px 18px;
   font-size: 0.96rem;
   font-weight: 900;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   border: none;
   color: white;
   cursor: pointer;
@@ -2092,10 +2170,12 @@ textarea.input-dark {
   user-select: none;
   touch-action: manipulation;
 }
+
 .live-result-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
 }
+
 .live-result-btn:active {
   transform: scale(0.98);
 }
@@ -2116,16 +2196,16 @@ textarea.input-dark {
   }
   .live-test-grid {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 14px !important;
   }
   .live-test-card {
     padding: 16px 14px !important;
     border-radius: 16px !important;
   }
-  .live-card-stats-strip {
-    padding: 8px 10px !important;
-    gap: 4px !important;
-    margin-bottom: 14px !important;
+  .live-test-chips-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    margin: 12px 0 14px !important;
   }
   .live-start-btn, .live-result-btn {
     padding: 12px 14px !important;

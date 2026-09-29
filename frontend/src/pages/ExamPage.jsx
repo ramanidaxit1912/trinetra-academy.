@@ -861,20 +861,168 @@ export default function ExamPage() {
                 </div>
               </div>
 
-              {/* Test Info Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: isNoLimit ? 'repeat(auto-fit,minmax(180px,1fr))' : 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 22 }}>
-                <div style={{ background: '#eff6ff', padding: '12px', borderRadius: 10, textAlign: 'center', border: '1px solid #bfdbfe' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>કુલ પ્રશ્નો</div>
-                  <div style={{ color: '#1e3a8a', fontWeight: 900, fontSize: '1.15rem' }}>{selectedTestQuestions.length} ({mcqCount}M + {descCount}D)</div>
+              {/* Test Info Cards Grid (3D Luxury Tiles) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isNoLimit ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 12,
+                marginBottom: 24
+              }}>
+                {/* Tile 1: કુલ પ્રશ્નો */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                  padding: '16px 14px',
+                  borderRadius: 14,
+                  border: '1.5px solid #93c5fd',
+                  boxShadow: '0 6px 18px rgba(37, 99, 235, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.35rem',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                  }}>
+                    📋
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ color: '#1e40af', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                      કુલ પ્રશ્નો
+                    </div>
+                    <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.45rem', lineHeight: 1.1, marginTop: 2 }}>
+                      {selectedTestQuestions.length}
+                    </div>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      marginTop: 3,
+                      background: 'rgba(37, 99, 235, 0.12)',
+                      color: '#1d4ed8',
+                      fontSize: '0.64rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: 6
+                    }}>
+                      {mcqCount} MCQ {descCount > 0 ? `+ ${descCount} વર્ણનાત્મક` : ''}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: 10, textAlign: 'center', border: '1px solid #bbf7d0' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>કુલ ગુણ</div>
-                  <div style={{ color: '#166534', fontWeight: 900, fontSize: '1.15rem' }}>{totalMarks}</div>
+
+                {/* Tile 2: કુલ ગુણ */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  padding: '16px 14px',
+                  borderRadius: 14,
+                  border: '1.5px solid #86efac',
+                  boxShadow: '0 6px 18px rgba(34, 197, 94, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.35rem',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    🎯
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ color: '#166534', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                      કુલ ગુણ
+                    </div>
+                    <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.45rem', lineHeight: 1.1, marginTop: 2 }}>
+                      {totalMarks}
+                    </div>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      marginTop: 3,
+                      background: 'rgba(16, 185, 129, 0.14)',
+                      color: '#15803d',
+                      fontSize: '0.64rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: 6
+                    }}>
+                      💯 મહત્તમ માર્ક્સ
+                    </div>
+                  </div>
                 </div>
+
+                {/* Tile 3: સમય મર્યાદા */}
                 {!isNoLimit && (
-                  <div style={{ background: '#fef3c7', padding: '12px', borderRadius: 10, textAlign: 'center', border: '1px solid #fde68a' }}>
-                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>સમય મર્યાદા</div>
-                    <div style={{ color: '#92400e', fontWeight: 900, fontSize: '1.05rem' }}>{timerFormatted}</div>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                    padding: '16px 14px',
+                    borderRadius: 14,
+                    border: '1.5px solid #fde68a',
+                    boxShadow: '0 6px 18px rgba(245, 158, 11, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.35rem',
+                      flexShrink: 0,
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                    }}>
+                      ⏱️
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ color: '#92400e', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        સમય મર્યાદા
+                      </div>
+                      <div style={{ color: '#0f172a', fontWeight: 900, fontSize: isTotalTime ? '1.35rem' : '1.25rem', lineHeight: 1.1, marginTop: 2 }}>
+                        {isTotalTime ? `${Math.round(rawTime / 60)} મિનિટ` : `${rawTime} સેકન્ડ`}
+                      </div>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        marginTop: 3,
+                        background: 'rgba(217, 119, 6, 0.14)',
+                        color: '#b45309',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 6
+                      }}>
+                        {isTotalTime ? '⏱️ આખી કસોટીનો સમય' : '⚡ પ્રશ્ન દીઠ સમય'}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
