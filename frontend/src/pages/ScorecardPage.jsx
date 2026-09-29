@@ -35,12 +35,26 @@ export default function ScorecardPage() {
   const handleDownloadPdf = () => {
     try {
       setDownloadingPdf(true);
-      window.open(`/api/submissions/${id}/pdf`, '_blank');
+      const downloadUrl = `/api/submissions/${id}/pdf`;
+      const win = window.open(downloadUrl, '_blank');
+      // If popup blocker intervened on mobile, fallback to window.location
+      if (!win) {
+        window.location.href = downloadUrl;
+      }
     } catch (e) {
       console.warn('PDF download note:', e);
     } finally {
       setTimeout(() => setDownloadingPdf(false), 2500);
     }
+  };
+
+  const handleShareWhatsApp = () => {
+    const testName = data?.submission?.testName || 'કસોટી';
+    const score = data?.submission?.score ?? 0;
+    const totalMarks = data?.submission?.totalMarks || 100;
+    const url = window.location.href;
+    const text = `🎯 *ત્રિનેત્ર ઓનલાઇન એકેડેમી - સ્કોરકાર્ડ*\n📝 પરીક્ષા: *${testName}*\n🏆 સ્કોર: *${score}/${totalMarks}*\n\n👉 મારું સત્તાવાર સ્કોરકાર્ડ અને પ્રશ્નવાર સોલ્યુશન જુઓ:\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handlePrint = () => {
@@ -150,73 +164,285 @@ export default function ScorecardPage() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 60, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 110, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
       <Navbar />
+
+      <style>{`
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4); transform: translateY(0); }
+          50% { box-shadow: 0 8px 28px rgba(16, 185, 129, 0.65); transform: translateY(-1.5px); }
+        }
+        @keyframes shimmerSlide {
+          0% { transform: translateX(-150%); }
+          100% { transform: translateX(250%); }
+        }
+        @keyframes spinRing {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .btn-download-glow {
+          animation: pulseGlow 2.4s infinite ease-in-out;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+        .btn-download-glow:active {
+          transform: scale(0.96) !important;
+        }
+        .btn-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; width: 45%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent);
+          animation: shimmerSlide 3s infinite linear;
+          pointer-events: none;
+        }
+        .btn-touch {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-touch:active {
+          transform: scale(0.95);
+        }
+        .spinner-ring {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255,255,255,0.35);
+          border-radius: 50%;
+          border-top-color: #ffffff;
+          animation: spinRing 0.8s linear infinite;
+        }
+
+        /* Responsive rules for mobile phone view */
+        .mobile-sticky-dock {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .mobile-sticky-dock {
+            display: flex !important;
+          }
+          .desktop-only-action {
+            display: none !important;
+          }
+          .scorecard-header-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .scorecard-mode-toggle {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .scorecard-mode-toggle button {
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 8px 6px !important;
+            font-size: 0.82rem !important;
+          }
+        }
+      `}</style>
 
       {/* 🎉 Confetti Burst on Good Score */}
       {isPassing && <ConfettiCanvas duration={4000} />}
 
       <div style={{ maxWidth: 940, margin: '20px auto', padding: '0 12px' }}>
 
-        {/* ── Top Bar with Actions & Mode Switcher ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#94a3b8', textDecoration: 'none', fontSize: '0.88rem', fontWeight: 600 }}>
+        {/* ── Top Bar: Back to Home + Mode Switcher + Desktop Quick Actions ── */}
+        <div className="scorecard-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+          <Link
+            to="/"
+            className="btn-touch"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: '#cbd5e1',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '6px 14px',
+              borderRadius: 20,
+              textDecoration: 'none',
+              fontSize: '0.84rem',
+              fontWeight: 700
+            }}
+          >
             ← હોમ પેજ
           </Link>
 
           {/* View Mode Toggle: [📄 અધિકૃત PDF સ્કોરકાર્ડ] vs [📝 પ્રશ્નવાર રિવ્યુ] */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', padding: 3, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="scorecard-mode-toggle" style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', padding: 3, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
             <button
               onClick={() => setViewMode('PDF')}
+              className="btn-touch"
               style={{
-                background: viewMode === 'PDF' ? '#2563eb' : 'transparent',
-                color: viewMode === 'PDF' ? '#ffffff' : '#cbd5e1',
+                background: viewMode === 'PDF' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
+                color: viewMode === 'PDF' ? '#ffffff' : '#94a3b8',
                 border: 'none',
-                padding: '6px 14px',
+                padding: '7px 16px',
                 borderRadius: 9,
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5
+                gap: 6,
+                boxShadow: viewMode === 'PDF' ? '0 4px 12px rgba(37,99,235,0.35)' : 'none'
               }}
             >
               📄 સત્તાવાર PDF માર્કશીટ
             </button>
             <button
               onClick={() => setViewMode('REVIEW')}
+              className="btn-touch"
               style={{
-                background: viewMode === 'REVIEW' ? '#2563eb' : 'transparent',
-                color: viewMode === 'REVIEW' ? '#ffffff' : '#cbd5e1',
+                background: viewMode === 'REVIEW' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
+                color: viewMode === 'REVIEW' ? '#ffffff' : '#94a3b8',
                 border: 'none',
-                padding: '6px 14px',
+                padding: '7px 16px',
                 borderRadius: 9,
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5
+                gap: 6,
+                boxShadow: viewMode === 'REVIEW' ? '0 4px 12px rgba(37,99,235,0.35)' : 'none'
               }}
             >
               📝 પ્રશ્નવાર સોલ્યુશન
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* Desktop Only Print Button */}
+          <div className="desktop-only-action" style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handlePrint}
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#e2e8f0', padding: '8px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+              className="btn-touch"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#e2e8f0',
+                padding: '8px 14px',
+                borderRadius: 10,
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
             >
               🖨️ પ્રિન્ટ
             </button>
+          </div>
+        </div>
+
+        {/* ── 🌟 Mobile & Desktop Hero Action Card ── */}
+        <div
+          className="scorecard-hero-card"
+          style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            border: '1.5px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: 18,
+            padding: '14px 18px',
+            marginBottom: 16,
+            boxShadow: '0 12px 30px -5px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12
+          }}
+        >
+          <div style={{ flex: '1 1 240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.98rem', fontWeight: 800, color: '#f8fafc' }}>
+                {submission.testName || 'કસોટી પરિણામ'}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: 20,
+                  background: isPassing ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                  color: isPassing ? '#34d399' : '#f87171',
+                  border: `1px solid ${isPassing ? '#10b981' : '#ef4444'}`
+                }}
+              >
+                {isPassing ? '✓ ઉત્તીર્ણ (Pass)' : 'પ્રયાસ જરૂરી'}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+              વિદ્યાર્થી: <strong style={{ color: '#38bdf8' }}>{student.name || 'વિદ્યાર્થી'}</strong> • સ્કોર: <strong style={{ color: isPassing ? '#34d399' : '#f87171', fontSize: '0.95rem' }}>{score}/{totalMarks} ({pct}%)</strong>
+            </div>
+          </div>
+
+          {/* Action Buttons: WhatsApp Share + Pulsing Emerald Download Button */}
+          <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={handleShareWhatsApp}
+              className="btn-touch"
+              title="વોટ્સએપ પર પરિણામ શેર કરો"
+              style={{
+                background: 'rgba(34, 197, 94, 0.14)',
+                border: '1px solid rgba(34, 197, 94, 0.45)',
+                color: '#4ade80',
+                padding: '10px 14px',
+                borderRadius: 12,
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>💬</span>
+              <span>શેર</span>
+            </button>
+
             <button
               onClick={handleDownloadPdf}
               disabled={downloadingPdf}
-              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', padding: '8px 18px', borderRadius: 10, fontSize: '0.86rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
+              className="btn-download-glow btn-touch btn-shimmer"
+              style={{
+                flex: '1 1 220px',
+                minHeight: 46,
+                background: downloadingPdf
+                  ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%)',
+                border: 'none',
+                color: '#ffffff',
+                padding: '9px 18px',
+                borderRadius: 12,
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                cursor: downloadingPdf ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: '0 6px 20px rgba(16,185,129,0.45)'
+              }}
             >
-              {downloadingPdf ? '⏳ PDF ડાઉનલોડ થાય છે...' : '📥 Download PDF'}
+              {downloadingPdf ? (
+                <>
+                  <span className="spinner-ring" />
+                  <span>PDF ડાઉનલોડ થાય છે...</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: '1.25rem' }}>📥</span>
+                  <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>Download Scorecard PDF</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600, opacity: 0.9 }}>ઓરિજિનલ HD માર્કશીટ</div>
+                  </div>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -386,6 +612,94 @@ export default function ScorecardPage() {
           </div>
         )}
 
+      </div>
+
+      {/* ── 📱 Mobile Floating Sticky Dock (Always accessible by thumb!) ── */}
+      <div
+        className="mobile-sticky-dock"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          background: 'rgba(11, 19, 41, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+          padding: '10px 16px',
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.6)'
+        }}
+      >
+        <div style={{ flex: '0 1 auto', minWidth: 0 }}>
+          <div style={{ fontSize: '0.72rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            મેળવેલ ગુણ
+          </div>
+          <div style={{ fontSize: '0.94rem', fontWeight: 900, color: '#38bdf8' }}>
+            {score}/{totalMarks} <span style={{ fontSize: '0.74rem', color: isPassing ? '#34d399' : '#f87171' }}>({pct}%)</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleShareWhatsApp}
+          className="btn-touch"
+          title="વોટ્સએપ શેર"
+          style={{
+            background: 'rgba(34, 197, 94, 0.18)',
+            border: '1px solid rgba(34, 197, 94, 0.45)',
+            color: '#4ade80',
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.25rem',
+            flexShrink: 0
+          }}
+        >
+          💬
+        </button>
+
+        <button
+          onClick={handleDownloadPdf}
+          disabled={downloadingPdf}
+          className="btn-download-glow btn-touch btn-shimmer"
+          style={{
+            flex: '1 1 180px',
+            height: 44,
+            background: downloadingPdf
+              ? 'linear-gradient(135deg, #059669, #047857)'
+              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            border: 'none',
+            color: '#ffffff',
+            padding: '0 16px',
+            borderRadius: 12,
+            fontSize: '0.88rem',
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            boxShadow: '0 4px 16px rgba(16,185,129,0.45)'
+          }}
+        >
+          {downloadingPdf ? (
+            <>
+              <span className="spinner-ring" />
+              <span>ડાઉનલોડ થાય છે...</span>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: '1.1rem' }}>📥</span>
+              <span>Download PDF</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
