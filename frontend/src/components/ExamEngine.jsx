@@ -285,6 +285,12 @@ export default function ExamEngine({ onFinish }) {
         return false;
       }
 
+      // 📱 Hardware Volume Button Press (often used in phone screenshot Power + VolDown)
+      if (e.key === 'VolumeDown' || e.key === 'VolumeUp') {
+        setIsBlackoutShield(true);
+        setTimeout(() => setIsBlackoutShield(false), 1400);
+      }
+
       // F12 or Ctrl+Shift+I / J / C (DevTools)
       if (e.key === 'F12' || (isCtrlOrCmd && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key))) {
         e.preventDefault();
@@ -319,6 +325,16 @@ export default function ExamEngine({ onFinish }) {
       recordScreenshotViolation();
     };
 
+    // 📱 Mobile 3-Finger Screenshot Gesture Interception (Xiaomi/Oppo/Vivo/Realme/OnePlus/Samsung)
+    const handleTouchStart = (e) => {
+      if (e.touches && e.touches.length >= 3) {
+        setIsBlackoutShield(true);
+        setTimeout(() => setIsBlackoutShield(false), 2000);
+        try { e.preventDefault(); } catch (_) {}
+        recordScreenshotViolation();
+      }
+    };
+
     // 🎥 Intercept & Disable Screen Recording / Capture API
     if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
       try {
@@ -335,12 +351,14 @@ export default function ExamEngine({ onFinish }) {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     document.addEventListener('copy', handleCopy);
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
       document.removeEventListener('copy', handleCopy);
+      window.removeEventListener('touchstart', handleTouchStart);
     };
   }, [recordScreenshotViolation]);
 
