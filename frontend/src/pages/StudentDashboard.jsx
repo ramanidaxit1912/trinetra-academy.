@@ -4215,6 +4215,8 @@ export default function StudentDashboard() {
               tests={testWiseLeaderboard}
               loading={loadingData}
               currentUserName={user?.name}
+              currentUserMobile={user?.mobile}
+              studentSubmissions={submissions}
             />
           </div>
         )}
