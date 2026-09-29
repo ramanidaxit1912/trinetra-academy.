@@ -9411,6 +9411,26 @@ function StudentAnswers({ showToast }) {
                                 🌐 {sub.ipAddress || sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1]}
                               </span>
                             )}
+                            {(() => {
+                              const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
+                              if (!tabMatch) return null;
+                              return (
+                                <span style={{
+                                  color: '#f87171',
+                                  background: 'rgba(239,68,68,0.18)',
+                                  padding: '1px 8px',
+                                  borderRadius: 6,
+                                  fontSize: '0.74rem',
+                                  border: '1px solid rgba(239,68,68,0.4)',
+                                  fontWeight: 800,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}>
+                                  🚨 {tabMatch[1]} વાર સ્ક્રીન સ્વિચ
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -9796,6 +9816,98 @@ function StudentAnswers({ showToast }) {
                             </div>
                           )}
 
+                          {/* Proctoring & Anti-Cheating Time Tracking Analytics Banner */}
+                          {!revState?.loading && revList.length > 0 && (() => {
+                            const totalSec = revList.reduce((acc, r) => acc + (Number(r.timeSpent) || 0), 0);
+                            const answeredItems = revList.filter(r => r.studentAnswer && r.studentAnswer !== 'E');
+                            const avgSec = answeredItems.length > 0 ? Math.round(totalSec / answeredItems.length) : (revList.length > 0 ? Math.round(totalSec / revList.length) : 0);
+                            const suspiciousFast = answeredItems.filter(r => (Number(r.timeSpent) || 0) > 0 && (Number(r.timeSpent) || 0) < 4);
+                            const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
+                            const tabSwitches = tabMatch ? parseInt(tabMatch[1], 10) : 0;
+
+                            const fmtTime = (s) => {
+                              if (!s || s <= 0) return '0 સેકન્ડ';
+                              if (s < 60) return `${s} સેકન્ડ`;
+                              const m = Math.floor(s / 60);
+                              const rem = s % 60;
+                              return rem > 0 ? `${m} મિનિટ ${rem} સે.` : `${m} મિનિટ`;
+                            };
+
+                            const hasAlerts = suspiciousFast.length > 0 || tabSwitches > 0;
+
+                            return (
+                              <div style={{
+                                background: hasAlerts
+                                  ? 'linear-gradient(135deg, rgba(239,68,68,0.14), rgba(30,41,59,0.9))'
+                                  : 'linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95))',
+                                border: hasAlerts
+                                  ? '1.5px solid rgba(239,68,68,0.45)'
+                                  : '1px solid rgba(56,189,248,0.25)',
+                                borderRadius: 12,
+                                padding: '12px 14px',
+                                marginBottom: 14,
+                                boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.88rem', color: hasAlerts ? '#fca5a5' : '#38bdf8' }}>
+                                    <span>🛡️ એન્ટી-ચીટિંગ પ્રોક્ટરિંગ અને સમય વિશ્લેષણ (Anti-Cheating & Time Tracking)</span>
+                                  </div>
+                                  {suspiciousFast.length > 0 && (
+                                    <span style={{ background: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      🚨 {suspiciousFast.length} શંકાસ્પદ ઝડપી ઉત્તર!
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⏱️ કુલ લીધેલ સમય:</div>
+                                    <div style={{ fontSize: '0.88rem', color: '#f8fafc', fontWeight: 900, marginTop: 2 }}>{fmtTime(totalSec)}</div>
+                                  </div>
+
+                                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⚡ સરેરાશ પ્રતિ પ્રશ્ન:</div>
+                                    <div style={{ fontSize: '0.88rem', color: '#38bdf8', fontWeight: 900, marginTop: 2 }}>{fmtTime(avgSec)}</div>
+                                  </div>
+
+                                  <div style={{
+                                    background: suspiciousFast.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    border: suspiciousFast.length > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                  }}>
+                                    <div style={{ fontSize: '0.7rem', color: suspiciousFast.length > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
+                                      🚨 શંકાસ્પદ ઝડપ (&lt; 4s):
+                                    </div>
+                                    <div style={{ fontSize: '0.88rem', color: suspiciousFast.length > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                      {suspiciousFast.length > 0 ? `${suspiciousFast.length} પ્રશ્ન (અતિ ઝડપી)` : '0 (સ્વાભાવિક ગતિ)'}
+                                    </div>
+                                  </div>
+
+                                  <div style={{
+                                    background: tabSwitches > 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    border: tabSwitches > 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                  }}>
+                                    <div style={{ fontSize: '0.7rem', color: tabSwitches > 0 ? '#fde047' : '#86efac', fontWeight: 700 }}>
+                                      📱 સ્ક્રીન સ્વિચ:
+                                    </div>
+                                    <div style={{ fontSize: '0.88rem', color: tabSwitches > 0 ? '#fbbf24' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                      {tabSwitches > 0 ? `${tabSwitches} વાર સ્વિચ કર્યું` : 'કોઈ સ્વિચ નહીં'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {suspiciousFast.length > 0 && (
+                                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>⚠️ <strong>શિક્ષક માટે ચેતવણી:</strong> લાલ રંગથી દર્શાવેલા પ્રશ્નો વિદ્યાર્થીએ ૪ સેકન્ડથી પણ ઓછા સમયમાં ટીક કર્યા છે, જે સંભવિત ચોરી કે અંદાજ દર્શાવે છે.</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
                           {/* Questions List (Multi-column responsive grid on Laptop, clean single-column on Phone) */}
                           {!revState?.loading && revList.length > 0 && (
                             <div className="sa-review-questions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
@@ -9890,11 +10002,80 @@ function StudentAnswers({ showToast }) {
                                           </button>
                                         )}
 
-                                        {item.timeSpent > 0 && (
-                                          <span style={{ background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', fontSize: '0.7rem', padding: '2px 6px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                                            ⏱️ {item.timeSpent}s
-                                          </span>
-                                        )}
+                                        {(() => {
+                                          const t = Number(item.timeSpent) || 0;
+                                          if (t <= 0) return null;
+                                          const isSuspiciousFast = Boolean(studentAns && studentAns !== 'E' && t < 4);
+                                          const isSuspiciousSlow = Boolean(t >= 150);
+                                          const badgeFmt = t < 60 ? `${t}s` : `${Math.floor(t / 60)}m ${t % 60 > 0 ? `${t % 60}s` : ''}`.trim();
+
+                                          if (isSuspiciousFast) {
+                                            return (
+                                              <span
+                                                title="🚨 શંકાસ્પદ ઝડપી: આ પ્રશ્ન માત્ર ૪ સેકન્ડથી ઓછા સમયમાં ઉકેલવામાં આવ્યો છે! (સંભવિત ચોરી/અંદાજ)"
+                                                style={{
+                                                  background: 'rgba(239, 68, 68, 0.25)',
+                                                  color: '#f87171',
+                                                  border: '1px solid rgba(239, 68, 68, 0.6)',
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: 800,
+                                                  padding: '2px 7px',
+                                                  borderRadius: 6,
+                                                  whiteSpace: 'nowrap',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 3
+                                                }}
+                                              >
+                                                🚨 {t}s (શંકાસ્પદ ઝડપ!)
+                                              </span>
+                                            );
+                                          }
+
+                                          if (isSuspiciousSlow) {
+                                            return (
+                                              <span
+                                                title="⚠️ વધુ સમય: આ પ્રશ્ન પર અઢી મિનિટથી વધુ સમય લીધો છે."
+                                                style={{
+                                                  background: 'rgba(245, 158, 11, 0.2)',
+                                                  color: '#fbbf24',
+                                                  border: '1px solid rgba(245, 158, 11, 0.5)',
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: 800,
+                                                  padding: '2px 7px',
+                                                  borderRadius: 6,
+                                                  whiteSpace: 'nowrap',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 3
+                                                }}
+                                              >
+                                                ⚠️ {badgeFmt}
+                                              </span>
+                                            );
+                                          }
+
+                                          return (
+                                            <span
+                                              title={`આ પ્રશ્ન ઉકેલવામાં લીધેલ સમય: ${badgeFmt}`}
+                                              style={{
+                                                background: 'rgba(56, 189, 248, 0.15)',
+                                                color: '#7dd3fc',
+                                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 700,
+                                                padding: '2px 7px',
+                                                borderRadius: 6,
+                                                whiteSpace: 'nowrap',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 3
+                                              }}
+                                            >
+                                              ⏱️ {badgeFmt}
+                                            </span>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
 

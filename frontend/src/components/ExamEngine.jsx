@@ -511,7 +511,23 @@ export default function ExamEngine({ onFinish }) {
     return -1;
   })();
 
+  // ─── Precise Time Tracking per Question (Anti-Cheating Proctoring) ───
+  const flushCurrentQuestionTime = useCallback(() => {
+    if (!currentQ?.id) return;
+    const elapsed = Math.max(0, Math.round((Date.now() - questionStartTimeRef.current) / 1000));
+    questionStartTimeRef.current = Date.now();
+    if (elapsed > 0) {
+      const existing = answers[currentQ.id] || {};
+      recordAnswer(currentQ.id, {
+        selectedOpt: existing.selectedOpt || null,
+        answerText: existing.answerText || '',
+        timeSpent: (existing.timeSpent || 0) + elapsed
+      });
+    }
+  }, [currentQ?.id, answers, recordAnswer]);
+
   const goNext = useCallback(() => {
+    flushCurrentQuestionTime();
     if (currentIndex >= totalQ - 1) {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         alert('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\n\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ પેપર સબમિટ થઈ જશે.');
@@ -534,15 +550,16 @@ export default function ExamEngine({ onFinish }) {
         setCurrentIndex(targetNext);
       }
     }
-  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount]);
+  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount, flushCurrentQuestionTime]);
 
   const goPrev = useCallback(() => {
+    flushCurrentQuestionTime();
     if (prevAccessibleIndex !== -1) {
       playSlideWhoosh();
       setSlideDirection('prev');
       setCurrentIndex(prevAccessibleIndex);
     }
-  }, [prevAccessibleIndex, setCurrentIndex]);
+  }, [prevAccessibleIndex, setCurrentIndex, flushCurrentQuestionTime]);
 
   const jumpTo = useCallback((index) => {
     if (isPerQuestionTimer && qTimeLeftMap[index] !== undefined && qTimeLeftMap[index] <= 0) {
@@ -550,22 +567,23 @@ export default function ExamEngine({ onFinish }) {
       setTimeout(() => setLockedToast(''), 3500);
       return;
     }
+    flushCurrentQuestionTime();
     playSlideWhoosh();
     setSlideDirection(index > currentIndex ? 'next' : 'prev');
     setCurrentIndex(index);
     setShowPalette(false);
-  }, [isPerQuestionTimer, qTimeLeftMap, setCurrentIndex, currentIndex]);
+  }, [isPerQuestionTimer, qTimeLeftMap, setCurrentIndex, currentIndex, flushCurrentQuestionTime]);
 
   const selectMCQ = (opt) => {
     playOmrPencilFill();
     const elapsed = Math.max(1, Math.round((Date.now() - questionStartTimeRef.current) / 1000));
+    questionStartTimeRef.current = Date.now();
     const previousTime = currentAns.timeSpent || 0;
     recordAnswer(currentQ.id, {
       selectedOpt: opt,
       answerText: '',
       timeSpent: previousTime + elapsed
     });
-    questionStartTimeRef.current = Date.now();
   };
 
   // ─── Timer Display Formatting ──────────────────────────────
