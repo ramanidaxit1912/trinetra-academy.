@@ -14,6 +14,7 @@ export default function ScorecardPage() {
   const [viewMode, setViewMode] = useState('PDF'); // 'PDF' (Official Scorecard) | 'REVIEW' (Question-by-Question)
   const [filter, setFilter] = useState('ALL'); // 'ALL' | 'CORRECT' | 'WRONG' | 'SKIPPED'
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadToast, setDownloadToast] = useState('');
 
   useEffect(() => {
     async function fetchScorecard() {
@@ -32,29 +33,44 @@ export default function ScorecardPage() {
     if (id) fetchScorecard();
   }, [id]);
 
-  const handleDownloadPdf = () => {
+  // Background direct download (like YouTube/Facebook) — NO blank white page tab!
+  const handleDownloadPdf = async () => {
+    if (downloadingPdf) return;
     try {
       setDownloadingPdf(true);
-      const downloadUrl = `/api/submissions/${id}/pdf`;
-      const win = window.open(downloadUrl, '_blank');
-      // If popup blocker intervened on mobile, fallback to window.location
-      if (!win) {
-        window.location.href = downloadUrl;
-      }
-    } catch (e) {
-      console.warn('PDF download note:', e);
-    } finally {
-      setTimeout(() => setDownloadingPdf(false), 2500);
-    }
-  };
+      setDownloadToast('📥 PDF તૈયાર થઈ રહી છે... થોડી સેકન્ડ રાહ જુઓ');
 
-  const handleShareWhatsApp = () => {
-    const testName = data?.submission?.testName || 'કસોટી';
-    const score = data?.submission?.score ?? 0;
-    const totalMarks = data?.submission?.totalMarks || 100;
-    const url = window.location.href;
-    const text = `🎯 *ત્રિનેત્ર ઓનલાઇન એકેડેમી - સ્કોરકાર્ડ*\n📝 પરીક્ષા: *${testName}*\n🏆 સ્કોર: *${score}/${totalMarks}*\n\n👉 મારું સત્તાવાર સ્કોરકાર્ડ અને પ્રશ્નવાર સોલ્યુશન જુઓ:\n${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      const res = await axios.get(`/api/submissions/${id}/pdf`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const cleanStudentName = (data?.student?.name || 'Student').replace(/\s+/g, '_');
+      const testName = (data?.submission?.testName || 'Scorecard').replace(/\s+/g, '_');
+      link.setAttribute('download', `${cleanStudentName}_${testName}_Scorecard.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 3000);
+
+      setDownloadToast('✅ PDF સફળતાપૂર્વક ડાઉનલોડ થઈ ગઈ!');
+      setTimeout(() => setDownloadToast(''), 3500);
+    } catch (e) {
+      console.warn('Direct blob download fallback to hidden iframe:', e);
+      // Fallback: silent hidden iframe download without opening any white tab
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = `/api/submissions/${id}/pdf`;
+      document.body.appendChild(iframe);
+      setTimeout(() => iframe.remove(), 60000);
+      setDownloadToast('📥 PDF ડાઉનલોડ શરૂ થઈ ગયું છે!');
+      setTimeout(() => setDownloadToast(''), 3500);
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handlePrint = () => {
@@ -215,6 +231,11 @@ export default function ScorecardPage() {
           animation: spinRing 0.8s linear infinite;
         }
 
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translate(-50%, 15px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
         /* Responsive rules for mobile phone view */
         @media (max-width: 768px) {
           .scorecard-header-bar {
@@ -234,7 +255,7 @@ export default function ScorecardPage() {
             font-size: 0.82rem !important;
           }
           .scorecard-hero-card {
-            padding: 14px 14px !important;
+            padding: 12px 14px !important;
           }
         }
       `}</style>
@@ -315,22 +336,18 @@ export default function ScorecardPage() {
         <div
           className="scorecard-hero-card"
           style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.98) 100%)',
             border: '1.5px solid rgba(255, 255, 255, 0.12)',
             borderRadius: 18,
-            padding: '14px 18px',
+            padding: '16px 18px',
             marginBottom: 16,
-            boxShadow: '0 12px 30px -5px rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 12
+            boxShadow: '0 12px 30px -5px rgba(0, 0, 0, 0.5)'
           }}
         >
-          <div style={{ flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.98rem', fontWeight: 800, color: '#f8fafc' }}>
+          {/* Header Row: Test Name + Score Badge */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
                 {submission.testName || 'કસોટી પરિણામ'}
               </span>
               <span
@@ -347,55 +364,37 @@ export default function ScorecardPage() {
                 {isPassing ? '✓ ઉત્તીર્ણ (Pass)' : 'પ્રયાસ જરૂરી'}
               </span>
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-              વિદ્યાર્થી: <strong style={{ color: '#38bdf8' }}>{student.name || 'વિદ્યાર્થી'}</strong> • સ્કોર: <strong style={{ color: isPassing ? '#34d399' : '#f87171', fontSize: '0.95rem' }}>{score}/{totalMarks} ({pct}%)</strong>
+            <div style={{ fontSize: '0.84rem', color: '#94a3b8' }}>
+              વિદ્યાર્થી: <strong style={{ color: '#38bdf8' }}>{student.name || 'વિદ્યાર્થી'}</strong> • સ્કોર: <strong style={{ color: isPassing ? '#34d399' : '#f87171', fontSize: '0.96rem' }}>{score}/{totalMarks} ({pct}%)</strong>
             </div>
           </div>
 
-          {/* Action Buttons: Print + WhatsApp Share + Download Scorecard PDF */}
-          <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Action Buttons: 🖨️ પ્રિન્ટ + 📥 Download Scorecard PDF (In ONE Single Line!) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(95px, 1fr) 2fr', gap: 10, width: '100%', alignItems: 'stretch' }}>
             <button
               onClick={handlePrint}
               className="btn-touch"
               title="પ્રિન્ટ કરો"
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#e2e8f0',
-                padding: '10px 16px',
-                borderRadius: 12,
-                fontSize: '0.86rem',
-                fontWeight: 700,
+                minHeight: 46,
+                background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.85) 0%, rgba(30, 41, 59, 0.95) 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.18)',
+                color: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: 14,
+                fontSize: '0.92rem',
+                fontWeight: 800,
                 cursor: 'pointer',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                justifyContent: 'center',
+                gap: 7,
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                whiteSpace: 'nowrap'
               }}
             >
-              <span style={{ fontSize: '1.1rem' }}>🖨️</span>
+              <span style={{ fontSize: '1.15rem' }}>🖨️</span>
               <span>પ્રિન્ટ</span>
-            </button>
-
-            <button
-              onClick={handleShareWhatsApp}
-              className="btn-touch"
-              title="વોટ્સએપ પર પરિણામ શેર કરો"
-              style={{
-                background: 'rgba(34, 197, 94, 0.14)',
-                border: '1px solid rgba(34, 197, 94, 0.45)',
-                color: '#4ade80',
-                padding: '10px 14px',
-                borderRadius: 12,
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <span style={{ fontSize: '1.1rem' }}>💬</span>
-              <span>શેર</span>
             </button>
 
             <button
@@ -403,36 +402,35 @@ export default function ScorecardPage() {
               disabled={downloadingPdf}
               className="btn-download-glow btn-touch btn-shimmer"
               style={{
-                flex: '1 1 200px',
                 minHeight: 46,
                 background: downloadingPdf
                   ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%)',
-                border: 'none',
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 55%, #047857 100%)',
+                border: '1.5px solid rgba(52, 211, 153, 0.45)',
                 color: '#ffffff',
-                padding: '9px 18px',
-                borderRadius: 12,
-                fontSize: '0.92rem',
-                fontWeight: 800,
+                padding: '8px 14px',
+                borderRadius: 14,
+                fontSize: '0.9rem',
+                fontWeight: 900,
                 cursor: downloadingPdf ? 'wait' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 10,
-                boxShadow: '0 6px 20px rgba(16,185,129,0.45)'
+                gap: 8,
+                boxShadow: '0 6px 22px rgba(16, 185, 129, 0.5)'
               }}
             >
               {downloadingPdf ? (
                 <>
                   <span className="spinner-ring" />
-                  <span>PDF ડાઉનલોડ થાય છે...</span>
+                  <span style={{ fontSize: '0.86rem' }}>PDF ડાઉનલોડ થાય છે...</span>
                 </>
               ) : (
                 <>
                   <span style={{ fontSize: '1.25rem' }}>📥</span>
-                  <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>Download Scorecard PDF</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 600, opacity: 0.9 }}>ઓરિજિનલ HD માર્કશીટ</div>
+                  <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900 }}>Download Scorecard PDF</div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.9 }}>ઓરિજિનલ HD માર્કશીટ</div>
                   </div>
                 </>
               )}
@@ -606,6 +604,36 @@ export default function ScorecardPage() {
         )}
 
       </div>
+
+      {/* ── 🌟 YouTube/Facebook Style Download Toast (Zero White Tab!) ── */}
+      {downloadToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1.5px solid rgba(56, 189, 248, 0.4)',
+            color: '#ffffff',
+            padding: '12px 24px',
+            borderRadius: 30,
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            whiteSpace: 'nowrap',
+            animation: 'fadeSlideUp 0.3s ease-out'
+          }}
+        >
+          <span>{downloadToast}</span>
+        </div>
+      )}
     </div>
   );
 }
