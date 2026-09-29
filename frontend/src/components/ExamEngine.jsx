@@ -823,38 +823,31 @@ export default function ExamEngine({ onFinish }) {
         </div>
       )}
 
-      {/* 🛡️ Dynamic Anti-Leak Diagonal Watermark Layer (Floats directly over questions & options) */}
+      {/* 🛡️ Trinetra Academy Official Watermark Logo in Background */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           pointerEvents: 'none',
-          zIndex: 999,
+          zIndex: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           overflow: 'hidden',
-          opacity: 0.12,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: '60px 30px',
-          padding: 16,
-          userSelect: 'none',
-          WebkitUserSelect: 'none'
+          opacity: 0.08,
+          userSelect: 'none'
         }}
       >
-        {Array.from({ length: 48 }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              transform: 'rotate(-25deg)',
-              fontSize: '0.88rem',
-              fontWeight: 900,
-              color: '#b91c1c',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.5px'
-            }}
-          >
-            🔒 {user?.name || 'STUDENT'} • {user?.mobile || ''} • TRINETRA
-          </div>
-        ))}
+        <img
+          src="/trinetra-logo.png"
+          alt="Trinetra Logo Watermark"
+          style={{
+            maxWidth: 'min(75vw, 360px)',
+            maxHeight: 'min(75vh, 360px)',
+            objectFit: 'contain'
+          }}
+          onError={(e) => { e.target.src = '/images/logo.jpg'; }}
+        />
       </div>
 
       {/* ── Main Question Area ── */}
@@ -1199,12 +1192,40 @@ export default function ExamEngine({ onFinish }) {
         {/* Question Card with 3D Origami Exam Paper Flip Transition */}
         <div
           className={`card ppt-slide-page-box ${slideDirection === 'next' ? 'paper-flip-next-anim' : 'paper-flip-prev-anim'}`}
-          style={{ padding: '20px 18px', marginBottom: 14 }}
+          style={{ padding: '20px 18px', marginBottom: 14, position: 'relative', overflow: 'hidden' }}
           key={currentIndex}
         >
+          {/* 🛡️ Trinetra Academy Official Watermark Logo in Question Background */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 0,
+              opacity: 0.06,
+              userSelect: 'none',
+              width: 'min(280px, 75%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <img
+              src="/trinetra-logo.png"
+              alt="Trinetra Watermark"
+              style={{
+                width: '100%',
+                maxHeight: 260,
+                objectFit: 'contain'
+              }}
+              onError={(e) => { e.target.src = '/images/logo.jpg'; }}
+            />
+          </div>
 
           {/* Type & Negative Marking Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span className="badge" style={{
                 background: currentQ?.type === 'mcq' ? '#dbeafe' : '#fef3c7',
