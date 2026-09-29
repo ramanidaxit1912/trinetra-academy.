@@ -9753,45 +9753,81 @@ function StudentAnswers({ showToast }) {
                         </div>
                       </div>
 
-                      {/* 🌟 Stats Box Matrix (2x2 Grid) */}
+                      {/* 🌟 Stats Box Matrix (2x2 Grid) - Obsidian Navy & Cyan Glow Theme */}
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(2, 1fr)',
                         gap: 8,
-                        background: 'rgba(0, 0, 0, 0.25)',
-                        padding: 10,
-                        borderRadius: 12,
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(8, 13, 26, 0.95))',
+                        padding: '11px 12px',
+                        borderRadius: 13,
+                        border: '1px solid rgba(56, 189, 248, 0.16)',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
                       }}>
-                        {/* Box 1: Highest */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>🏆 સર્વોચ્ચ ગુણ</span>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#fde047' }}>
-                            {highestScore} <span style={{ fontSize: '0.72rem', color: '#64748b' }}>/ {maxPossibleMarks}</span>
+                        {/* Box 1: Highest (Golden Obsidian) */}
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2,
+                          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(217, 119, 6, 0.04) 100%)',
+                          padding: '7px 9px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(245, 158, 11, 0.22)'
+                        }}>
+                          <span style={{ fontSize: '0.67rem', color: '#fbbf24', fontWeight: 800 }}>🏆 સર્વોચ્ચ ગુણ</span>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 900, color: '#fde047' }}>
+                            {highestScore} <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>/ {maxPossibleMarks}</span>
                           </span>
                         </div>
 
-                        {/* Box 2: Average */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📊 સરેરાશ</span>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#93c5fd' }}>
-                            {avgScore} <span style={{ fontSize: '0.72rem', color: '#64748b' }}>ગુણ</span>
+                        {/* Box 2: Average (Cyan Sapphire) */}
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2,
+                          background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(14, 165, 233, 0.04) 100%)',
+                          padding: '7px 9px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(56, 189, 248, 0.22)'
+                        }}>
+                          <span style={{ fontSize: '0.67rem', color: '#7dd3fc', fontWeight: 800 }}>📊 સરેરાશ</span>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 900, color: '#38bdf8' }}>
+                            {avgScore} <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>ગુણ</span>
                           </span>
                         </div>
 
                         {/* Box 3: Status */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📋 પેપર સ્ટેટસ</span>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: pendingInGroup > 0 ? '#fbbf24' : '#4ade80' }}>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2,
+                          background: pendingInGroup > 0
+                            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(217, 119, 6, 0.04) 100%)'
+                            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.04) 100%)',
+                          padding: '7px 9px',
+                          borderRadius: 8,
+                          border: pendingInGroup > 0 ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(16, 185, 129, 0.25)'
+                        }}>
+                          <span style={{ fontSize: '0.67rem', color: '#94a3b8', fontWeight: 800 }}>📋 પેપર સ્ટેટસ</span>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: pendingInGroup > 0 ? '#fbbf24' : '#4ade80' }}>
                             {pendingInGroup > 0 ? `⏳ ${pendingInGroup} બાકી` : '✅ તમામ પૂર્ણ'}
                           </span>
                         </div>
 
                         {/* Box 4: Progress */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📈 પ્રગતિ</span>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: progressPct === 100 ? '#4ade80' : '#38bdf8' }}>
-                            {progressPct}% <span style={{ fontSize: '0.7rem', color: '#64748b' }}>તપાસેલ</span>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2,
+                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(79, 70, 229, 0.04) 100%)',
+                          padding: '7px 9px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(99, 102, 241, 0.25)'
+                        }}>
+                          <span style={{ fontSize: '0.67rem', color: '#a5b4fc', fontWeight: 800 }}>📈 પ્રગતિ</span>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 900, color: progressPct === 100 ? '#4ade80' : '#818cf8' }}>
+                            {progressPct}% <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>તપાસેલ</span>
                           </span>
                         </div>
                       </div>
@@ -9809,12 +9845,12 @@ function StudentAnswers({ showToast }) {
                         />
                       </div>
 
-                      {/* Quick Action Buttons: Answer Key & Re-Calculate */}
+                      {/* Quick Action Buttons: Answer Key & Re-Calculate with 3D press physics */}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <button
                           type="button"
                           onClick={(e) => openMasterTestModal(group, e)}
-                          className="sa-btn-shimmer"
+                          className="sa-btn-shimmer sa-btn-pressable"
                           style={{
                             flex: 1,
                             background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
@@ -9846,7 +9882,7 @@ function StudentAnswers({ showToast }) {
                               handleReEvaluate(group.testCode);
                             }}
                             disabled={reEvaluating[group.testCode]}
-                            className="sa-btn-shimmer"
+                            className="sa-btn-shimmer sa-btn-pressable"
                             style={{
                               flex: 1,
                               background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
@@ -9875,33 +9911,35 @@ function StudentAnswers({ showToast }) {
                       </div>
                     </div>
 
-                    {/* 🌟 3. Bottom Full-Width Expand / Collapse Button with Liquid Shimmer & Bouncing Arrow */}
+                    {/* 🌟 3. Bottom Expand Button with 360° Morphing Toggle Icon & 3D Press Physics */}
                     <button
                       type="button"
                       onClick={() => toggleTestGroup(group.testCode)}
-                      className="sa-btn-shimmer"
+                      className="sa-btn-shimmer sa-btn-pressable"
                       style={{
                         width: '100%',
-                        padding: '11px 16px',
+                        padding: '12px 18px',
                         background: isOpen
-                          ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))'
+                          ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98))'
                           : subTheme.gradient,
                         border: 'none',
                         borderTop: '1px solid rgba(255,255,255,0.12)',
                         color: '#ffffff',
                         fontWeight: 900,
-                        fontSize: '0.84rem',
+                        fontSize: '0.85rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 8,
+                        gap: 10,
                         fontFamily: 'Hind Vadodara, sans-serif',
-                        boxShadow: isOpen ? 'none' : `0 4px 14px ${subTheme.glow}`,
-                        transition: 'all 0.25s ease'
+                        boxShadow: isOpen ? 'inset 0 2px 8px rgba(0,0,0,0.4)' : `0 4px 18px ${subTheme.glow}`,
+                        transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
                       }}
                     >
-                      <span className={isOpen ? '' : 'sa-bounce-arrow'}>{isOpen ? '✕' : '▼'}</span>
+                      <span className={`sa-toggle-icon ${isOpen ? 'open' : 'closed sa-bounce-arrow'}`}>
+                        {isOpen ? '✕' : '▼'}
+                      </span>
                       <span>{isOpen ? 'વિદ્યાર્થીઓ છુપાવો' : `${group.subs.length} વિદ્યાર્થીઓના પેપર્સ & જવાબો જુઓ`}</span>
                     </button>
 
