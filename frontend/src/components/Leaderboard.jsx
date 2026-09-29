@@ -344,19 +344,18 @@ export function LeaderboardUI({
                         ? 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)'
                         : 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%)',
                     borderRadius: 18,
-                    padding: '16px 20px',
+                    padding: '16px 18px',
                     border: userLeaderEntry?.rank === 1
                       ? '2px solid #f59e0b'
                       : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
                         ? '2px solid #38bdf8'
                         : '2px solid rgba(56, 189, 248, 0.6)',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: 14,
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxSizing: 'border-box'
                   }}>
                     {/* Top Accent Strip */}
                     <div style={{
@@ -366,16 +365,16 @@ export function LeaderboardUI({
                         : 'linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8)'
                     }} />
 
-                    {/* Left: Avatar + Congratulations Message */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 220, flex: 1 }}>
-                      <div style={{ position: 'relative' }}>
+                    {/* Top Row: Avatar + Student Info + Status Message */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
                         <div style={{
-                          width: 50, height: 50, borderRadius: '50%',
+                          width: 48, height: 48, borderRadius: '50%',
                           background: userLeaderEntry?.rank === 1
                             ? 'linear-gradient(135deg, #f59e0b, #fbbf24)'
                             : 'linear-gradient(135deg, #2563eb, #38bdf8)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '1.6rem', fontWeight: 900,
+                          fontSize: '1.5rem', fontWeight: 900,
                           color: userLeaderEntry?.rank === 1 ? '#78350f' : '#ffffff',
                           boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                           border: '2px solid #ffffff'
@@ -393,8 +392,8 @@ export function LeaderboardUI({
                         </span>
                       </div>
 
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span style={{
                             background: userLeaderEntry?.rank === 1 ? 'rgba(245, 158, 11, 0.25)' : 'rgba(56, 189, 248, 0.2)',
                             color: userLeaderEntry?.rank === 1 ? '#fde68a' : '#7dd3fc',
@@ -418,7 +417,7 @@ export function LeaderboardUI({
                           {currentUserName || 'વિદ્યાર્થી'}
                         </div>
 
-                        <div style={{ color: '#cbd5e1', fontSize: '0.78rem', marginTop: 1 }}>
+                        <div style={{ color: '#cbd5e1', fontSize: '0.78rem', marginTop: 1, lineHeight: 1.35 }}>
                           {userLeaderEntry?.rank === 1 ? (
                             <span style={{ color: '#fef08a', fontWeight: 800 }}>🏆 અદભુત! તમે સમગ્ર કસોટીમાં ૧લા નંબરના ગોલ્ડ ટોપર છો!</span>
                           ) : userLeaderEntry?.rank && userLeaderEntry.rank <= 3 ? (
@@ -432,35 +431,182 @@ export function LeaderboardUI({
                       </div>
                     </div>
 
-                    {/* Right: Big Rank Badge & Score */}
+                    {/* Bottom Row: 2-Column Responsive Balanced Metric Tiles */}
                     <div style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      background: 'rgba(255,255,255,0.06)',
-                      padding: '8px 16px', borderRadius: 14,
-                      border: '1px solid rgba(255,255,255,0.1)'
+                      width: '100%',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: 10,
+                      boxSizing: 'border-box'
                     }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase' }}>તમારો રેન્ક</div>
+                      {/* Tile 1: તમારો રેન્ક */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+                        border: userLeaderEntry?.rank === 1
+                          ? '1.5px solid rgba(245, 158, 11, 0.5)'
+                          : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
+                            ? '1.5px solid rgba(56, 189, 248, 0.45)'
+                            : '1.5px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: 14,
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
+                      }}>
                         <div style={{
-                          fontSize: '1.65rem', fontWeight: 900, lineHeight: 1.1,
-                          color: userLeaderEntry?.rank === 1 ? '#fbbf24' : userLeaderEntry?.rank === 2 ? '#e2e8f0' : userLeaderEntry?.rank === 3 ? '#fdba74' : '#38bdf8'
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: userLeaderEntry?.rank === 1
+                            ? 'rgba(245, 158, 11, 0.2)'
+                            : userLeaderEntry?.rank === 2
+                              ? 'rgba(226, 232, 240, 0.15)'
+                              : userLeaderEntry?.rank === 3
+                                ? 'rgba(251, 146, 60, 0.2)'
+                                : 'rgba(56, 189, 248, 0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.3rem',
+                          flexShrink: 0
                         }}>
-                          {userLeaderEntry ? `#${userLeaderEntry.rank}` : 'પૂર્ણ'}
+                          {userLeaderEntry?.rank === 1 ? '🥇' : userLeaderEntry?.rank === 2 ? '🥈' : userLeaderEntry?.rank === 3 ? '🥉' : '🏆'}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            color: '#94a3b8',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            તમારો રેન્ક
+                          </div>
+                          <div style={{
+                            fontSize: '1.4rem',
+                            fontWeight: 900,
+                            lineHeight: 1.1,
+                            marginTop: 1,
+                            color: userLeaderEntry?.rank === 1
+                              ? '#fbbf24'
+                              : userLeaderEntry?.rank === 2
+                                ? '#f1f5f9'
+                                : userLeaderEntry?.rank === 3
+                                  ? '#fdba74'
+                                  : '#38bdf8'
+                          }}>
+                            {userLeaderEntry ? `#${userLeaderEntry.rank}` : 'પૂર્ણ'}
+                          </div>
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            marginTop: 2,
+                            background: userLeaderEntry?.rank === 1
+                              ? 'rgba(245, 158, 11, 0.2)'
+                              : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
+                                ? 'rgba(56, 189, 248, 0.18)'
+                                : 'rgba(16, 185, 129, 0.18)',
+                            color: userLeaderEntry?.rank === 1
+                              ? '#fbbf24'
+                              : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
+                                ? '#7dd3fc'
+                                : '#6ee7b7',
+                            border: userLeaderEntry?.rank === 1
+                              ? '1px solid rgba(245, 158, 11, 0.35)'
+                              : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
+                                ? '1px solid rgba(56, 189, 248, 0.35)'
+                                : '1px solid rgba(16, 185, 129, 0.35)',
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {userLeaderEntry?.rank === 1
+                              ? '🥇 ૧લો નંબર'
+                              : userLeaderEntry?.rank && userLeaderEntry.rank <= 3
+                                ? '🎉 ટોપ ૩ વિજેતા'
+                                : userLeaderEntry
+                                  ? '🔥 ટોપ ૧૦'
+                                  : '✓ પૂર્ણ'}
+                          </div>
                         </div>
                       </div>
 
-                      <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.15)' }} />
-
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 800, textTransform: 'uppercase' }}>મેળવેલ ગુણ</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399', lineHeight: 1.1 }}>
-                          {userLeaderEntry ? userLeaderEntry.mcqScore : (userSubmissionForTest?.mcqScore ?? userSubmissionForTest?.score ?? 0)}
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
-                            /{userLeaderEntry ? userLeaderEntry.totalMCQ : (userSubmissionForTest?.totalMarks || userSubmissionForTest?.totalMCQ || activeData.totalMarks || 100)}
-                          </span>
+                      {/* Tile 2: મેળવેલ ગુણ */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+                        border: '1.5px solid rgba(52, 211, 153, 0.4)',
+                        borderRadius: 14,
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
+                      }}>
+                        <div style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: 'rgba(52, 211, 153, 0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.3rem',
+                          flexShrink: 0
+                        }}>
+                          🎯
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 800 }}>
-                          {userLeaderEntry ? `${userLeaderEntry.percentage}%` : `${userSubmissionForTest ? Math.round(((userSubmissionForTest.mcqScore ?? userSubmissionForTest.score ?? 0) / (userSubmissionForTest.totalMarks || 100)) * 100) : 0}%`} ટકા
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            color: '#94a3b8',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            મેળવેલ ગુણ
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            gap: 3,
+                            marginTop: 1,
+                            lineHeight: 1.1
+                          }}>
+                            <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>
+                              {userLeaderEntry ? userLeaderEntry.mcqScore : (userSubmissionForTest?.mcqScore ?? userSubmissionForTest?.score ?? 0)}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
+                              /{userLeaderEntry ? userLeaderEntry.totalMCQ : (userSubmissionForTest?.totalMarks || userSubmissionForTest?.totalMCQ || activeData.totalMarks || 100)}
+                            </span>
+                          </div>
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            marginTop: 2,
+                            background: 'rgba(251, 191, 36, 0.18)',
+                            color: '#fbbf24',
+                            border: '1px solid rgba(251, 191, 36, 0.35)',
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {userLeaderEntry ? `${userLeaderEntry.percentage}%` : `${userSubmissionForTest ? Math.round(((userSubmissionForTest.mcqScore ?? userSubmissionForTest.score ?? 0) / (userSubmissionForTest.totalMarks || 100)) * 100) : 0}%`} ટકા
+                          </div>
                         </div>
                       </div>
                     </div>
