@@ -1493,10 +1493,28 @@ router.get('/leaderboard/by-test', async (req, res) => {
           participants: 0,
           isLocked: false,
           resultsPublishAt: scheduledPublishMap[key] || null,
-          leaders: []
+          leaders: [],
+          studentRankMap: {}
         };
       }
       testMap[key].participants++;
+      const currentRank = testMap[key].participants;
+
+      // Track individual student rank by mobile so student can see their rank even outside Top 10
+      if (sub.student?.mobile) {
+        const cleanM = String(sub.student.mobile).replace(/\D/g, '').slice(-10);
+        if (cleanM && !testMap[key].studentRankMap[cleanM]) {
+          testMap[key].studentRankMap[cleanM] = {
+            rank: currentRank,
+            submissionId: sub.id,
+            studentName: sub.student.name,
+            score: sub.mcqScore,
+            totalMarks: sub.totalMarks || sub.totalMCQ,
+            percentage: sub.totalMCQ > 0 ? Math.round((sub.mcqScore / sub.totalMCQ) * 100) : 0
+          };
+        }
+      }
+
       // Only keep top 15 per test for ranking
       if (testMap[key].leaders.length < 15) {
         testMap[key].leaders.push({
@@ -1526,6 +1544,7 @@ router.get('/leaderboard/by-test', async (req, res) => {
         testMap[key].isLocked = true;
         testMap[key].resultsPublishAt = pubAt;
         testMap[key].leaders = []; // Conceal leaders until scheduled release time
+        testMap[key].studentRankMap = {}; // Conceal student ranks until scheduled release time
       } else {
         testMap[key].isLocked = false;
         testMap[key].resultsPublishAt = pubAt || null;

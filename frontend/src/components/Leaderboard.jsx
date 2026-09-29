@@ -125,6 +125,17 @@ export function LeaderboardUI({
            (activeData?.testName && s.testName === activeData.testName);
   });
 
+  // 🔍 Lookup student's overall rank if they are outside the Top 10
+  const cleanMyMobile = currentUserMobile ? String(currentUserMobile).replace(/\D/g, '').slice(-10) : null;
+  const userMapEntry = (cleanMyMobile && activeData?.studentRankMap) ? activeData.studentRankMap[cleanMyMobile] : null;
+
+  const myRank = userLeaderEntry?.rank || userMapEntry?.rank || null;
+  const myScore = userLeaderEntry ? userLeaderEntry.mcqScore : userMapEntry ? userMapEntry.score : (userSubmissionForTest?.mcqScore ?? userSubmissionForTest?.score ?? null);
+  const myTotal = userLeaderEntry ? userLeaderEntry.totalMCQ : userMapEntry ? userMapEntry.totalMarks : (userSubmissionForTest?.totalMarks || userSubmissionForTest?.totalMCQ || activeData?.totalMarks || 100);
+  const myPct = (myScore !== null && myTotal > 0) ? Math.round((myScore / myTotal) * 100) : null;
+  const hasAttempted = myScore !== null || Boolean(userLeaderEntry || userMapEntry || userSubmissionForTest);
+  const isOutsideTop10 = hasAttempted && (!userLeaderEntry) && (myRank !== null || userSubmissionForTest);
+
   const top1 = leaders.find(l => l.rank === 1);
   const top2 = leaders.find(l => l.rank === 2);
   const top3 = leaders.find(l => l.rank === 3);
@@ -843,6 +854,98 @@ export function LeaderboardUI({
                       </div>
                     );
                   })}
+
+                  {/* 🌟 If student is not in Top 10, show a dedicated glowing row at the bottom of the list */}
+                  {isOutsideTop10 && (
+                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        color: '#64748b',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        margin: '6px 0 2px'
+                      }}>
+                        <div style={{ height: 1, background: '#cbd5e1', flex: 1 }} />
+                        <span>••• તમારો ક્રમ (Your Rank Outside Top 10) •••</span>
+                        <div style={{ height: 1, background: '#cbd5e1', flex: 1 }} />
+                      </div>
+
+                      <div
+                        className="animate-fade-in user-spotlight-pulse"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 16px',
+                          border: '2.5px solid #0284c7',
+                          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                          borderRadius: 14,
+                          boxShadow: '0 0 24px rgba(2,132,199,0.3), 0 4px 14px rgba(37,99,235,0.15)',
+                          gap: 10,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {/* Rank Badge + Name */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            width: 38, height: 38, borderRadius: 10,
+                            background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                            color: '#ffffff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.88rem',
+                            fontWeight: 900, flexShrink: 0,
+                            boxShadow: '0 4px 12px rgba(2,132,199,0.4)'
+                          }}>
+                            #{myRank || '?'}
+                          </div>
+
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{
+                              fontWeight: 900,
+                              fontSize: '0.94rem',
+                              color: '#075985',
+                              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
+                            }}>
+                              <span>{currentUserName || 'તમે'}</span>
+                              <span style={{
+                                background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                color: 'white',
+                                fontSize: '0.64rem', fontWeight: 900,
+                                padding: '2px 8px', borderRadius: 12,
+                                boxShadow: '0 2px 8px rgba(2,132,199,0.35)',
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                flexShrink: 0
+                              }}>
+                                🌟 તમે (તમારો ક્રમ #{myRank || '?'})
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: 2, fontWeight: 700 }}>
+                              કુલ {activeData.participants} વિદ્યાર્થીઓમાંથી • થોડી વધુ પ્રેક્ટિસથી તમે Top 10 માં આવી જશો!
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Score + Percentage */}
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0369a1' }}>
+                            {myScore !== null ? myScore : 0} / {myTotal}
+                          </div>
+                          <div style={{
+                            display: 'inline-block',
+                            background: (myPct || 0) >= 80 ? '#dcfce7' : (myPct || 0) >= 50 ? '#eff6ff' : '#fee2e2',
+                            color: (myPct || 0) >= 80 ? '#15803d' : (myPct || 0) >= 50 ? '#1e40af' : '#b91c1c',
+                            fontSize: '0.68rem', fontWeight: 900,
+                            padding: '2px 8px', borderRadius: 10, marginTop: 1
+                          }}>
+                            {myPct !== null ? `${myPct}%` : '0%'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
