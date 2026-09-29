@@ -2770,9 +2770,9 @@ textarea.input-dark {
 
 .sa-toggle-icon.open {
   transform: rotate(360deg);
-  background: rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
-  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.28);
+  color: #ffffff;
+  border: 1.5px solid rgba(239, 68, 68, 0.6);
 }
 
 .sa-toggle-icon.closed {

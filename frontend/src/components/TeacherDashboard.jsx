@@ -9274,21 +9274,21 @@ function StudentAnswers({ showToast }) {
     if (s.includes('ગુજરાતી') || s.includes('gujarati')) {
       return {
         icon: '📚',
-        gradient: 'linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)',
-        glow: 'rgba(225, 29, 72, 0.45)',
-        border: 'rgba(225, 29, 72, 0.4)',
-        badgeBg: 'rgba(225, 29, 72, 0.14)',
-        badgeColor: '#fb7185'
+        gradient: 'linear-gradient(135deg, #c2410c 0%, #ea580c 100%)',
+        glow: 'rgba(234, 88, 12, 0.45)',
+        border: 'rgba(234, 88, 12, 0.4)',
+        badgeBg: 'rgba(234, 88, 12, 0.14)',
+        badgeColor: '#fb923c'
       };
     }
     if (s.includes('અંગ્રેજી') || s.includes('english')) {
       return {
         icon: '🔤',
-        gradient: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
-        glow: 'rgba(124, 58, 237, 0.45)',
-        border: 'rgba(124, 58, 237, 0.4)',
-        badgeBg: 'rgba(124, 58, 237, 0.14)',
-        badgeColor: '#c084fc'
+        gradient: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+        glow: 'rgba(99, 102, 241, 0.45)',
+        border: 'rgba(99, 102, 241, 0.4)',
+        badgeBg: 'rgba(99, 102, 241, 0.14)',
+        badgeColor: '#a5b4fc'
       };
     }
     if (s.includes('સામાજિક') || s.includes('ભૂગોળ') || s.includes('ઇતિહાસ') || s.includes('social')) {
@@ -9314,11 +9314,11 @@ function StudentAnswers({ showToast }) {
     if (s.includes('સામાન્ય જ્ઞાન') || s.includes('gk') || s.includes('બંધારણ') || s.includes('કરંટ')) {
       return {
         icon: '💡',
-        gradient: 'linear-gradient(135deg, #c026d3 0%, #ec4899 100%)',
-        glow: 'rgba(192, 38, 211, 0.45)',
-        border: 'rgba(192, 38, 211, 0.4)',
-        badgeBg: 'rgba(192, 38, 211, 0.14)',
-        badgeColor: '#f472b6'
+        gradient: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+        glow: 'rgba(2, 132, 199, 0.45)',
+        border: 'rgba(2, 132, 199, 0.4)',
+        badgeBg: 'rgba(2, 132, 199, 0.14)',
+        badgeColor: '#38bdf8'
       };
     }
     if (group.hasMCQ && !group.hasDesc) {
