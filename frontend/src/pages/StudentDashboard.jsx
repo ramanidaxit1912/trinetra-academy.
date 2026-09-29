@@ -830,15 +830,19 @@ export default function StudentDashboard() {
             testName:    q.testName || q.chapter || 'સામાન્ય કસોટી (Live Test)',
             subject:     q.subject  || 'General',
             timeLimit:   q.timeLimit || 60,
-            scheduledAt: q.scheduledAt || null,
-            questions:   [],
-            totalMarks:  0,
-            mcqCount:    0,
-            descCount:   0
+            scheduledAt:    q.scheduledAt || null,
+            scheduledEndAt: q.scheduledEndAt || null,
+            questions:      [],
+            totalMarks:     0,
+            mcqCount:       0,
+            descCount:      0
           };
         }
         groups[key].questions.push(q);
         groups[key].totalMarks += (q.marks || 1);
+        if (q.scheduledEndAt && !groups[key].scheduledEndAt) {
+          groups[key].scheduledEndAt = q.scheduledEndAt;
+        }
         if (q.type === 'mcq') groups[key].mcqCount++;
         else groups[key].descCount++;
       });
@@ -2823,6 +2827,22 @@ export default function StudentDashboard() {
                               boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)'
                             }}>
                               🔒 ત્રિનેત્ર એડમિશન સ્પેશિયલ
+                            </span>
+                          )}
+                          {t.scheduledEndAt && (
+                            <span style={{
+                              background: '#fef2f2',
+                              color: '#dc2626',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '3px 10px',
+                              borderRadius: 8,
+                              border: '1px solid #fecaca',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              🛑 સમાપ્તિ: {new Date(t.scheduledEndAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
                             </span>
                           )}
                         </div>

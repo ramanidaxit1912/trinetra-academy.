@@ -196,6 +196,8 @@ export default function ExamPage() {
             testName:  q.testName || q.chapter || 'સામાન્ય કસોટી (Live Test)',
             subject:   q.subject  || 'General',
             timeLimit: q.timeLimit || 60,
+            scheduledAt:    q.scheduledAt || null,
+            scheduledEndAt: q.scheduledEndAt || null,
             questions: [],
             totalMarks: 0,
             mcqCount: 0,
@@ -204,6 +206,9 @@ export default function ExamPage() {
         }
         groups[key].questions.push(q);
         groups[key].totalMarks += (q.marks || 1);
+        if (q.scheduledEndAt && !groups[key].scheduledEndAt) {
+          groups[key].scheduledEndAt = q.scheduledEndAt;
+        }
         if (q.type === 'mcq') groups[key].mcqCount++;
         else groups[key].descCount++;
       });
@@ -733,7 +738,7 @@ export default function ExamPage() {
                       {t.testName}
                     </h3>
 
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, color: '#475569', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: t.scheduledEndAt ? 8 : 16, color: '#475569', fontSize: '0.85rem' }}>
                       <div>📝 <strong>{t.questions.length}</strong> પ્રશ્નો ({t.mcqCount}M + {t.descCount}D)</div>
                       <div>🎯 <strong>{t.totalMarks}</strong> ગુણ</div>
                       {Number(t.timeLimit || 0) > 0 && (
@@ -744,6 +749,25 @@ export default function ExamPage() {
                         </div>
                       )}
                     </div>
+
+                    {t.scheduledEndAt && (
+                      <div style={{ marginBottom: 14 }}>
+                        <span style={{
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          padding: '3px 9px',
+                          borderRadius: 6,
+                          border: '1px solid #fecaca',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          🛑 સમાપ્તિ: {new Date(t.scheduledEndAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {alreadyDone ? (
@@ -751,6 +775,12 @@ export default function ExamPage() {
                       style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '0.92rem', background: '#1e3a8a', color: 'white', border: 'none', borderRadius: 10, fontWeight: 800, cursor: 'pointer' }}
                       onClick={() => navigate('/student')}>
                       ✓ કસોટી પૂર્ણ થયેલ છે • પરિણામ જુઓ →
+                    </button>
+                  ) : (t.scheduledEndAt && Date.now() >= new Date(t.scheduledEndAt).getTime()) ? (
+                    <button
+                      disabled
+                      style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '0.92rem', background: '#e2e8f0', color: '#94a3b8', border: 'none', borderRadius: 10, fontWeight: 800, cursor: 'not-allowed' }}>
+                      ⚠️ આ કસોટીનો સમય પૂર્ણ થયો છે
                     </button>
                   ) : (
                     <button

@@ -6817,8 +6817,9 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
   const itvRef = useRef(null);
 
   // Scheduling state
-  const [schedulingTest, setSchedulingTest]     = useState(null);
-  const [scheduleDateTime, setScheduleDateTime] = useState('');
+  const [schedulingTest, setSchedulingTest]         = useState(null);
+  const [scheduleDateTime, setScheduleDateTime]     = useState('');
+  const [scheduleEndDateTime, setScheduleEndDateTime] = useState('');
 
   // Preview & Edit modal state
   const [previewTest, setPreviewTest]           = useState(null); // Test currently in preview modal
@@ -6859,21 +6860,25 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
       const key = q.testCode || (q.chapter ? `CHAPTER-${q.chapter}` : 'DEFAULT-TEST');
       if (!map[key]) {
         map[key] = {
-          testCode:    q.testCode || key,
-          testName:    q.testName || q.chapter || 'સામાન્ય કસોટી (General Test)',
-          subject:     q.subject  || 'General',
-          timeLimit:   q.timeLimit || 60,
-          scheduledAt: q.scheduledAt || null,
-          questions:   [],
-          totalMarks:  0,
-          mcqCount:    0,
-          descCount:   0,
+          testCode:       q.testCode || key,
+          testName:       q.testName || q.chapter || 'સામાન્ય કસોટી (General Test)',
+          subject:        q.subject  || 'General',
+          timeLimit:      q.timeLimit || 60,
+          scheduledAt:    q.scheduledAt || null,
+          scheduledEndAt: q.scheduledEndAt || null,
+          questions:      [],
+          totalMarks:     0,
+          mcqCount:       0,
+          descCount:      0,
         };
       }
       map[key].questions.push(q);
       map[key].totalMarks += (q.marks || 1);
       if (q.scheduledAt && !map[key].scheduledAt) {
         map[key].scheduledAt = q.scheduledAt;
+      }
+      if (q.scheduledEndAt && !map[key].scheduledEndAt) {
+        map[key].scheduledEndAt = q.scheduledEndAt;
       }
       if (q.type === 'mcq') map[key].mcqCount++;
       else map[key].descCount++;
@@ -7051,23 +7056,26 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
     await fetchData();
   };
 
-  // ── Schedule Test (Single or Bulk) ───────────────────
+  // ── Schedule Test (Single or Bulk: Start & Auto-End) ────
   const handleSaveSchedule = async () => {
     if (!schedulingTest) return;
     try {
       const targets = schedulingTest.testCodes || (schedulingTest.testCode ? [schedulingTest.testCode] : []);
-      await scheduleTest({ testCodes: targets, scheduledAt: scheduleDateTime || null });
+      const res = await scheduleTest({
+        testCodes: targets,
+        scheduledAt: scheduleDateTime || null,
+        scheduledEndAt: scheduleEndDateTime || null
+      });
       showToast(
-        scheduleDateTime
-          ? `⏰ ${targets.length} કસોટી(ઓ)નો સમય શિડ્યુલ થઈ ગયો: ${scheduleDateTime}`
-          : 'શિડ્યુલ દૂર કરવામાં આવ્યું.',
+        res.data?.message || (scheduleEndDateTime ? '🛑 સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક સેટ થયો!' : '⏰ કસોટી સફળતાપૂર્વક શિડ્યુલ થઈ!'),
         'success'
       );
       setSchedulingTest(null);
       setScheduleDateTime('');
+      setScheduleEndDateTime('');
       await fetchData();
-    } catch {
-      showToast('શિડ્યુલ કરવામાં ક્ષતિ.', 'error');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'શિડ્યુલ કરવામાં ક્ષતિ.', 'error');
     }
   };
 
@@ -7531,11 +7539,19 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                         </span>
                       </div>
 
-                      {/* Scheduled Badge if scheduled */}
+                      {/* Scheduled Start Badge if scheduled */}
                       {t.scheduledAt && (
-                        <div style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', padding: '6px 10px', borderRadius: 8, color: '#fde68a', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                        <div style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', padding: '6px 10px', borderRadius: 8, color: '#fde68a', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                           <Calendar size={13} />
-                          <span>⏰ શિડ્યુલ: {new Date(t.scheduledAt).toLocaleString('gu-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                          <span>⏰ શરૂ શિડ્યુલ: {new Date(t.scheduledAt).toLocaleString('gu-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                        </div>
+                      )}
+
+                      {/* Scheduled Auto End Badge if scheduled */}
+                      {t.scheduledEndAt && (
+                        <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.45)', padding: '6px 10px', borderRadius: 8, color: '#fca5a5', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                          <Clock size={13} />
+                          <span>🛑 Auto End: {new Date(t.scheduledEndAt).toLocaleString('gu-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                         </div>
                       )}
 
@@ -7612,9 +7628,10 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                       <button onClick={() => {
                         setSchedulingTest(t);
                         setScheduleDateTime(t.scheduledAt || '');
+                        setScheduleEndDateTime(t.scheduledEndAt || '');
                       }}
                         style={{
-                          background: 'rgba(245,158,11,0.2)',
+                          background: (t.scheduledAt || t.scheduledEndAt) ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.18)',
                           border: '1.5px solid #f59e0b',
                           color: '#fef3c7',
                           padding: '10px 12px',
@@ -7628,7 +7645,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                           gap: 6,
                           fontFamily: 'Hind Vadodara, sans-serif'
                         }}>
-                        <Clock size={15} /> {t.scheduledAt ? '⏰ Edit' : '⏰ Schedule'}
+                        <Clock size={15} /> {t.scheduledAt || t.scheduledEndAt ? '⏰ Edit' : '⏰ Schedule'}
                       </button>
 
                       {!isCurrentLive ? (
@@ -8069,23 +8086,23 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
         </>
       )}
 
-      {/* ── SCHEDULE LIVE TEST MODAL (PRO PORTALED & RESPONSIVE) ── */}
+      {/* ── SCHEDULE LIVE TEST & AUTO-END MODAL (PRO PORTALED & RESPONSIVE) ── */}
       {schedulingTest && typeof document !== 'undefined' && createPortal(
         <div className="schedule-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setSchedulingTest(null); }}>
-          <div className="schedule-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="schedule-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
             
             {/* Header */}
-            <div className="schedule-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(245,158,11,0.25)', border: '1px solid rgba(245,158,11,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+            <div className="schedule-modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(239,68,68,0.25))', border: '1.5px solid rgba(245,158,11,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
                   ⏰
                 </div>
                 <div>
                   <h3 style={{ color: '#fbbf24', fontWeight: 900, fontSize: '1.05rem', margin: 0 }}>
-                    કસોટી શિડ્યુલ કરો (Schedule Live)
+                    કસોટી શિડ્યુલ અને ઓટો-સમાપ્તિ (Schedule & Auto-End)
                   </h3>
-                  <div style={{ color: '#fef08a', fontSize: '0.72rem', fontWeight: 600 }}>
-                    નક્કી કરેલા સમય પર આપમેળે Live શરૂ થશે
+                  <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 600, marginTop: 2 }}>
+                    લાઈવ શરૂ થવાનો સમય અને આપમેળે બંધ (Stop Live) થવાનો સમય સેટ કરો
                   </div>
                 </div>
               </div>
@@ -8098,10 +8115,10 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
             </div>
 
             {/* Body */}
-            <div className="schedule-modal-body">
+            <div className="schedule-modal-body" style={{ padding: '16px 20px', maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Test Info Box */}
-              <div style={{ background: 'rgba(245,158,11,0.08)', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(245,158,11,0.2)' }}>
-                <div style={{ color: 'white', fontWeight: 800, fontSize: '0.92rem' }}>
+              <div style={{ background: 'rgba(30, 41, 59, 0.7)', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem' }}>
                   {schedulingTest.testName}
                 </div>
                 <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -8111,26 +8128,42 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                       ID: {schedulingTest.testCode}
                     </span>
                   )}
+                  {activeTestCodes.includes(schedulingTest.testCode) && (
+                    <span style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', padding: '2px 8px', borderRadius: 6, fontWeight: 900, border: '1px solid rgba(34,197,94,0.4)', fontSize: '0.72rem' }}>
+                      🟢 હાલમાં LIVE છે
+                    </span>
+                  )}
                   {schedulingTest.questions?.length > 0 && (
                     <span>• 📋 {schedulingTest.questions.length} પ્રશ્નો</span>
                   )}
                 </div>
               </div>
 
-              {/* Quick Presets */}
-              <div>
-                <div style={{ color: '#cbd5e1', fontSize: '0.78rem', fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>⚡</span> ઝડપી સમય પ્રીસેટ્સ (Quick Presets):
+              {/* ── SECTION 1: START SCHEDULE (ક્યારે શરૂ કરવી?) ── */}
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1.5px solid rgba(245,158,11,0.25)', borderRadius: 12, padding: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label style={{ ...darkLbl, margin: 0, color: '#fcd34d', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>⏰</span> ૧. પરીક્ષા Live શરૂ કરવાનો સમય (Start Time - વૈકલ્પિક):
+                  </label>
+                  {scheduleDateTime && (
+                    <button type="button" onClick={() => setScheduleDateTime('')}
+                      style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}>
+                      ✕ Clear
+                    </button>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginBottom: 8, lineHeight: 1.35 }}>
+                  જો ટેસ્ટ અત્યારે જ Live રાખવી હોય તો આ ખાલી રાખો. જો ભવિષ્યમાં આપમેળે શરૂ કરવી હોય તો સમય પસંદ કરો.
+                </div>
+
+                {/* Quick Presets for Start */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                   {[
                     { label: '+15 મિનિટ', mins: 15 },
                     { label: '+30 મિનિટ', mins: 30 },
                     { label: '+1 કલાક', mins: 60 },
-                    { label: '+2 કલાક', mins: 120 },
                     { label: 'આજે સાંજે 06:00 PM', time: 'today_18' },
-                    { label: 'આજે રાત્રે 08:00 PM', time: 'today_20' },
-                    { label: 'કાલે સવારે 10:00 AM', time: 'tomorrow_10' }
+                    { label: 'આજે રાત્રે 08:00 PM', time: 'today_20' }
                   ].map((p, idx) => (
                     <button
                       key={idx}
@@ -8138,39 +8171,25 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                       className="schedule-preset-btn"
                       onClick={() => {
                         let d = new Date();
-                        if (p.mins) {
-                          d = new Date(Date.now() + p.mins * 60000);
-                        } else if (p.time === 'today_18') {
-                          d.setHours(18, 0, 0, 0);
-                        } else if (p.time === 'today_20') {
-                          d.setHours(20, 0, 0, 0);
-                        } else if (p.time === 'tomorrow_10') {
-                          d.setDate(d.getDate() + 1);
-                          d.setHours(10, 0, 0, 0);
-                        }
+                        if (p.mins) d = new Date(Date.now() + p.mins * 60000);
+                        else if (p.time === 'today_18') d.setHours(18, 0, 0, 0);
+                        else if (p.time === 'today_20') d.setHours(20, 0, 0, 0);
                         const pad = n => String(n).padStart(2, '0');
-                        const str = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                        setScheduleDateTime(str);
+                        setScheduleDateTime(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
                       }}>
                       {p.label}
                     </button>
                   ))}
                 </div>
-              </div>
 
-              {/* Datetime Input */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ ...darkLbl, color: '#fcd34d', fontWeight: 800 }}>
-                  📅 પરીક્ષાની તારીખ અને સમય પસંદ કરો:
-                </label>
                 <input
                   type="datetime-local"
                   className="input-dark"
                   value={scheduleDateTime}
                   onChange={e => setScheduleDateTime(e.target.value)}
                   style={{
-                    padding: '12px 14px',
-                    fontSize: '0.95rem',
+                    padding: '10px 12px',
+                    fontSize: '0.9rem',
                     color: '#ffffff',
                     colorScheme: 'dark',
                     background: '#162032',
@@ -8179,10 +8198,74 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                   }}
                 />
               </div>
+
+              {/* ── SECTION 2: AUTO-END SCHEDULE (ક્યારે પૂર્ણ/બંધ કરવી?) ── */}
+              <div style={{ background: 'rgba(239,68,68,0.06)', border: '1.5px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label style={{ ...darkLbl, margin: 0, color: '#f87171', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>🛑</span> ૨. પરીક્ષા આપમેળે પૂર્ણ / બંધ કરવાનો સમય (Auto End Time):
+                  </label>
+                  {scheduleEndDateTime && (
+                    <button type="button" onClick={() => setScheduleEndDateTime('')}
+                      style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 700 }}>
+                      ✕ Clear
+                    </button>
+                  )}
+                </div>
+                <div style={{ color: '#fca5a5', fontSize: '0.72rem', marginBottom: 8, lineHeight: 1.35 }}>
+                  ⚠️ આ સમય પૂરો થતાં જ લાઈવ ટેસ્ટ આપમેળે <strong>Stop Live</strong> થઈ જશે અને કોઈ નવો વિદ્યાર્થી ટેસ્ટ શરૂ કરી શકશે નહીં.
+                </div>
+
+                {/* Quick Presets for End */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {[
+                    { label: '+1 કલાક', mins: 60 },
+                    { label: '+2 કલાક', mins: 120 },
+                    { label: '+3 કલાક', mins: 180 },
+                    { label: 'આજે રાત્રે 09:00 PM', time: 'today_21' },
+                    { label: 'આજે રાત્રે 11:59 PM', time: 'today_2359' },
+                    { label: 'કાલે સાંજે 06:00 PM', time: 'tomorrow_18' }
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="schedule-preset-btn"
+                      style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#fca5a5' }}
+                      onClick={() => {
+                        let d = new Date();
+                        if (p.mins) d = new Date(Date.now() + p.mins * 60000);
+                        else if (p.time === 'today_21') d.setHours(21, 0, 0, 0);
+                        else if (p.time === 'today_2359') d.setHours(23, 59, 0, 0);
+                        else if (p.time === 'tomorrow_18') { d.setDate(d.getDate() + 1); d.setHours(18, 0, 0, 0); }
+                        const pad = n => String(n).padStart(2, '0');
+                        setScheduleEndDateTime(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+                      }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="datetime-local"
+                  className="input-dark"
+                  value={scheduleEndDateTime}
+                  onChange={e => setScheduleEndDateTime(e.target.value)}
+                  style={{
+                    padding: '10px 12px',
+                    fontSize: '0.9rem',
+                    color: '#ffffff',
+                    colorScheme: 'dark',
+                    background: '#162032',
+                    borderColor: 'rgba(239,68,68,0.4)',
+                    fontWeight: 700
+                  }}
+                />
+              </div>
+
             </div>
 
             {/* Footer */}
-            <div className="schedule-modal-footer">
+            <div className="schedule-modal-footer" style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <button
                 type="button"
                 onClick={() => setSchedulingTest(null)}
@@ -8200,56 +8283,59 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                 બંધ કરો
               </button>
 
-              {schedulingTest.scheduledAt && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {(schedulingTest.scheduledAt || schedulingTest.scheduledEndAt) && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setScheduleDateTime('');
+                      setScheduleEndDateTime('');
+                      try {
+                        const targets = schedulingTest.testCodes || (schedulingTest.testCode ? [schedulingTest.testCode] : []);
+                        await scheduleTest({ testCodes: targets, clearAll: true });
+                        showToast('તમામ શિડ્યુલ રદ કરવામાં આવ્યા.', 'info');
+                        setSchedulingTest(null);
+                        await fetchData();
+                      } catch {
+                        showToast('ક્ષતિ.', 'error');
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '1px solid rgba(239,68,68,0.35)',
+                      color: '#fca5a5',
+                      padding: '9px 14px',
+                      borderRadius: 10,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      fontFamily: 'Hind Vadodara, sans-serif'
+                    }}>
+                    🗑️ શિડ્યુલ રદ કરો
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={async () => {
-                    setScheduleDateTime('');
-                    try {
-                      const targets = schedulingTest.testCodes || (schedulingTest.testCode ? [schedulingTest.testCode] : []);
-                      await scheduleTest({ testCodes: targets, scheduledAt: null });
-                      showToast('શિડ્યુલ રદ કરવામાં આવ્યું.', 'info');
-                      setSchedulingTest(null);
-                      await fetchData();
-                    } catch {
-                      showToast('ક્ષતિ.', 'error');
-                    }
-                  }}
+                  onClick={handleSaveSchedule}
                   style={{
-                    background: 'rgba(239,68,68,0.2)',
-                    border: '1px solid rgba(239,68,68,0.35)',
-                    color: '#fca5a5',
-                    padding: '9px 14px',
+                    background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 22px',
                     borderRadius: 10,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     cursor: 'pointer',
-                    fontSize: '0.82rem',
-                    fontFamily: 'Hind Vadodara, sans-serif'
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    boxShadow: '0 4px 16px rgba(245,158,11,0.4)'
                   }}>
-                  🗑️ શિડ્યુલ રદ કરો
+                  <CheckCircle size={15} /> 💾 શિડ્યુલ સાચવો
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleSaveSchedule}
-                style={{
-                  background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 22px',
-                  borderRadius: 10,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontFamily: 'Hind Vadodara, sans-serif',
-                  boxShadow: '0 4px 16px rgba(245,158,11,0.4)'
-                }}>
-                <CheckCircle size={15} /> 🗓️ શિડ્યુલ સાચવો
-              </button>
+              </div>
             </div>
           </div>
         </div>,

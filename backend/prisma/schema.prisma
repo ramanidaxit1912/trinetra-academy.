@@ -53,6 +53,7 @@ model Question {
   testName    String?  // Display name e.g. "ગણિત Ch.3 MCQ Test"
   timeLimit   Int?     // Minutes e.g. 60
   scheduledAt String?  // ISO date/time string for scheduled live test e.g. "2026-08-16T18:00"
+  scheduledEndAt String? // ISO date/time string for scheduled test END/CLOSING e.g. "2026-08-16T21:00"
   imageUrl        String?  // Optional question image or base64 data
   image           String?  // Alias for image data
   optionA_img     String?  // Optional image for Option A
@@ -67,6 +68,7 @@ model Question {
   @@index([isActive, testCode])
   @@index([testCode])
   @@index([scheduledAt])
+  @@index([scheduledEndAt])
   @@map("questions")
 }
 

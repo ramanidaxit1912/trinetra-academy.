@@ -47,7 +47,8 @@ async function autoActivateScheduledTests() {
       },
       select: {
         testCode: true,
-        scheduledAt: true
+        scheduledAt: true,
+        scheduledEndAt: true
       },
       distinct: ['testCode']
     });
@@ -59,6 +60,13 @@ async function autoActivateScheduledTests() {
 
     for (const item of scheduledQuestions) {
       const scheduledTime = parseScheduledTime(item.scheduledAt);
+      const scheduledEndTime = parseScheduledTime(item.scheduledEndAt);
+
+      // If scheduledEndAt has already passed, do not activate
+      if (scheduledEndTime && nowTime >= scheduledEndTime) {
+        continue;
+      }
+
       if (scheduledTime && nowTime >= scheduledTime) {
         if (item.testCode) testCodesToActivate.push(item.testCode);
       }
@@ -77,6 +85,54 @@ async function autoActivateScheduledTests() {
   }
 }
 
+// Helper to auto-end / deactivate live tests whose scheduled end time has arrived
+async function autoEndScheduledTests() {
+  try {
+    const liveWithEndTime = await prisma.question.findMany({
+      where: {
+        isActive: true,
+        scheduledEndAt: { not: null }
+      },
+      select: {
+        testCode: true,
+        scheduledEndAt: true
+      },
+      distinct: ['testCode']
+    });
+
+    if (!liveWithEndTime || liveWithEndTime.length === 0) return;
+
+    const nowTime = Date.now();
+    const testCodesToEnd = [];
+
+    for (const item of liveWithEndTime) {
+      const endTime = parseScheduledTime(item.scheduledEndAt);
+      if (endTime && nowTime >= endTime) {
+        if (item.testCode) testCodesToEnd.push(item.testCode);
+      }
+    }
+
+    if (testCodesToEnd.length > 0) {
+      console.log(`🛑 [Auto-End] Scheduled end time reached! Ending live tests:`, testCodesToEnd);
+      await prisma.question.updateMany({
+        where: { testCode: { in: testCodesToEnd } },
+        data: { isActive: false }
+      });
+      invalidateQuestionsCache();
+    }
+  } catch (err) {
+    console.error('Auto-end Scheduled Tests Error:', err);
+  }
+}
+
+// ⏱️ Auto-run scheduling checks every 15 seconds in the background
+setInterval(async () => {
+  try {
+    await autoActivateScheduledTests();
+    await autoEndScheduledTests();
+  } catch (_) {}
+}, 15 * 1000);
+
 // ─── ⚡ Ultra-Fast In-Memory Cache for Live Questions (0% Database Load) ───
 let questionsCache = null;
 let questionsCacheTime = 0;
@@ -88,7 +144,7 @@ function invalidateQuestionsCache() {
 }
 
 // ─── GET /api/questions ───────────────────────────────────────
-// Get all active questions (for students) with RAM Caching & scheduled test auto-activation
+// Get all active questions (for students) with RAM Caching & scheduled test auto-activation / auto-end
 router.get('/', async (req, res) => {
   try {
     const now = Date.now();
@@ -98,6 +154,7 @@ router.get('/', async (req, res) => {
     }
 
     await autoActivateScheduledTests();
+    await autoEndScheduledTests();
 
     const questions = await prisma.question.findMany({
       where: {
@@ -117,10 +174,11 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/questions/all ───────────────────────────────────
-// Get ALL questions including inactive (teacher only) with scheduled test auto-activation
+// Get ALL questions including inactive (teacher only) with scheduled test auto-activation / auto-end
 router.get('/all', authMiddleware, teacherOnly, async (req, res) => {
   try {
     await autoActivateScheduledTests();
+    await autoEndScheduledTests();
 
     const questions = await prisma.question.findMany({
       orderBy: { orderIndex: 'asc' }
@@ -224,7 +282,7 @@ router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
 
     if (deactivateAll || action === 'stopAll') {
       await prisma.question.updateMany({
-        data: { isActive: false, scheduledAt: null }
+        data: { isActive: false, scheduledAt: null, scheduledEndAt: null }
       });
       return res.json({ success: true, message: 'બધી લાઈવ કસોટીઓ બંધ કરવામાં આવી.', activeTestCodes: [] });
     }
@@ -233,7 +291,7 @@ router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
       // Stop only this specific test and clear its schedule
       await prisma.question.updateMany({
         where: { testCode },
-        data: { isActive: false, scheduledAt: null }
+        data: { isActive: false, scheduledAt: null, scheduledEndAt: null }
       });
       const remainingActive = await prisma.question.findMany({
         where: { isActive: true },
@@ -296,9 +354,9 @@ router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
 });
 
 // ─── POST /api/questions/schedule-test ────────────────────────
-// Schedule single or bulk tests for a future date/time
+// Schedule single or bulk tests for future start and/or auto-end date/time
 router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
-  const { testCode, testCodes, scheduledAt } = req.body;
+  const { testCode, testCodes, scheduledAt, scheduledEndAt, clearAll, clearStart, clearEnd } = req.body;
   try {
     invalidateQuestionsCache();
     const targets = Array.isArray(testCodes) ? testCodes.filter(Boolean) : (testCode ? [testCode] : []);
@@ -306,42 +364,74 @@ router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
       return res.status(400).json({ error: 'Test code(s) required.' });
     }
 
-    if (!scheduledAt) {
-      // Clear schedule
+    // Explicit Clear Requests
+    if (clearAll || (!scheduledAt && !scheduledEndAt && req.body.clear)) {
       await prisma.question.updateMany({
         where: { testCode: { in: targets } },
-        data: { scheduledAt: null }
+        data: { scheduledAt: null, scheduledEndAt: null }
       });
       return res.json({
         success: true,
-        message: 'શિડ્યુલ દૂર કરવામાં આવ્યું.'
+        message: 'તમામ શિડ્યુલ રદ કરવામાં આવ્યા.'
       });
     }
 
-    const scheduledTime = parseScheduledTime(scheduledAt);
     const nowTime = Date.now();
+    const parsedStart = scheduledAt ? parseScheduledTime(scheduledAt) : null;
+    const parsedEnd = scheduledEndAt ? parseScheduledTime(scheduledEndAt) : null;
 
-    if (scheduledTime && nowTime >= scheduledTime) {
-      // Scheduled time is already reached or in the past -> activate immediately
-      await prisma.question.updateMany({
-        where: { testCode: { in: targets } },
-        data: { isActive: true, scheduledAt: null }
-      });
-      return res.json({
-        success: true,
-        message: `${targets.length} કસોટી(ઓ)નો શિડ્યુલ સમય થઈ ગયો હોવાથી તરત જ લાઈવ કરવામાં આવી!`
-      });
+    if (parsedStart && parsedEnd && parsedEnd <= parsedStart) {
+      return res.status(400).json({ error: 'સમાપ્તિ સમય (End Time) શરૂ થવાના સમય પછીનો હોવો જોઈએ.' });
     }
 
-    // Future scheduled test: must be inactive until that time arrives
+    if (parsedEnd && parsedEnd <= nowTime) {
+      return res.status(400).json({ error: 'સમાપ્તિ સમય (End Time) ભવિષ્યનો હોવો જોઈએ.' });
+    }
+
+    const updateData = {};
+
+    // 1. Handling scheduledAt (Start Time)
+    if (clearStart) {
+      updateData.scheduledAt = null;
+    } else if (scheduledAt !== undefined) {
+      if (!scheduledAt) {
+        updateData.scheduledAt = null;
+      } else if (parsedStart && nowTime >= parsedStart) {
+        // Start time reached -> make active immediately
+        updateData.isActive = true;
+        updateData.scheduledAt = null;
+      } else {
+        // Future start time -> keep inactive until start time
+        updateData.scheduledAt = scheduledAt;
+        updateData.isActive = false;
+      }
+    }
+
+    // 2. Handling scheduledEndAt (End Time)
+    if (clearEnd) {
+      updateData.scheduledEndAt = null;
+    } else if (scheduledEndAt !== undefined) {
+      updateData.scheduledEndAt = scheduledEndAt ? scheduledEndAt : null;
+    }
+
     await prisma.question.updateMany({
       where: { testCode: { in: targets } },
-      data: { scheduledAt: scheduledAt, isActive: false }
+      data: updateData
     });
+
+    let msg = `${targets.length} કસોટી(ઓ)નું શિડ્યુલ સફળતાપૂર્વક સાચવવામાં આવ્યું!`;
+    if (updateData.scheduledEndAt && updateData.scheduledAt) {
+      msg = `⏰ ${targets.length} કસોટી(ઓ)નો શરૂ અને સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક શિડ્યુલ થયો!`;
+    } else if (updateData.scheduledEndAt) {
+      msg = `🛑 ${targets.length} કસોટી(ઓ)નો સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક શિડ્યુલ થયો!`;
+    } else if (updateData.scheduledAt) {
+      msg = `⏰ ${targets.length} કસોટી(ઓ)નો શરૂ સમય સફળતાપૂર્વક શિડ્યુલ થયો!`;
+    }
 
     res.json({
       success: true,
-      message: `${targets.length} કસોટી(ઓ)નો સમય સફળતાપૂર્વક શિડ્યુલ થયો!`
+      message: msg,
+      data: updateData
     });
   } catch (err) {
     console.error('Schedule Test Error:', err);
@@ -380,7 +470,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
     text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
     image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
-    scheduledAt, negativeMarking, isEnrolledOnly
+    scheduledAt, scheduledEndAt, negativeMarking, isEnrolledOnly
   } = req.body;
 
   try {
@@ -405,6 +495,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
         ...(testName !== undefined && { testName }),
         ...(timeLimit !== undefined && { timeLimit: parseInt(timeLimit) }),
         ...(scheduledAt !== undefined && { scheduledAt }),
+        ...(scheduledEndAt !== undefined && { scheduledEndAt }),
         ...(finalImage !== undefined && { imageUrl: finalImage, image: finalImage }),
         ...(optionA_img !== undefined && { optionA_img: optionA_img || null }),
         ...(optionB_img !== undefined && { optionB_img: optionB_img || null }),
