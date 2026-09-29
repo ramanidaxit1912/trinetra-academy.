@@ -129,6 +129,57 @@ export function LeaderboardUI({
   const cleanMyMobile = currentUserMobile ? String(currentUserMobile).replace(/\D/g, '').slice(-10) : null;
   const userMapEntry = (cleanMyMobile && activeData?.studentRankMap) ? activeData.studentRankMap[cleanMyMobile] : null;
 
+  // ⏱️ Helper to compute duration & submission time for student or leader
+  const getSubmissionTimeInfo = (entry) => {
+    if (!entry) return { duration: null, submittedTime: null, submittedDate: null };
+
+    let duration = entry.timeSpentFormatted || null;
+    if (!duration) {
+      let seconds = entry.timeSpentSeconds || entry.timeSpent || entry.duration || 0;
+      if (!seconds && Array.isArray(entry.answers)) {
+        entry.answers.forEach(a => {
+          if (a && a.timeSpent) seconds += Number(a.timeSpent) || 0;
+        });
+      }
+      if (!seconds && entry.startedAt && entry.submittedAt) {
+        const diff = Math.round((new Date(entry.submittedAt).getTime() - new Date(entry.startedAt).getTime()) / 1000);
+        if (diff > 0 && diff < 86400) seconds = diff;
+      }
+      if (seconds > 0) {
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        if (hours > 0) duration = `${hours} ક. ${mins} મિ.`;
+        else if (mins > 0) duration = `${mins} મિ. ${secs > 0 ? `${secs} સે.` : ''}`.trim();
+        else duration = `${secs} સેકન્ડ`;
+      }
+    }
+
+    const rawDate = entry.submittedAt || entry.createdAt;
+    let submittedTime = null;
+    let submittedDate = null;
+    if (rawDate) {
+      try {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          submittedTime = d.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+          submittedDate = d.toLocaleDateString('gu-IN', {
+            day: '2-digit',
+            month: 'short'
+          });
+        }
+      } catch (e) {}
+    }
+
+    return { duration, submittedTime, submittedDate };
+  };
+
+  const studentTimeInfo = getSubmissionTimeInfo(userLeaderEntry || userMapEntry || userSubmissionForTest);
+
   const myRank = userLeaderEntry?.rank || userMapEntry?.rank || null;
   const myScore = userLeaderEntry ? userLeaderEntry.mcqScore : userMapEntry ? userMapEntry.score : (userSubmissionForTest?.mcqScore ?? userSubmissionForTest?.score ?? null);
   const myTotal = userLeaderEntry ? userLeaderEntry.totalMCQ : userMapEntry ? userMapEntry.totalMarks : (userSubmissionForTest?.totalMarks || userSubmissionForTest?.totalMCQ || activeData?.totalMarks || 100);
@@ -333,6 +384,21 @@ export function LeaderboardUI({
                   .crown-bounce-anim {
                     animation: floatCrown 2.2s infinite ease-in-out;
                   }
+                  .spotlight-stats-grid {
+                    width: 100%;
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    gap: 10px;
+                    box-sizing: border-box;
+                  }
+                  @media (max-width: 640px) {
+                    .spotlight-stats-grid {
+                      grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+                    .spotlight-stats-time-tile {
+                      grid-column: span 2;
+                    }
+                  }
                 `}</style>
 
                 {/* ── 🌟 STUDENT PERSONAL RANK SPOTLIGHT BANNER (તમારો રેન્ક & સ્કોર) ── */}
@@ -431,14 +497,8 @@ export function LeaderboardUI({
                       </div>
                     </div>
 
-                    {/* Bottom Row: 2-Column Responsive Balanced Metric Tiles */}
-                    <div style={{
-                      width: '100%',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                      gap: 10,
-                      boxSizing: 'border-box'
-                    }}>
+                    {/* Bottom Row: 3-Column Responsive Balanced Metric Tiles */}
+                    <div className="spotlight-stats-grid">
                       {/* Tile 1: તમારો રેન્ક */}
                       <div style={{
                         background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
@@ -609,6 +669,75 @@ export function LeaderboardUI({
                           </div>
                         </div>
                       </div>
+
+                      {/* Tile 3: કસોટી પૂર્ણ સમય & સબમિટ વિગત */}
+                      <div className="spotlight-stats-time-tile" style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+                        border: '1.5px solid rgba(168, 85, 247, 0.45)',
+                        borderRadius: 14,
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
+                      }}>
+                        <div style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: 'rgba(168, 85, 247, 0.18)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.3rem',
+                          flexShrink: 0
+                        }}>
+                          ⏱️
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            color: '#94a3b8',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            ટેસ્ટ પૂર્ણ સમય (Time Taken)
+                          </div>
+                          <div style={{
+                            fontSize: '1.25rem',
+                            fontWeight: 900,
+                            color: '#c084fc',
+                            lineHeight: 1.1,
+                            marginTop: 1,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {studentTimeInfo.duration || 'ઝડપી પૂર્ણ'}
+                          </div>
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            marginTop: 2,
+                            background: 'rgba(168, 85, 247, 0.2)',
+                            color: '#e9d5ff',
+                            border: '1px solid rgba(168, 85, 247, 0.35)',
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {studentTimeInfo.submittedTime ? `⏰ સબમિટ: ${studentTimeInfo.submittedTime}` : '⚡ સબમિટેડ'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -727,6 +856,11 @@ export function LeaderboardUI({
                           <span style={{ background: '#334155', color: '#cbd5e1', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 8 }}>
                             SILVER • {top2.percentage}%
                           </span>
+                          {getSubmissionTimeInfo(top2).duration && (
+                            <span style={{ color: '#93c5fd', fontSize: '0.62rem', fontWeight: 800, marginTop: 1 }}>
+                              ⏱️ {getSubmissionTimeInfo(top2).duration}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : <div style={{ flex: '1 1 0%', minWidth: 0 }} />}
@@ -814,6 +948,11 @@ export function LeaderboardUI({
                           <span style={{ background: '#78350f', color: '#fef08a', fontSize: '0.64rem', fontWeight: 900, padding: '2px 8px', borderRadius: 10 }}>
                             👑 GOLD TOPPER • {top1.percentage}%
                           </span>
+                          {getSubmissionTimeInfo(top1).duration && (
+                            <span style={{ color: '#fef08a', fontSize: '0.64rem', fontWeight: 900, marginTop: 1 }}>
+                              ⏱️ {getSubmissionTimeInfo(top1).duration}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : <div style={{ flex: '1.15 1 0%', minWidth: 0 }} />}
@@ -892,6 +1031,11 @@ export function LeaderboardUI({
                           <span style={{ background: '#7c2d12', color: '#fed7aa', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 8 }}>
                             BRONZE • {top3.percentage}%
                           </span>
+                          {getSubmissionTimeInfo(top3).duration && (
+                            <span style={{ color: '#fed7aa', fontSize: '0.62rem', fontWeight: 800, marginTop: 1 }}>
+                              ⏱️ {getSubmissionTimeInfo(top3).duration}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : <div style={{ flex: '1 1 0%', minWidth: 0 }} />}
@@ -982,7 +1126,7 @@ export function LeaderboardUI({
                           </div>
                         </div>
 
-                        {/* Score + Percentage */}
+                        {/* Score + Percentage + Duration */}
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontWeight: 900, fontSize: isMe ? '1.05rem' : '0.95rem', color: isMe ? '#1d4ed8' : '#1e3a8a' }}>
                             {leader.mcqScore} / {leader.totalMCQ}
@@ -996,6 +1140,12 @@ export function LeaderboardUI({
                           }}>
                             {leader.percentage}%
                           </div>
+                          {getSubmissionTimeInfo(leader).duration && (
+                            <div style={{ fontSize: '0.64rem', color: isMe ? '#1d4ed8' : '#64748b', marginTop: 3, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+                              <span>⏱️</span>
+                              <span>{getSubmissionTimeInfo(leader).duration}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1074,7 +1224,7 @@ export function LeaderboardUI({
                           </div>
                         </div>
 
-                        {/* Score + Percentage */}
+                        {/* Score + Percentage + Duration */}
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0369a1' }}>
                             {myScore !== null ? myScore : 0} / {myTotal}
@@ -1088,6 +1238,12 @@ export function LeaderboardUI({
                           }}>
                             {myPct !== null ? `${myPct}%` : '0%'}
                           </div>
+                          {studentTimeInfo.duration && (
+                            <div style={{ fontSize: '0.64rem', color: '#0369a1', marginTop: 3, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+                              <span>⏱️</span>
+                              <span>{studentTimeInfo.duration}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

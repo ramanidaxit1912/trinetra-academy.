@@ -1365,6 +1365,35 @@ let testWiseLeaderboardCache = null;
 let testWiseLeaderboardCacheTime = 0;
 const LB_CACHE_TTL = 30 * 1000; // 30 seconds cache
 
+// ⏱️ Helper to compute duration & human-formatted time in Gujarati
+function computeSubmissionTimeStats(sub) {
+  let seconds = 0;
+  if (Array.isArray(sub.answers)) {
+    sub.answers.forEach(a => {
+      if (a && a.timeSpent) seconds += Number(a.timeSpent) || 0;
+    });
+  }
+  if (!seconds && sub.startedAt && sub.submittedAt) {
+    const diff = Math.round((new Date(sub.submittedAt).getTime() - new Date(sub.startedAt).getTime()) / 1000);
+    if (diff > 0 && diff < 86400) seconds = diff;
+  }
+
+  let formatted = '';
+  if (seconds > 0) {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) formatted = `${hours} ક. ${mins} મિ.`;
+    else if (mins > 0) formatted = `${mins} મિ. ${secs > 0 ? `${secs} સે.` : ''}`.trim();
+    else formatted = `${secs} સેકન્ડ`;
+  }
+
+  return {
+    timeSpentSeconds: seconds,
+    timeSpentFormatted: formatted || null
+  };
+}
+
 // ─── GET /api/submissions/leaderboard ────────────────────────
 // Top students by MCQ score (public) - overall with RAM Caching
 router.get('/leaderboard', async (req, res) => {
@@ -1384,18 +1413,24 @@ router.get('/leaderboard', async (req, res) => {
       }
     });
 
-    let leaderboard = topSubmissions.map((sub, index) => ({
-      submissionId: sub.id,
-      rank: index + 1,
-      studentName: sub.student.name,
-      mobile: sub.student.mobile.slice(0, 5) + '*****',
-      mcqScore: sub.mcqScore,
-      totalMCQ: sub.totalMCQ,
-      percentage: sub.totalMCQ > 0
-        ? Math.round((sub.mcqScore / sub.totalMCQ) * 100)
-        : 0,
-      submittedAt: sub.submittedAt
-    }));
+    let leaderboard = topSubmissions.map((sub, index) => {
+      const timeStats = computeSubmissionTimeStats(sub);
+      return {
+        submissionId: sub.id,
+        rank: index + 1,
+        studentName: sub.student.name,
+        mobile: sub.student.mobile.slice(0, 5) + '*****',
+        mcqScore: sub.mcqScore,
+        totalMCQ: sub.totalMCQ,
+        percentage: sub.totalMCQ > 0
+          ? Math.round((sub.mcqScore / sub.totalMCQ) * 100)
+          : 0,
+        startedAt: sub.startedAt,
+        submittedAt: sub.submittedAt,
+        timeSpentSeconds: timeStats.timeSpentSeconds,
+        timeSpentFormatted: timeStats.timeSpentFormatted
+      };
+    });
 
     // Check for active override for ALL tests
     const allOverride = await prisma.leaderboardOverride.findFirst({
@@ -1499,6 +1534,7 @@ router.get('/leaderboard/by-test', async (req, res) => {
       }
       testMap[key].participants++;
       const currentRank = testMap[key].participants;
+      const timeStats = computeSubmissionTimeStats(sub);
 
       // Track individual student rank by mobile so student can see their rank even outside Top 10
       if (sub.student?.mobile) {
@@ -1510,7 +1546,11 @@ router.get('/leaderboard/by-test', async (req, res) => {
             studentName: sub.student.name,
             score: sub.mcqScore,
             totalMarks: sub.totalMarks || sub.totalMCQ,
-            percentage: sub.totalMCQ > 0 ? Math.round((sub.mcqScore / sub.totalMCQ) * 100) : 0
+            percentage: sub.totalMCQ > 0 ? Math.round((sub.mcqScore / sub.totalMCQ) * 100) : 0,
+            startedAt: sub.startedAt,
+            submittedAt: sub.submittedAt,
+            timeSpentSeconds: timeStats.timeSpentSeconds,
+            timeSpentFormatted: timeStats.timeSpentFormatted
           };
         }
       }
@@ -1529,7 +1569,10 @@ router.get('/leaderboard/by-test', async (req, res) => {
           percentage: sub.totalMCQ > 0
             ? Math.round((sub.mcqScore / sub.totalMCQ) * 100)
             : 0,
-          submittedAt: sub.submittedAt
+          startedAt: sub.startedAt,
+          submittedAt: sub.submittedAt,
+          timeSpentSeconds: timeStats.timeSpentSeconds,
+          timeSpentFormatted: timeStats.timeSpentFormatted
         });
       }
     });
