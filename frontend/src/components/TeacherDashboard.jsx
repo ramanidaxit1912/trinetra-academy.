@@ -9162,12 +9162,25 @@ function StudentAnswers({ showToast }) {
 
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase().trim();
-      const matchName   = s.student?.name?.toLowerCase().includes(q);
-      const matchMobile = s.student?.mobile?.includes(q);
-      const matchTest   = s.testName?.toLowerCase().includes(q);
-      const matchCode   = s.testCode?.toLowerCase().includes(q);
-      const matchSubj   = s.subject?.toLowerCase().includes(q);
-      return matchName || matchMobile || matchTest || matchCode || matchSubj;
+      const words = q.split(/\s+/).filter(Boolean);
+
+      const name     = String(s.student?.name || '').toLowerCase();
+      const mobile   = String(s.student?.mobile || '').replace(/\s+/g, '');
+      const testName = String(s.testName || '').toLowerCase();
+      const testCode = String(s.testCode || '').toLowerCase();
+      const subj     = String(s.subject || '').toLowerCase();
+      const ip       = String(s.ipAddress || '').toLowerCase();
+      const remarksStr = String(s.remarks || '').toLowerCase();
+
+      return words.every(w =>
+        name.includes(w) ||
+        mobile.includes(w) ||
+        testName.includes(w) ||
+        testCode.includes(w) ||
+        subj.includes(w) ||
+        ip.includes(w) ||
+        remarksStr.includes(w)
+      );
     });
   }, [subs, testTypeFilter, filterStatus, searchQuery]);
 
@@ -9175,6 +9188,13 @@ function StudentAnswers({ showToast }) {
   const mcqSubs  = subs.filter(s => isPureMCQ(s));
   const pendingDescCount = descSubs.filter(s => s.teacherMarks === null || s.teacherMarks === undefined).length;
   const gradedDescCount  = descSubs.filter(s => s.teacherMarks !== null && s.teacherMarks !== undefined).length;
+
+  // Auto-expand all matching groups when user types a search query
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setExpandedTests({});
+    }
+  }, [searchQuery]);
 
   // Group filteredSubs by testCode for the new grouped view
   const groupedByTest = useMemo(() => {
@@ -9222,7 +9242,10 @@ function StudentAnswers({ showToast }) {
   }, [filteredSubs, mcqScores, gradeMarks]);
 
   const toggleTestGroup = (testCode) =>
-    setExpandedTests(prev => ({ ...prev, [testCode]: !prev[testCode] }));
+    setExpandedTests(prev => {
+      const currentlyOpen = prev[testCode] !== undefined ? prev[testCode] : Boolean(searchQuery.trim());
+      return { ...prev, [testCode]: !currentlyOpen };
+    });
 
   // ─── 🎨 Dynamic 3D Subject Theme & Icon Helper for Test Groups ─────
   const getTestGroupTheme = (group) => {
@@ -9376,14 +9399,53 @@ function StudentAnswers({ showToast }) {
       </div>
 
       {/* ── Filter Bar & Search ── */}
-      <div className="sa-filter-bar" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
-          className="input-dark"
-          placeholder="🔍 વિદ્યાર્થીનું નામ, મોબાઈલ, Test ID અથવા કસોટી શોધો..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          style={{ flex: '1 1 240px', minHeight: 42 }}
-        />
+      <div className="sa-filter-bar" style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 280px', minWidth: 240 }}>
+          <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#60a5fa', pointerEvents: 'none' }} />
+          <input
+            className="input-dark"
+            placeholder="વિદ્યાર્થીનું નામ, મોબાઈલ, Test ID અથવા કસોટી શોધો..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              paddingLeft: 40,
+              paddingRight: searchQuery ? 38 : 14,
+              minHeight: 44,
+              borderRadius: 10,
+              fontSize: '0.88rem',
+              border: searchQuery.trim() ? '1.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(15, 23, 42, 0.85)'
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              title="સર્ચ સાફ કરો"
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#cbd5e1',
+                borderRadius: '50%',
+                width: 22,
+                height: 22,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 900
+              }}>
+              ✕
+            </button>
+          )}
+        </div>
+
         {testTypeFilter === 'DESCRIPTIVE' && (
           <div style={{ display: 'flex', gap: 6 }}>
             {[
@@ -9430,26 +9492,91 @@ function StudentAnswers({ showToast }) {
         </button>
       </div>
 
+      {/* Active Search Result Badge */}
+      {searchQuery.trim() && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <span style={{
+            background: 'rgba(59, 130, 246, 0.18)',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            color: '#93c5fd',
+            fontSize: '0.8rem',
+            fontWeight: 800,
+            padding: '4px 12px',
+            borderRadius: 20,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6
+          }}>
+            🔍 સર્ચ: "{searchQuery}" • <strong>{filteredSubs.length} સબમિશન</strong> ({groupedByTest.length} કસોટીમાં)
+          </span>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#f87171',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}>
+            ✕ સર્ચ રદ કરો
+          </button>
+        </div>
+      )}
+
       {loading ? <Loader /> : (
         <>
           {groupedByTest.length === 0 ? (
-            <div className="glass-card" style={{ padding: 36, textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
-                {testTypeFilter === 'DESCRIPTIVE' ? '📝' : '🔵'}
+            searchQuery.trim() ? (
+              <div className="glass-card" style={{ padding: '36px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🔍</div>
+                <div style={{ color: '#f8fafc', fontWeight: 900, fontSize: '1.05rem', marginBottom: 6 }}>
+                  "{searchQuery}" માટે કોઈ પરિણામ મળ્યું નથી
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.84rem', marginBottom: 16 }}>
+                  વિદ્યાર્થીનું નામ, મોબાઈલ નંબર અથવા Test ID ચકાસો.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 18px',
+                    borderRadius: 8,
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.35)'
+                  }}>
+                  🔄 સર્ચ સાફ કરો (Clear Search)
+                </button>
               </div>
-              <div style={{ color: '#e2e8f0', fontWeight: 800, fontSize: '1rem' }}>
-                {testTypeFilter === 'DESCRIPTIVE'
-                  ? (filterStatus === 'PENDING' ? '🎉 તમામ વર્ણાત્મક જવાબો તપાસાઈ ગયા છે! કોઈ બાકી નથી.' : 'કોઈ વર્ણાત્મક સબમિશન મળ્યા નથી.')
-                  : 'કોઈ સબમિશન મળ્યા નથી.'}
+            ) : (
+              <div className="glass-card" style={{ padding: 36, textAlign: 'center' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
+                  {testTypeFilter === 'DESCRIPTIVE' ? '📝' : '🔵'}
+                </div>
+                <div style={{ color: '#e2e8f0', fontWeight: 800, fontSize: '1rem' }}>
+                  {testTypeFilter === 'DESCRIPTIVE'
+                    ? (filterStatus === 'PENDING' ? '🎉 તમામ વર્ણાત્મક જવાબો તપાસાઈ ગયા છે! કોઈ બાકી નથી.' : 'કોઈ વર્ણાત્મક સબમિશન મળ્યા નથી.')
+                    : 'કોઈ સબમિશન મળ્યા નથી.'}
+                </div>
+                <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 6 }}>
+                  વિદ્યાર્થીઓ ટેસ્ટ આપશે એટલે તરત જ અહીં દેખાશે.
+                </div>
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 6 }}>
-                વિદ્યાર્થીઓ ટેસ્ટ આપશે એટલે તરત જ અહીં દેખાશે.
-              </div>
-            </div>
+            )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {groupedByTest.map(group => {
-                const isOpen = Boolean(expandedTests[group.testCode]); // default closed/off
+                const isSearchActive = Boolean(searchQuery.trim());
+                const isOpen = expandedTests[group.testCode] !== undefined
+                  ? expandedTests[group.testCode]
+                  : isSearchActive; // Auto-open when searching!
                 const pendingInGroup = group.subs.filter(s => !isPureMCQ(s) && (s.teacherMarks === null || s.teacherMarks === undefined)).length;
                 const gradedInGroup  = group.subs.filter(s => isPureMCQ(s) || (s.teacherMarks !== null && s.teacherMarks !== undefined)).length;
                 const progressPct    = group.subs.length > 0 ? Math.round((gradedInGroup / group.subs.length) * 100) : 0;
