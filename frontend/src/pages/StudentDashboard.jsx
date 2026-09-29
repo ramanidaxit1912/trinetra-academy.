@@ -4175,7 +4175,7 @@ export default function StudentDashboard() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <h2 style={{ fontSize: '1.22rem', fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
-                      ટેસ્ટ-wise લીડરબોર્ડ (Leaderboard)
+                      ટેસ્ટ-wise Top 10 લીડરબોર્ડ (Leaderboard)
                     </h2>
                     <span style={{
                       background: 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.2))',
@@ -4186,11 +4186,11 @@ export default function StudentDashboard() {
                       padding: '2px 8px',
                       borderRadius: 12
                     }}>
-                      ⭐ ટોપ રેન્કર્સ
+                      ⭐ Top 10 Rankers
                     </span>
                   </div>
                   <p style={{ color: '#93c5fd', fontSize: '0.78rem', margin: '2px 0 0', fontWeight: 600 }}>
-                    કસોટી પસંદ કરી ટોચના તેજસ્વી વિદ્યાર્થીઓનું પરિણામ જુઓ
+                    કસોટી પસંદ કરી ટોચના ૧૦ તેજસ્વી વિદ્યાર્થીઓનું પરિણામ જુઓ
                   </p>
                 </div>
               </div>

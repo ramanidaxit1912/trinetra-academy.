@@ -91,7 +91,7 @@ export function LeaderboardUI({ tests = [], loading = false, currentUserName = n
     );
   }
 
-  const leaders = activeData?.leaders || [];
+  const leaders = (activeData?.leaders || []).slice(0, 10);
   const top1 = leaders.find(l => l.rank === 1);
   const top2 = leaders.find(l => l.rank === 2);
   const top3 = leaders.find(l => l.rank === 3);
@@ -218,7 +218,7 @@ export function LeaderboardUI({ tests = [], loading = false, currentUserName = n
                   ) : (
                     <>
                       <span style={{ opacity: 0.6 }}>•</span>
-                      <span>🏅 Top {leaders.length} Rankers</span>
+                      <span>🏅 Top 10 Rankers</span>
                     </>
                   )}
                 </div>
@@ -397,10 +397,10 @@ export function LeaderboardUI({ tests = [], loading = false, currentUserName = n
 
                 </div>
 
-                {/* ── 📋 4. ALL REMAINING RANKERS FULL LIST ── */}
+                {/* ── 📋 4. ALL REMAINING RANKERS FULL LIST (TOP 10) ── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', paddingLeft: 4 }}>
-                    તમામ રેન્કર્સ લિસ્ટ ({leaders.length}):
+                    🏆 Top 10 રેન્કર્સ લિસ્ટ ({Math.min(10, leaders.length)}):
                   </div>
 
                   {leaders.map((leader) => {
@@ -524,7 +524,7 @@ export default function Leaderboard() {
             Test-wise Leaderboard
           </h2>
           <p className="gu-text" style={{ color: '#64748b', fontSize: '0.9rem' }}>
-            ટેસ્ટ પ્રમાણે ટોચના વિદ્યાર્થીઓ
+            કસોટી પ્રમાણે ટોચના ૧૦ વિદ્યાર્થીઓ (Top 10 Rankers)
           </p>
         </div>
         <LeaderboardUI tests={tests} loading={loading} />

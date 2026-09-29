@@ -1426,8 +1426,10 @@ router.get('/leaderboard', async (req, res) => {
       }
       const targetPos = Math.max(0, (allOverride.rank || 1) - 1);
       leaderboard.splice(targetPos, 0, leaderItem);
-      leaderboard = leaderboard.slice(0, 10).map((l, idx) => ({ ...l, rank: idx + 1 }));
     }
+
+    // Always strictly enforce Top 10 ranking
+    leaderboard = leaderboard.slice(0, 10).map((l, idx) => ({ ...l, rank: idx + 1 }));
 
     if (!isTeacher) {
       leaderboardCache = leaderboard;
@@ -1571,7 +1573,10 @@ router.get('/leaderboard/by-test', async (req, res) => {
             rank: idx + 1
           }));
         } else {
-          testMap[key].leaders = testMap[key].leaders.slice(0, 10);
+          testMap[key].leaders = testMap[key].leaders.slice(0, 10).map((l, idx) => ({
+            ...l,
+            rank: idx + 1
+          }));
         }
       }
     });

@@ -11596,6 +11596,7 @@ function StudentLogins({ showToast }) {
 function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showToast }) {
   const [selectedGroupKey, setSelectedGroupKey] = useState(testGroups[0]?.key || 'ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTop10Only, setShowTop10Only] = useState(true);
 
   // 👑 Leader Override State
   const [overrides, setOverrides] = useState([]);
@@ -11838,15 +11839,19 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
     });
   }, [rawSubs, activeGroup, activeOverride]);
 
-  // Filtered by student name / mobile search
+  // Filtered by student name / mobile search and Top 10 filter
   const filteredStudents = useMemo(() => {
-    if (!searchTerm.trim()) return rankedStudents;
+    let list = rankedStudents;
+    if (showTop10Only) {
+      list = list.slice(0, 10);
+    }
+    if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase();
-    return rankedStudents.filter(s =>
+    return list.filter(s =>
       (s.student?.name || '').toLowerCase().includes(term) ||
       String(s.student?.mobile || '').includes(term)
     );
-  }, [rankedStudents, searchTerm]);
+  }, [rankedStudents, searchTerm, showTop10Only]);
 
   // Top 3 Podium Candidates
   const top1 = rankedStudents.find(s => s.rank === 1) || rankedStudents[0];
@@ -11870,7 +11875,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       return;
     }
     const testTitle = activeGroup ? activeGroup.testName : 'ઓલ ગુજરાત મોક ટેસ્ટ બેચ';
-    const topperList = rankedStudents.slice(0, 5).map((s, idx) => {
+    const topperList = rankedStudents.slice(0, 10).map((s, idx) => {
       const medal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `🏅 #${s.rank}`;
       const tieNote = s.isTied ? ' (સંયુક્ત રેન્ક)' : '';
       return `${medal} *${s.student?.name || 'વિદ્યાર્થી'}* — ${s.score}/${s.totalMarks} ગુણ (${s.pct}%)${tieNote}`;
@@ -11882,7 +11887,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
 👥 *કુલ પરીક્ષાર્થીઓ:* ${totalParticipants}
 🎯 *સર્વોચ્ચ સ્કોર (Topper):* ${topScore}/${maxMarks}
 ━━━━━━━━━━━━━━━━━━━━
-👑 *ટોચના રેન્કર્સ (Top Performers):*
+👑 *ટોચના ૧૦ રેન્કર્સ (Top 10 Performers):*
 ${topperList}
 ━━━━━━━━━━━━━━━━━━━━
 💐 તમામ વિદ્યાર્થીઓને ઉત્કૃષ્ટ પ્રદર્શન બદલ ખૂબ ખૂબ અભિનંદન! 💐
@@ -12399,12 +12404,49 @@ ${topperList}
         border: '1px solid rgba(255, 255, 255, 0.08)'
       }}>
         
-        {/* Table Title & Search */}
+        {/* Table Title & Search & Top 10 Toggle */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           <div>
-            <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>
-              📜 સંપૂર્ણ વિદ્યાર્થી રેન્કિંગ યાદી ({filteredStudents.length})
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', margin: 0 }}>
+                {showTop10Only ? `🏆 Top 10 રેન્કર્સ લિસ્ટ (${filteredStudents.length})` : `📜 સંપૂર્ણ વિદ્યાર્થી રેન્કિંગ યાદી (${filteredStudents.length})`}
+              </h3>
+              {/* Top 10 vs All Filter Toggle */}
+              <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', padding: 2, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTop10Only(true)}
+                  style={{
+                    background: showTop10Only ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+                    color: showTop10Only ? '#ffffff' : '#94a3b8',
+                    border: 'none',
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  🏆 Top 10
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTop10Only(false)}
+                  style={{
+                    background: !showTop10Only ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
+                    color: !showTop10Only ? '#ffffff' : '#94a3b8',
+                    border: 'none',
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📋 તમામ ({rankedStudents.length})
+                </button>
+              </div>
+            </div>
             <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '2px 0 0' }}>
               મેળવેલ ગુણ, ચોકસાઈ ટકાવારી અને વ્યક્તિગત WhatsApp સંદેશ
             </p>
