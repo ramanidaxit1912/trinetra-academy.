@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { ConfettiCanvas } from '../components/ConfettiBadges';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import { isImg, extractImgSrc } from '../components/ExamEngine';
+import { downloadHtmlAsPdf } from '../utils/pdfDownloader';
 
 export default function ScorecardPage() {
   const { id } = useParams();
@@ -35,11 +36,39 @@ export default function ScorecardPage() {
   const handleDownloadPdf = async () => {
     try {
       setDownloadingPdf(true);
+
+      const safeTestName = (data?.submission?.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const safeStudentName = (data?.submission?.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+      const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+
+      // 1. Try to grab HTML from already rendered iframe (instant 0ms)
+      const iframe = document.getElementById('scorecard-iframe');
+      let htmlContent = '';
+      if (iframe) {
+        try {
+          htmlContent = iframe.contentDocument?.documentElement?.outerHTML || iframe.contentWindow?.document?.documentElement?.outerHTML || '';
+        } catch (_) {}
+      }
+
+      // 2. If iframe not available (e.g. student is on Solution Review tab), fetch lightweight /html endpoint (~20ms)
+      if (!htmlContent) {
+        const res = await axios.get(`/api/submissions/${id}/html`);
+        htmlContent = res.data;
+      }
+
+      if (htmlContent) {
+        // ⚡ Client-side instant PDF generation (takes 1-2 seconds on student's phone with 0% server load)
+        const success = await downloadHtmlAsPdf(htmlContent, filename);
+        if (success) return;
+      }
+
+      // Fallback: If client-side failed, trigger server-side download
       window.open(`/api/submissions/${id}/pdf`, '_blank');
     } catch (e) {
-      console.warn('PDF download note:', e);
+      console.warn('Client PDF download error, fallback to server download:', e);
+      window.open(`/api/submissions/${id}/pdf`, '_blank');
     } finally {
-      setTimeout(() => setDownloadingPdf(false), 2000);
+      setDownloadingPdf(false);
     }
   };
 

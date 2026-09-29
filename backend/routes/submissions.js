@@ -591,18 +591,34 @@ router.get('/:id/html', async (req, res) => {
 
     let questions = [];
     if (submission.testCode) {
-      questions = await prisma.question.findMany({
-        where: { testCode: submission.testCode },
-        orderBy: { orderIndex: 'asc' }
-      });
+      const cached = getCachedReviewQuestions(submission.testCode);
+      if (cached && cached.length > 0) {
+        questions = cached;
+      } else {
+        questions = await prisma.question.findMany({
+          where: { testCode: submission.testCode },
+          orderBy: { orderIndex: 'asc' }
+        });
+        if (questions.length > 0) {
+          setCachedReviewQuestions(submission.testCode, questions);
+        }
+      }
     }
     if (questions.length === 0 && questionIds.length > 0) {
       const firstFoundQ = await prisma.question.findUnique({ where: { id: questionIds[0] } });
       if (firstFoundQ?.testCode) {
-        questions = await prisma.question.findMany({
-          where: { testCode: firstFoundQ.testCode },
-          orderBy: { orderIndex: 'asc' }
-        });
+        const cached = getCachedReviewQuestions(firstFoundQ.testCode);
+        if (cached && cached.length > 0) {
+          questions = cached;
+        } else {
+          questions = await prisma.question.findMany({
+            where: { testCode: firstFoundQ.testCode },
+            orderBy: { orderIndex: 'asc' }
+          });
+          if (questions.length > 0) {
+            setCachedReviewQuestions(firstFoundQ.testCode, questions);
+          }
+        }
       } else {
         questions = await prisma.question.findMany({
           where: { id: { in: questionIds } },
