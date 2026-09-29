@@ -9195,13 +9195,31 @@ function StudentAnswers({ showToast }) {
       if (isPureMCQ(sub)) map[key].hasMCQ = true;
       else                 map[key].hasDesc = true;
     });
+
+    const getScore = (s) => {
+      const mcq = mcqScores[s.id] !== undefined ? Number(mcqScores[s.id]) : (s.mcqScore !== null && s.mcqScore !== undefined ? Number(s.mcqScore) : (Number(s.score) || 0));
+      const desc = gradeMarks[s.id] !== undefined ? Number(gradeMarks[s.id]) : (Number(s.teacherMarks) || 0);
+      return mcq + desc;
+    };
+
+    // 🏆 Leaderboard Sort inside each test: Highest marks first, earlier submission on tie
+    Object.values(map).forEach(group => {
+      group.subs.sort((a, b) => {
+        const diff = getScore(b) - getScore(a);
+        if (diff !== 0) return diff;
+        const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+        return timeA - timeB;
+      });
+    });
+
     // Sort groups: most recent submission first
     return Object.values(map).sort((a, b) => {
       const aTime = new Date(a.subs[0]?.submittedAt || 0).getTime();
       const bTime = new Date(b.subs[0]?.submittedAt || 0).getTime();
       return bTime - aTime;
     });
-  }, [filteredSubs]);
+  }, [filteredSubs, mcqScores, gradeMarks]);
 
   const toggleTestGroup = (testCode) =>
     setExpandedTests(prev => ({ ...prev, [testCode]: !prev[testCode] }));
@@ -9692,7 +9710,7 @@ function StudentAnswers({ showToast }) {
                     {/* ── Student List (collapsible) ── */}
                     {isOpen && (
                       <div className="sa-test-student-list">
-                        {group.subs.map(sub => {
+                        {group.subs.map((sub, sIdx) => {
                 const isSelected = selectedSub === sub.id;
                 const pureMcq    = isPureMCQ(sub);
                 const isGraded   = sub.teacherMarks !== null && sub.teacherMarks !== undefined;
@@ -9702,6 +9720,27 @@ function StudentAnswers({ showToast }) {
                 const maxMarks   = sub.totalMarks || (sub.totalMCQ ? sub.totalMCQ : 20);
                 const revState   = reviewsMap[sub.id];
                 const revList    = revState?.data || [];
+
+                // Avatar styling based on rank
+                const avatarStyle = sIdx === 0
+                  ? { bg: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', border: '2px solid #fef08a', shadow: '0 4px 16px rgba(245, 158, 11, 0.45)' }
+                  : sIdx === 1
+                  ? { bg: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', border: '2px solid #e2e8f0', shadow: '0 4px 14px rgba(148, 163, 184, 0.35)' }
+                  : sIdx === 2
+                  ? { bg: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)', border: '2px solid #fed7aa', shadow: '0 4px 14px rgba(180, 83, 9, 0.35)' }
+                  : { bg: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)', border: '2px solid rgba(255, 255, 255, 0.2)', shadow: '0 4px 12px rgba(13, 148, 136, 0.25)' };
+
+                const cardBorder = sIdx === 0
+                  ? '1.5px solid rgba(245, 158, 11, 0.45)'
+                  : sIdx === 1
+                  ? '1.5px solid rgba(148, 163, 184, 0.35)'
+                  : sIdx === 2
+                  ? '1.5px solid rgba(217, 119, 6, 0.35)'
+                  : '1.5px solid rgba(255, 255, 255, 0.08)';
+
+                const cardShadow = sIdx === 0
+                  ? '0 6px 24px rgba(245, 158, 11, 0.14), 0 2px 8px rgba(0,0,0,0.5)'
+                  : '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)';
 
                 // Resolve photos list (from submission.photoUrl + per-answer photoUrl inside answers[])
                 const photoList = [];
@@ -9752,98 +9791,150 @@ function StudentAnswers({ showToast }) {
                     style={{
                       padding: '16px 18px',
                       borderRadius: 16,
-                      border: pureMcq
-                        ? '1.5px solid rgba(59,130,246,0.35)'
-                        : (isGraded ? '1.5px solid rgba(34,197,94,0.45)' : '1.5px solid rgba(245,158,11,0.55)'),
+                      border: cardBorder,
                       background: 'linear-gradient(145deg, #0e172a 0%, #090f1d 100%)',
                       transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)'
+                      boxShadow: cardShadow
                     }}>
 
                     {/* Top Row: Student info + Status Badges */}
                     <div className="sa-card-toprow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* 3D Vibrant Student Avatar */}
+                        {/* 3D Student Avatar */}
                         <div style={{
                           width: 44,
                           height: 44,
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                          background: avatarStyle.bg,
                           color: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 900,
-                          fontSize: '1.2rem',
+                          fontSize: '1.15rem',
                           flexShrink: 0,
-                          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                          border: '2px solid rgba(255, 255, 255, 0.25)'
+                          boxShadow: avatarStyle.shadow,
+                          border: avatarStyle.border
                         }}>
                           {(sub.student?.name || 'S').trim().charAt(0).toUpperCase()}
                         </div>
+
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {/* 🏆 Rank Badge */}
+                            {sIdx === 0 ? (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                color: '#ffffff',
+                                fontWeight: 900,
+                                fontSize: '0.74rem',
+                                padding: '2.5px 9px',
+                                borderRadius: 20,
+                                boxShadow: '0 2px 10px rgba(245, 158, 11, 0.45)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                letterSpacing: '0.02em',
+                                border: '1px solid rgba(255, 255, 255, 0.4)'
+                              }}>
+                                🥇 ૧લો ક્રમ (Topper)
+                              </span>
+                            ) : sIdx === 1 ? (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                                color: '#ffffff',
+                                fontWeight: 900,
+                                fontSize: '0.74rem',
+                                padding: '2.5px 9px',
+                                borderRadius: 20,
+                                boxShadow: '0 2px 8px rgba(148, 163, 184, 0.35)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                              }}>
+                                🥈 ૨જો ક્રમ
+                              </span>
+                            ) : sIdx === 2 ? (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                                color: '#ffffff',
+                                fontWeight: 900,
+                                fontSize: '0.74rem',
+                                padding: '2.5px 9px',
+                                borderRadius: 20,
+                                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                border: '1px solid rgba(255, 255, 255, 0.3)'
+                              }}>
+                                🥉 ૩જો ક્રમ
+                              </span>
+                            ) : (
+                              <span style={{
+                                background: 'rgba(51, 65, 85, 0.65)',
+                                color: '#94a3b8',
+                                fontWeight: 800,
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: 16,
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}>
+                                #{sIdx + 1} ક્રમ
+                              </span>
+                            )}
+
                             <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
                               {sub.student?.name}
                             </span>
-                            {sub.testCode && (
-                              <span style={{
-                                background: 'rgba(56,189,248,0.12)',
-                                color: '#38bdf8',
-                                fontSize: '0.74rem',
-                                fontFamily: 'monospace',
-                                fontWeight: 900,
-                                padding: '2px 8px',
-                                borderRadius: 6,
-                                border: '1px solid rgba(56,189,248,0.35)'
-                              }}>
-                                🏷️ ID: {sub.testCode}
-                              </span>
-                            )}
+
+                            {/* Evaluation Status Chip */}
                             {pureMcq ? (
                               <span style={{
-                                background: 'rgba(59,130,246,0.18)',
+                                background: 'rgba(59,130,246,0.14)',
                                 color: '#93c5fd',
                                 fontSize: '0.72rem',
                                 fontWeight: 800,
-                                padding: '2px 9px',
+                                padding: '2px 8px',
                                 borderRadius: 6,
-                                border: '1px solid rgba(59,130,246,0.35)'
+                                border: '1px solid rgba(59,130,246,0.3)'
                               }}>
-                                🔵 ફક્ત MCQ (ઓટો ગણતરી)
+                                ⚡ ફક્ત MCQ
                               </span>
                             ) : isGraded ? (
                               <span style={{
-                                background: 'rgba(34,197,94,0.18)',
+                                background: 'rgba(34,197,94,0.15)',
                                 color: '#86efac',
                                 fontSize: '0.72rem',
                                 fontWeight: 800,
-                                padding: '2px 9px',
+                                padding: '2px 8px',
                                 borderRadius: 6,
-                                border: '1px solid rgba(34,197,94,0.35)'
+                                border: '1px solid rgba(34,197,94,0.3)'
                               }}>
                                 ✅ તપાસાઈ ગયેલ ({sub.teacherMarks} ગુણ)
                               </span>
                             ) : (
                               <span style={{
-                                background: 'rgba(245,158,11,0.18)',
+                                background: 'rgba(245,158,11,0.15)',
                                 color: '#fde68a',
                                 fontSize: '0.72rem',
                                 fontWeight: 800,
-                                padding: '2px 9px',
+                                padding: '2px 8px',
                                 borderRadius: 6,
-                                border: '1px solid rgba(245,158,11,0.35)'
+                                border: '1px solid rgba(245,158,11,0.3)'
                               }}>
                                 ⏳ વર્ણાત્મક (તપાસવાની બાકી)
                               </span>
                             )}
                           </div>
 
-                          {/* Subline Details */}
+                          {/* Subline Details (Clean, Spacious: Removed Test Name & Redundant Test ID) */}
                           <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 4, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>📞 {sub.student?.mobile}</span>
-                            <span>•</span>
-                            <span style={{ color: '#e2e8f0', fontWeight: 600 }}>📗 {sub.testName || sub.subject || 'સામાન્ય કસોટી'}</span>
                             <span>•</span>
                             <span>🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
 
@@ -9900,70 +9991,40 @@ function StudentAnswers({ showToast }) {
                         </div>
                       </div>
 
-                      {/* Marks Pills & Toggle Button */}
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* MCQ Marks */}
-                        <span style={{
-                          background: 'rgba(30, 41, 59, 0.9)',
-                          color: '#60a5fa',
-                          fontWeight: 900,
-                          padding: '6px 12px',
-                          borderRadius: 9,
-                          fontSize: '0.82rem',
-                          border: '1px solid rgba(59,130,246,0.3)',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                        }}>
-                          MCQ: <strong style={{ color: '#93c5fd' }}>{mcqVal} ગુણ</strong>
-                        </span>
-
-                        {/* Descriptive Status if not pure MCQ */}
-                        {!pureMcq && (
-                          isGraded ? (
-                            <span style={{
-                              background: 'rgba(34,197,94,0.2)',
-                              color: '#4ade80',
-                              fontWeight: 900,
-                              padding: '6px 12px',
-                              borderRadius: 9,
-                              fontSize: '0.82rem',
-                              border: '1.5px solid rgba(34,197,94,0.5)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5
-                            }}>
-                              ✅ તપાસેલ ({sub.teacherMarks} ગુણ)
-                            </span>
-                          ) : (
-                            <span style={{
-                              background: 'rgba(245,158,11,0.2)',
-                              color: '#fbbf24',
-                              fontWeight: 900,
-                              padding: '6px 12px',
-                              borderRadius: 9,
-                              fontSize: '0.82rem',
-                              border: '1.5px solid rgba(245,158,11,0.5)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5
-                            }}>
-                              ⏳ તપાસવાની બાકી
-                            </span>
-                          )
-                        )}
-
-                        {/* Combined Total */}
-                        <span style={{
+                      {/* Right Side: Total Score Pill & Toggle Button (Removed MCQ 1 Guna Pill & Duplicate Status) */}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Combined Total Score Pill */}
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'baseline',
+                          gap: 6,
                           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
-                          color: '#f8fafc',
-                          fontWeight: 900,
-                          padding: '6px 14px',
-                          borderRadius: 9,
-                          fontSize: '0.88rem',
-                          border: '1.5px solid rgba(255,255,255,0.18)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.25)'
+                          padding: '7px 14px',
+                          borderRadius: 10,
+                          border: sIdx === 0 ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.14)',
+                          boxShadow: sIdx === 0 ? '0 2px 10px rgba(245, 158, 11, 0.25)' : '0 2px 8px rgba(0,0,0,0.3)'
                         }}>
-                          🏆 કુલ: <strong style={{ color: totalScored >= (maxMarks * 0.7) ? '#4ade80' : '#fbbf24', fontSize: '1rem' }}>{totalScored}</strong>/{maxMarks}
-                        </span>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>કુલ ગુણ:</span>
+                          <span style={{
+                            fontSize: '1.2rem',
+                            fontWeight: 900,
+                            color: totalScored >= (maxMarks * 0.7) ? '#4ade80' : (totalScored >= (maxMarks * 0.4) ? '#fbbf24' : '#f87171')
+                          }}>
+                            {totalScored}
+                          </span>
+                          <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 800 }}>/ {maxMarks}</span>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            color: '#38bdf8',
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            padding: '1px 6px',
+                            borderRadius: 5,
+                            marginLeft: 2
+                          }}>
+                            {Math.round((totalScored / (maxMarks || 1)) * 100)}%
+                          </span>
+                        </div>
 
                         {/* Action Toggle Button */}
                         <button
@@ -9989,7 +10050,7 @@ function StudentAnswers({ showToast }) {
                             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                           }}>
                           <Eye size={15} />
-                          <span>{isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? 'વિદ્યાર્થીના જવાબો & સાચો જવાબ જુઓ' : 'જવાબો & માર્ક્સ તપાસો')}</span>
+                          <span>{isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? 'વિદ્યાર્થીના જવાબો જુઓ' : 'જવાબો & ગુણ તપાસો')}</span>
                         </button>
                       </div>
                     </div>
