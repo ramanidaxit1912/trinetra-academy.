@@ -124,7 +124,7 @@ function buildMarketingBrochureHtml(marketingItems = []) {
             🌟 વિશેષ ટેસ્ટ સિરીઝ, લાઈવ બેચ & સ્પેશિયલ કોર્સ બ્રોશર 🌟
           </div>
           <div style="font-size: 10px; color: #475569; margin-top: 2px;">
-            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">8200405300</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">trinetraacademy.in</strong>
+            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">8200405300</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">www.trinetraonline.in</strong>
           </div>
         </div>
 
@@ -424,7 +424,7 @@ function buildMarketingBrochureHtml(marketingItems = []) {
             🎯 મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી! 🏆
           </div>
           <div style="margin-top: 2px;">
-            સરકારી શિક્ષક ભરતી પરીક્ષા માર્ગદર્શન કેન્દ્ર • Helpline: <strong>8200405300</strong> • Website: <strong>trinetraacademy.in</strong>
+            સરકારી શિક્ષક ભરતી પરીક્ષા માર્ગદર્શન કેન્દ્ર • Helpline: <strong>8200405300</strong> • Website: <strong>www.trinetraonline.in</strong>
           </div>
         </div>
 
@@ -1549,7 +1549,7 @@ export default function StudentDashboard() {
               <span>🏛️ ત્રિનેત્ર ઓનલાઇન એકેડેમી</span>
             </div>
             <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-              📞 હેલ્પલાઇન: <strong style="color: #1e40af;">8200405300</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">trinetraacademy.in</strong>
+              📞 હેલ્પલાઇન: <strong style="color: #1e40af;">8200405300</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">www.trinetraonline.in</strong>
             </div>
             <div style="font-size: 9.5px; color: #059669; font-weight: 800; margin-top: 2px;">
               ✓ ડિજિટલ રીતે પ્રમાણિત અને માન્ય મૂલ્યાંકન અહેવાલ

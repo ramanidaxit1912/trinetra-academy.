@@ -11311,7 +11311,7 @@ ${topperList}
 💐 તમામ વિદ્યાર્થીઓને ઉત્કૃષ્ટ પ્રદર્શન બદલ ખૂબ ખૂબ અભિનંદન! 💐
 
 🌐 *તમારું વ્યક્તિગત પરિણામ જોવા માટે:*
-👉 https://trinetraacademy.in`;
+👉 https://www.trinetraonline.in`;
 
     navigator.clipboard?.writeText(shareText);
     showToast?.('✅ ટોપર્સ લિસ્ટ કોપી થઈ ગયું! WhatsApp ખુલી રહ્યું છે...', 'success');
@@ -11331,7 +11331,7 @@ ${topperList}
 📊 *ચોકસાઈ (Accuracy):* ${s.accuracy}%
 
 આગળની પરીક્ષાઓ માટે પણ તમને ખૂબ ખૂબ શુભેચ્છાઓ! ✨
-🌐 https://trinetraacademy.in`;
+🌐 https://www.trinetraonline.in`;
 
     return `https://wa.me/91${s.student?.mobile}?text=${encodeURIComponent(text)}`;
   };
@@ -12517,7 +12517,7 @@ function TestHistory({ showToast }) {
 ${statusText}
 
 🌐 *સંપૂર્ણ વિશ્લેષણ અને ઓનલાઇન ટેસ્ટ માટે:*
-👉 https://trinetraacademy.in
+👉 https://www.trinetraonline.in
 📞 *હેલ્પલાઇન:* 8200405300`;
   };
 

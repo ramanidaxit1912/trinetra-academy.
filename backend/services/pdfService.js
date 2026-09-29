@@ -1376,7 +1376,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
               🏛️ ત્રિનેત્ર ઓનલાઇન એકેડેમી અધિકૃત મૂલ્યાંકન પત્રક
             </div>
             <div style="font-size: 10px; color: #334155; margin-top: 4px; font-weight: 700;">
-              📞 હેલ્પલાઇન: <strong style="color:#0f172a;">8200405300</strong> • 🌐 <a href="https://trinetraacademy.in" target="_blank" style="color:#0284c7; text-decoration:none;">trinetraacademy.in</a>
+              📞 હેલ્પલાઇન: <strong style="color:#0f172a;">8200405300</strong> • 🌐 <a href="https://www.trinetraonline.in" target="_blank" style="color:#0284c7; text-decoration:none;">www.trinetraonline.in</a>
             </div>
             <div style="font-size: 10px; font-weight: 800; color: #15803d; margin-top: 3px;">
               ✓ ડિજિટલ ચકાસાયેલ ઉત્તરવહી
@@ -1587,7 +1587,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
           <a href="https://wa.me/918200405300" target="_blank" style="background: #16a34a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
             💬 WhatsApp
           </a>
-          <a href="https://trinetraacademy.in" target="_blank" style="background: #1e3a8a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
+          <a href="https://www.trinetraonline.in" target="_blank" style="background: #1e3a8a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
             🌐 Website
           </a>
         </div>
@@ -1599,7 +1599,7 @@ async function buildScorecardHTML({ submission = {}, review = [], student = {}, 
           🎯 મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી! 🏆
         </div>
         <div style="font-size: 8.5px; color: #64748b;">
-          Helpline: <strong>8200405300</strong> • <strong>trinetraacademy.in</strong>
+          Helpline: <strong>8200405300</strong> • <strong>www.trinetraonline.in</strong>
         </div>
       </div>
 
@@ -1641,22 +1641,83 @@ async function prewarmPdfEngine() {
 // ─── ⚡ Shared Browser + PDF Queue (Max 1 PDF at a time = RAM always safe!) ──
 // Prevents: 5 students click PDF = 5×300MB = 1500MB = CRASH!
 // Fixed:    5 students click PDF = Queue = 1×300MB = 300MB = SAFE!
+// Speed:    Chromium stays warm for 90s idle -> PDFs generate in ~1.5 - 2s instead of 20s cold start!
 
 let sharedBrowser = null;
 let sharedBrowserBusy = false;
 const pdfQueue = [];
 let pdfQueueProcessing = false;
+let browserIdleTimer = null;
+const BROWSER_IDLE_TIMEOUT_MS = 90 * 1000; // Keep browser alive for 90s after last PDF
+const MAX_SAFE_RAM_MB = 360; // Max allowed Node RSS MB before forcibly closing Chromium
+
+function checkRamSafety() {
+  try {
+    const mem = process.memoryUsage();
+    const rssMB = Math.round(mem.rss / 1024 / 1024);
+    if (rssMB >= MAX_SAFE_RAM_MB) {
+      console.warn(`⚠️ [PDF Engine] RAM usage high (${rssMB}MB >= ${MAX_SAFE_RAM_MB}MB limit). Closing Chromium immediately to protect server!`);
+      closeSharedBrowserNow();
+      return false;
+    }
+  } catch (e) {}
+  return true;
+}
+
+function clearBrowserIdleTimer() {
+  if (browserIdleTimer) {
+    clearTimeout(browserIdleTimer);
+    browserIdleTimer = null;
+  }
+}
+
+async function closeSharedBrowserNow() {
+  clearBrowserIdleTimer();
+  if (sharedBrowser) {
+    const b = sharedBrowser;
+    sharedBrowser = null;
+    try {
+      await b.close();
+      console.log('✅ [PDF Engine] Chromium closed cleanly. RAM freed.');
+    } catch (e) {}
+  }
+}
+
+function scheduleBrowserIdleClose() {
+  clearBrowserIdleTimer();
+
+  // 1. Immediately check RAM safety: if memory is tight, close now!
+  if (!checkRamSafety()) {
+    return;
+  }
+
+  // 2. Keep browser alive for 90 seconds. If no other student downloads, close cleanly.
+  browserIdleTimer = setTimeout(async () => {
+    console.log(`⏱️ [PDF Engine] Chromium idle for 90s with no active requests. Closing to free RAM...`);
+    await closeSharedBrowserNow();
+  }, BROWSER_IDLE_TIMEOUT_MS);
+
+  if (browserIdleTimer && typeof browserIdleTimer.unref === 'function') {
+    browserIdleTimer.unref();
+  }
+}
 
 async function getSharedBrowser() {
+  clearBrowserIdleTimer();
   if (sharedBrowser) {
     try {
       // Check if still alive
       const pages = await sharedBrowser.pages();
-      if (pages) return sharedBrowser;
+      if (pages) {
+        if (checkRamSafety()) {
+          return sharedBrowser;
+        }
+      }
     } catch (e) {
       sharedBrowser = null;
     }
   }
+  console.log('🚀 [PDF Engine] Launching Chromium instance (will stay warm for 90s)...');
   sharedBrowser = await launchPdfBrowser();
   return sharedBrowser;
 }
@@ -1671,6 +1732,8 @@ async function runInPdfQueue(taskFn) {
 async function processPdfQueue() {
   if (pdfQueueProcessing || pdfQueue.length === 0) return;
   pdfQueueProcessing = true;
+  clearBrowserIdleTimer();
+
   while (pdfQueue.length > 0) {
     const { taskFn, resolve, reject } = pdfQueue.shift();
     try {
@@ -1680,12 +1743,10 @@ async function processPdfQueue() {
       reject(err);
     }
   }
-  // Close browser after queue empty to free RAM
-  if (sharedBrowser) {
-    try { await sharedBrowser.close(); } catch (e) {}
-    sharedBrowser = null;
-  }
   pdfQueueProcessing = false;
+
+  // Keep browser warm for 90s instead of closing immediately!
+  scheduleBrowserIdleClose();
 }
 
 /**
@@ -1709,10 +1770,7 @@ async function generateScorecardPDFBuffer(data) {
       return Buffer.from(pdfBuffer);
     } catch (err) {
       // On error close browser so next request gets fresh one
-      if (sharedBrowser) {
-        try { await sharedBrowser.close(); } catch (e) {}
-        sharedBrowser = null;
-      }
+      await closeSharedBrowserNow();
       console.error('Puppeteer Scorecard PDF Error:', err);
       throw err;
     }
@@ -2197,7 +2255,7 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
     <div style="margin-top:14px; border-top:1.5px dashed #cbd5e1; padding-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div style="flex:1; min-width:160px;">
         <div style="font-weight:900; color:#1e3a8a; font-size:12px;">🏛️ ત્રિનેત્ર ઓનલાઇન એકેડેમી</div>
-        <div style="font-size:10px; color:#64748b; margin-top:1px;">📞 <strong style="color:#1e40af;">8200405300</strong> | 🌐 <strong style="color:#2563eb;">trinetraacademy.in</strong></div>
+        <div style="font-size:10px; color:#64748b; margin-top:1px;">📞 <strong style="color:#1e40af;">8200405300</strong> | 🌐 <strong style="color:#2563eb;">www.trinetraonline.in</strong></div>
         <div style="font-size:9.5px; color:#059669; font-weight:800; margin-top:1px;">✓ ડિજિટલ રીતે પ્રમાણિત મૂલ્યાંકન અહેવાલ</div>
       </div>
       <div style="display:flex; align-items:center; justify-content:center; margin:0 10px;">
@@ -2367,7 +2425,7 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
           <a href="https://t.me/Trinetra_Online" target="_blank" style="background: #0284c7; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">✈ Telegram</a>
           <a href="https://www.instagram.com/trinetra_online_academy?igsh=d2JqYmE4eWNsNmts" target="_blank" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">📷 Instagram</a>
           <a href="https://wa.me/918200405300" target="_blank" style="background: #16a34a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">💬 WhatsApp</a>
-          <a href="https://trinetraacademy.in" target="_blank" style="background: #1e3a8a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🌐 Website</a>
+          <a href="https://www.trinetraonline.in" target="_blank" style="background: #1e3a8a; color: white; padding: 2.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">🌐 Website</a>
         </div>
       </div>
 
@@ -2377,7 +2435,7 @@ async function buildPragatiReportHTML({ student, submissions, marketingItems = [
           🎯 મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી! 🏆
         </div>
         <div style="font-size: 8.5px; color:#64748b;">
-          Helpline: <strong>8200405300</strong> • <strong>trinetraacademy.in</strong>
+          Helpline: <strong>8200405300</strong> • <strong>www.trinetraonline.in</strong>
         </div>
       </div>
 
@@ -2408,10 +2466,7 @@ async function generatePragatiReportPDFBuffer(data) {
       await page.close();
       return Buffer.from(pdfBuffer);
     } catch (err) {
-      if (sharedBrowser) {
-        try { await sharedBrowser.close(); } catch (e) {}
-        sharedBrowser = null;
-      }
+      await closeSharedBrowserNow();
       console.error('Pragati Report PDF Error:', err);
       throw err;
     }

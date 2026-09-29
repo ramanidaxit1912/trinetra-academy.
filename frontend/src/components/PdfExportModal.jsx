@@ -303,7 +303,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
             🌟 વિશેષ ટેસ્ટ સિરીઝ, લાઈવ બેચ & સ્પેશિયલ કોર્સ બ્રોશર 🌟
           </div>
           <div style="font-size: 10px; color: #475569; margin-top: 2px;">
-            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">${helpline}</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">trinetraacademy.in</strong>
+            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">${helpline}</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">www.trinetraonline.in</strong>
           </div>
         </div>
 
@@ -580,7 +580,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
             🎯 ${slogan} 🏆
           </div>
           <div style="margin-top: 2px;">
-            સરકારી શિક્ષક ભરતી પરીક્ષા માર્ગદર્શન કેન્દ્ર • Helpline: <strong>${helpline}</strong> • Website: <strong>trinetraacademy.in</strong>
+            સરકારી શિક્ષક ભરતી પરીક્ષા માર્ગદર્શન કેન્દ્ર • Helpline: <strong>${helpline}</strong> • Website: <strong>www.trinetraonline.in</strong>
           </div>
         </div>
 
@@ -603,7 +603,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
     </div>
     <div class="header-right">
       <div class="helpline-badge">📞 ${helpline}</div>
-      <div style="color: #64748b; font-size: 10px;">🌐 trinetraacademy.in</div>
+      <div style="color: #64748b; font-size: 10px;">🌐 www.trinetraonline.in</div>
     </div>
   </div>
 
@@ -706,7 +706,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
             🌟 વિશેષ ટેસ્ટ સિરીઝ, લાઈવ બેચ & સ્પેશિયલ કોર્સ બ્રોશર 🌟
           </div>
           <div style="font-size: 10px; color: #475569; margin-top: 2px;">
-            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">${helpline}</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">trinetraacademy.in</strong>
+            📞 WhatsApp / Call: <strong style="color: #1e3a8a; font-size: 11px;">${helpline}</strong> &nbsp;|&nbsp; 🌐 <strong style="color: #2563eb;">www.trinetraonline.in</strong>
           </div>
         </div>
 
@@ -965,7 +965,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
 
                     <!-- Academy Circular Logo -->
                     <div style="width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #22c55e; overflow: hidden; margin: 1px auto; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(34,197,94,0.25);">
-                      <img src="https://trinetraacademy.in/images/logo.jpg" style="width: 100%; height: 100%; object-fit: contain;" alt="Logo" />
+                      <img src="https://www.trinetraonline.in/images/logo.jpg" style="width: 100%; height: 100%; object-fit: contain;" alt="Logo" />
                     </div>
 
                     <div style="font-size: 5.8px; font-weight: 900; color: #1e3a8a; margin-top: 1px;">

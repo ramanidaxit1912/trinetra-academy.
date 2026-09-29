@@ -437,7 +437,7 @@ function getWhatsAppStatus() {
 async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર્થી') {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
-  const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n🔑 OTP: *${otp.split('').join(' ')}*\n\n⏱️ OTP 5 મિનિટ માટે માન્ય છે. 🔒 કોઈ સાથે શેર ન કરશો.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraacademy.in  📞 8200405300`;
+  const textMessage = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n🔑 OTP: *${otp.split('').join(' ')}*\n\n⏱️ OTP 5 મિનિટ માટે માન્ય છે. 🔒 કોઈ સાથે શેર ન કરશો.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://www.trinetraonline.in  📞 8200405300`;
 
   // ⏳ 7AM Reconnect Wait Guard:
   // If WhatsApp is CONNECTING (waking up from night mode), wait up to 20s
@@ -508,7 +508,7 @@ async function sendWhatsAppScorecardPDF(mobile, studentName, testName, score, to
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ' : pct >= 60 ? '🟢 પાસ' : '🔴 સુધારો';
-  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 ${testName} — ${score}/${totalMarks} (${pct}%) — ${resultStatus}\n\n📄 તમારું સ્કોરકાર્ડ PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📊 ${testName} — ${score}/${totalMarks} (${pct}%) — ${resultStatus}\n\n📄 તમારું સ્કોરકાર્ડ PDF ઉપર આપેલ છે. ✨\n🌐 https://www.trinetraonline.in`;
   if (!waSocket || connectionStatus !== 'CONNECTED') {
     return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
   }
@@ -555,7 +555,7 @@ async function sendWhatsAppPragatiSummary(mobile, studentName, totalTests, avgPc
 async function sendWhatsAppPragatiPDF(mobile, studentName, pdfBuffer) {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
-  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n📊 તમારો સર્વગ્રાહી પ્રગતિ અહેવાલ (Progress Certificate) PDF ઉપર આપેલ છે. ✨\n🌐 https://trinetraacademy.in`;
+  const caption = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n📊 તમારો સર્વગ્રાહી પ્રગતિ અહેવાલ (Progress Certificate) PDF ઉપર આપેલ છે. ✨\n🌐 https://www.trinetraonline.in`;
   if (!waSocket || connectionStatus !== 'CONNECTED') {
     return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન.' };
   }
@@ -637,7 +637,7 @@ async function sendWhatsAppTestCompletionSummary(testCode, targetMobile = '82004
     const istNow = new Date(Date.now() + (5.5 * 60 * 60 * 1000));
     const timeStr = istNow.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const summaryMsg = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી — ટેસ્ટ પરિણામ સમરી* 📝\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *ટેસ્ટ:* ${testName}\n⏰ *પૂર્ણ સમય:* ${timeStr}\n\n👥 *કુલ સબમિશન:* ${totalStudents} વિદ્યાર્થીઓ\n🎯 *સરેરાશ સ્કોર:* ${avgScore} / ${totalMarks}\n\n🏆 *ટોપ ૩ વિદ્યાર્થીઓ:*\n${top3}\n━━━━━━━━━━━━━━━━━━━━━━\nસંપૂર્ણ પરિણામ ટીચર પોર્ટલ પર ઉપલબ્ધ છે.\n🌐 https://trinetraacademy.in/teacher`;
+    const summaryMsg = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી — ટેસ્ટ પરિણામ સમરી* 📝\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *ટેસ્ટ:* ${testName}\n⏰ *પૂર્ણ સમય:* ${timeStr}\n\n👥 *કુલ સબમિશન:* ${totalStudents} વિદ્યાર્થીઓ\n🎯 *સરેરાશ સ્કોર:* ${avgScore} / ${totalMarks}\n\n🏆 *ટોપ ૩ વિદ્યાર્થીઓ:*\n${top3}\n━━━━━━━━━━━━━━━━━━━━━━\nસંપૂર્ણ પરિણામ ટીચર પોર્ટલ પર ઉપલબ્ધ છે.\n🌐 https://www.trinetraonline.in/teacher`;
 
     await waSocket.sendMessage(jid, { text: summaryMsg });
     console.log(`✅ [Test Summary] WhatsApp sent to +91${cleanMobile} for test: ${testCode}`);
