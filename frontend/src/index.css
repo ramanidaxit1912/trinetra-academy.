@@ -2696,17 +2696,143 @@ textarea.input-dark {
 }
 
 /* ─── 🌟 Ultra-Luxury 3D VIP Test Group & Submission Styles ─── */
+.sa-test-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.sa-test-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .sa-test-group {
+  position: relative;
   background: linear-gradient(145deg, #0e172a 0%, #080d1a 100%);
-  border: 1.5px solid rgba(56, 189, 248, 0.22);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.28s ease, border-color 0.28s ease;
 }
+
+/* Card expands to full width when opened so student papers have complete spacious layout */
+.sa-test-group.card-expanded {
+  grid-column: 1 / -1 !important;
+}
+
 .sa-test-group:hover {
-  border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.65), 0 0 20px -2px rgba(56, 189, 248, 0.15);
+  transform: translateY(-4px);
+  border-color: var(--card-border, rgba(56, 189, 248, 0.45));
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.7), 0 0 24px -2px var(--card-glow, rgba(56, 189, 248, 0.25));
+}
+
+/* Top Neon Gradient Beam with breathing glow */
+@keyframes neonBeamPulse {
+  0%, 100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 4px var(--beam-glow, rgba(56, 189, 248, 0.6)));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px var(--beam-glow, rgba(56, 189, 248, 0.95)));
+  }
+}
+
+.sa-top-neon-beam {
+  height: 4px;
+  width: 100%;
+  animation: neonBeamPulse 3.5s ease-in-out infinite;
+}
+
+/* Radar pulse for active students count */
+@keyframes liveRadarWave {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+  }
+}
+
+.sa-radar-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  display: inline-block;
+  animation: liveRadarWave 2s infinite ease-out;
+}
+
+/* Subtle bouncing arrow animation */
+@keyframes bounceArrow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.sa-bounce-arrow {
+  display: inline-block;
+  animation: bounceArrow 1.8s infinite ease-in-out;
+}
+
+/* Liquid glass shimmer swipe on button hover */
+.sa-btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.sa-btn-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+}
+
+.sa-btn-shimmer:hover::before {
+  animation: shimmerSwipe 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes shimmerSwipe {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+/* Staggered entry animation for student cards when accordion opens */
+@keyframes waterfallCardEntry {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sa-stagger-card {
+  animation: waterfallCardEntry 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .sa-test-group-header {

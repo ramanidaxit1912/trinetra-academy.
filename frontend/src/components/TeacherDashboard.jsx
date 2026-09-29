@@ -8939,6 +8939,7 @@ function StudentAnswers({ showToast }) {
   const [testTypeFilter, setTestTypeFilter] = useState('ALL'); // 'ALL' | 'DESCRIPTIVE' | 'MCQ'
   const [filterStatus, setFilterStatus]     = useState('ALL'); // 'ALL' | 'PENDING' | 'GRADED'
   const [searchQuery, setSearchQuery]       = useState('');
+  const [viewMode, setViewMode]             = useState('GRID'); // 'GRID' | 'LIST'
   const [previewPhoto, setPreviewPhoto]     = useState(null); // Lightbox modal for photo
   const [expandedTests, setExpandedTests]   = useState({}); // { [testCode]: boolean } — which test groups are open
   const [photoRotations, setPhotoRotations] = useState({}); // { [photoUrl]: number (0 | 90 | 180 | 270) }
@@ -9490,6 +9491,52 @@ function StudentAnswers({ showToast }) {
           }}>
           <RefreshCw size={13} /> Refresh
         </button>
+
+        {/* View Mode Toggle: Grid Box vs List Strip */}
+        <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
+          <button
+            type="button"
+            onClick={() => setViewMode('GRID')}
+            style={{
+              background: viewMode === 'GRID' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
+              color: viewMode === 'GRID' ? '#ffffff' : '#94a3b8',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.2s ease'
+            }}
+            title="૩D કાર્ડ બોક્સ વ્યુ"
+          >
+            🔲 કાર્ડ બોક્સ
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('LIST')}
+            style={{
+              background: viewMode === 'LIST' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
+              color: viewMode === 'LIST' ? '#ffffff' : '#94a3b8',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.2s ease'
+            }}
+            title="લિસ્ટ પટ્ટી વ્યુ"
+          >
+            ☰ લિસ્ટ પટ્ટી
+          </button>
+        </div>
       </div>
 
       {/* Active Search Result Badge */}
@@ -9571,7 +9618,7 @@ function StudentAnswers({ showToast }) {
               </div>
             )
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className={viewMode === 'GRID' ? 'sa-test-cards-grid' : 'sa-test-cards-list'}>
               {groupedByTest.map(group => {
                 const isSearchActive = Boolean(searchQuery.trim());
                 const isOpen = expandedTests[group.testCode] !== undefined
@@ -9589,250 +9636,274 @@ function StudentAnswers({ showToast }) {
                 const typeColor = testType === 'MCQ' ? '#93c5fd' : testType === 'DESC' ? '#fcd34d' : '#86efac';
                 const typeBg    = testType === 'MCQ' ? 'rgba(59,130,246,0.18)' : testType === 'DESC' ? 'rgba(245,158,11,0.18)' : 'rgba(34,197,94,0.15)';
                 const typeLabel = testType === 'MCQ' ? '🔵 MCQ' : testType === 'DESC' ? '📝 Non-MCQ' : '⚡ MCQ + Non-MCQ';
+                const subTheme = getTestGroupTheme(group);
 
                 return (
-                  <div key={group.testCode} className="sa-test-group">
+                  <div
+                    key={group.testCode}
+                    className={`sa-test-group ${isOpen && viewMode === 'GRID' ? 'card-expanded' : ''}`}
+                    style={{
+                      '--card-border': subTheme.border,
+                      '--card-glow': subTheme.glow,
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    {/* 🌟 1. Top Neon Gradient Breathing Beam */}
+                    <div
+                      className="sa-top-neon-beam"
+                      style={{
+                        background: subTheme.gradient,
+                        '--beam-glow': subTheme.glow
+                      }}
+                    />
 
-                    {/* ── 🌟 Ultra-Luxury 3D VIP Test Group Header Card ── */}
-                    {(() => {
-                      const subTheme = getTestGroupTheme(group);
-                      return (
-                        <div
-                          className="sa-test-group-header"
-                          onClick={() => toggleTestGroup(group.testCode)}
-                          style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}
-                        >
-                          {/* Top Row: 3D Subject Avatar + Test Name + Subject Badges + Student Count & Toggle Arrow */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 12, flexWrap: 'wrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 200, flex: 1 }}>
-                              {/* 3D Floating Avatar */}
-                              <div style={{
-                                width: 46,
-                                height: 46,
-                                borderRadius: 13,
-                                background: subTheme.gradient,
-                                color: '#ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '1.45rem',
-                                flexShrink: 0,
-                                boxShadow: `0 6px 18px -2px ${subTheme.glow}`,
-                                border: '1.5px solid rgba(255,255,255,0.3)'
-                              }}>
-                                {subTheme.icon}
-                              </div>
-                              <div>
-                                <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.12rem', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-                                  {group.testName}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', marginTop: 4, flexWrap: 'wrap' }}>
-                                  <span style={{
-                                    fontFamily: 'monospace',
-                                    fontWeight: 800,
-                                    color: '#38bdf8',
-                                    background: 'rgba(56,189,248,0.12)',
-                                    padding: '2px 8px',
-                                    borderRadius: 6,
-                                    border: '1px solid rgba(56,189,248,0.3)'
-                                  }}>
-                                    🏷️ {group.testCode}
-                                  </span>
-                                  {group.subject && group.subject !== '—' && (
-                                    <span style={{
-                                      background: subTheme.badgeBg,
-                                      color: subTheme.badgeColor,
-                                      fontWeight: 800,
-                                      padding: '2px 8px',
-                                      borderRadius: 6,
-                                      border: `1px solid ${subTheme.border}`
-                                    }}>
-                                      {subTheme.icon} {group.subject}
-                                    </span>
-                                  )}
-                                  <span style={{
-                                    background: typeBg,
-                                    color: typeColor,
-                                    fontSize: '0.7rem',
-                                    fontWeight: 800,
-                                    padding: '2px 8px',
-                                    borderRadius: 6,
-                                    border: `1px solid ${typeColor}44`
-                                  }}>
-                                    {typeLabel}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Dropdown Toggle Badge */}
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{
-                                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))',
-                                color: '#38bdf8',
-                                fontSize: '0.82rem',
-                                fontWeight: 900,
-                                padding: '6px 12px',
-                                borderRadius: 10,
-                                border: '1.5px solid rgba(56,189,248,0.4)',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                👥 {group.subs.length} વિદ્યાર્થી
-                              </span>
-                              <span style={{
-                                background: isOpen ? 'linear-gradient(135deg, #0284c7, #2563eb)' : 'rgba(255,255,255,0.06)',
-                                color: '#ffffff',
-                                width: 32,
-                                height: 32,
-                                borderRadius: 9,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.75rem',
-                                fontWeight: 900,
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                boxShadow: isOpen ? '0 2px 10px rgba(37,99,235,0.4)' : 'none',
-                                transition: 'all 0.25s ease',
-                                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                              }}>
-                                ▼
-                              </span>
-                            </div>
+                    {/* 🌟 2. 3D Card Header & Body */}
+                    <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+                      {/* Top Line: Avatar + Title & Badges + Live Student Count */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0, flex: 1 }}>
+                          {/* 3D Floating Avatar */}
+                          <div style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            background: subTheme.gradient,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.4rem',
+                            flexShrink: 0,
+                            boxShadow: `0 6px 16px -2px ${subTheme.glow}`,
+                            border: '1.5px solid rgba(255,255,255,0.25)'
+                          }}>
+                            {subTheme.icon}
                           </div>
 
-                          {/* Bottom Row: Score Badges + Action Buttons */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 12 }}>
-                            {/* Score & Status Badges */}
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <span style={{
-                                background: 'rgba(234,179,8,0.15)',
-                                color: '#fde047',
-                                fontSize: '0.78rem',
-                                fontWeight: 900,
-                                padding: '5px 10px',
-                                borderRadius: 8,
-                                border: '1.5px solid rgba(234,179,8,0.35)',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                🏆 સર્વોચ્ચ: {highestScore}/{maxPossibleMarks}
-                              </span>
-                              <span style={{
-                                background: 'rgba(59,130,246,0.15)',
-                                color: '#93c5fd',
-                                fontSize: '0.78rem',
-                                fontWeight: 900,
-                                padding: '5px 10px',
-                                borderRadius: 8,
-                                border: '1.5px solid rgba(59,130,246,0.35)',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                📊 સરેરાશ: {avgScore} ગુણ
-                              </span>
-                              {pendingInGroup > 0 ? (
-                                <span style={{
-                                  background: 'rgba(245,158,11,0.2)',
-                                  color: '#fbbf24',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 800,
-                                  padding: '5px 10px',
-                                  borderRadius: 8,
-                                  border: '1.5px solid rgba(245,158,11,0.45)',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  ⏳ {pendingInGroup} તપાસવાની બાકી
-                                </span>
-                              ) : (
-                                <span style={{
-                                  background: 'rgba(34,197,94,0.18)',
-                                  color: '#4ade80',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 800,
-                                  padding: '5px 10px',
-                                  borderRadius: 8,
-                                  border: '1.5px solid rgba(34,197,94,0.45)',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  ✅ તમામ પૂર્ણ
-                                </span>
-                              )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{
+                              color: '#ffffff',
+                              fontWeight: 900,
+                              fontSize: '1.08rem',
+                              lineHeight: 1.3,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }} title={group.testName}>
+                              {group.testName}
                             </div>
 
-                            {/* Action Buttons */}
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <button
-                                type="button"
-                                onClick={(e) => openMasterTestModal(group, e)}
-                                style={{
-                                  background: 'linear-gradient(135deg,#7c3aed 0%,#9333ea 100%)',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: 9,
-                                  fontSize: '0.82rem',
-                                  fontWeight: 900,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  fontFamily: 'Hind Vadodara, sans-serif',
-                                  boxShadow: '0 4px 14px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
-                                  whiteSpace: 'nowrap',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                title="આ કસોટીના તમામ પ્રશ્નો અને Answer Key જુઓ/એડિટ કરો"
-                              >
-                                <Edit3 size={14} /> 📝 Answer Key
-                              </button>
-
-                              {group.hasMCQ && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReEvaluate(group.testCode);
-                                  }}
-                                  disabled={reEvaluating[group.testCode]}
-                                  style={{
-                                    background: 'linear-gradient(135deg,#0284c7 0%,#2563eb 100%)',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '8px 16px',
-                                    borderRadius: 9,
-                                    fontSize: '0.82rem',
-                                    fontWeight: 900,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    fontFamily: 'Hind Vadodara, sans-serif',
-                                    boxShadow: '0 4px 14px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
-                                    opacity: reEvaluating[group.testCode] ? 0.6 : 1,
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                  title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
-                                >
-                                  <RotateCw size={14} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} /> 🔄 ફરી ગણો
-                                </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', marginTop: 4, flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontFamily: 'monospace',
+                                fontWeight: 800,
+                                color: '#38bdf8',
+                                background: 'rgba(56,189,248,0.12)',
+                                padding: '1px 7px',
+                                borderRadius: 5,
+                                border: '1px solid rgba(56,189,248,0.3)'
+                              }}>
+                                🏷️ {group.testCode}
+                              </span>
+                              {group.subject && group.subject !== '—' && (
+                                <span style={{
+                                  background: subTheme.badgeBg,
+                                  color: subTheme.badgeColor,
+                                  fontWeight: 800,
+                                  padding: '1px 7px',
+                                  borderRadius: 5,
+                                  border: `1px solid ${subTheme.border}`
+                                }}>
+                                  {group.subject}
+                                </span>
                               )}
+                              <span style={{
+                                background: typeBg,
+                                color: typeColor,
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 5,
+                                border: `1px solid ${typeColor}44`
+                              }}>
+                                {typeLabel}
+                              </span>
                             </div>
                           </div>
                         </div>
-                      );
-                    })()}
-                    {/* Progress Bar under header */}
-                    <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: 5, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${progressPct}%`,
-                          background: progressPct === 100 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #3b82f6, #38bdf8)',
-                          boxShadow: progressPct === 100 ? '0 0 10px rgba(16,185,129,0.7)' : '0 0 10px rgba(56,189,248,0.7)',
-                          transition: 'width 0.3s ease-in-out'
-                        }}
-                      />
+
+                        {/* Live Student Count Pill with Radar Pulse */}
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 7,
+                          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
+                          color: '#38bdf8',
+                          fontSize: '0.8rem',
+                          fontWeight: 900,
+                          padding: '6px 11px',
+                          borderRadius: 10,
+                          border: '1.5px solid rgba(56,189,248,0.35)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                          flexShrink: 0
+                        }}>
+                          <span className="sa-radar-pulse" />
+                          <span>👥 {group.subs.length} વિદ્યાર્થી</span>
+                        </div>
+                      </div>
+
+                      {/* 🌟 Stats Box Matrix (2x2 Grid) */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: 8,
+                        background: 'rgba(0, 0, 0, 0.25)',
+                        padding: 10,
+                        borderRadius: 12,
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                      }}>
+                        {/* Box 1: Highest */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>🏆 સર્વોચ્ચ ગુણ</span>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#fde047' }}>
+                            {highestScore} <span style={{ fontSize: '0.72rem', color: '#64748b' }}>/ {maxPossibleMarks}</span>
+                          </span>
+                        </div>
+
+                        {/* Box 2: Average */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📊 સરેરાશ</span>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#93c5fd' }}>
+                            {avgScore} <span style={{ fontSize: '0.72rem', color: '#64748b' }}>ગુણ</span>
+                          </span>
+                        </div>
+
+                        {/* Box 3: Status */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📋 પેપર સ્ટેટસ</span>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: pendingInGroup > 0 ? '#fbbf24' : '#4ade80' }}>
+                            {pendingInGroup > 0 ? `⏳ ${pendingInGroup} બાકી` : '✅ તમામ પૂર્ણ'}
+                          </span>
+                        </div>
+
+                        {/* Box 4: Progress */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>📈 પ્રગતિ</span>
+                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: progressPct === 100 ? '#4ade80' : '#38bdf8' }}>
+                            {progressPct}% <span style={{ fontSize: '0.7rem', color: '#64748b' }}>તપાસેલ</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mini Animated Progress Bar */}
+                      <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: 4, borderRadius: 3, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${progressPct}%`,
+                            background: progressPct === 100 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #3b82f6, #38bdf8)',
+                            boxShadow: progressPct === 100 ? '0 0 10px rgba(16,185,129,0.7)' : '0 0 10px rgba(56,189,248,0.7)',
+                            transition: 'width 0.3s ease-in-out'
+                          }}
+                        />
+                      </div>
+
+                      {/* Quick Action Buttons: Answer Key & Re-Calculate */}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => openMasterTestModal(group, e)}
+                          className="sa-btn-shimmer"
+                          style={{
+                            flex: 1,
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: 9,
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            fontFamily: 'Hind Vadodara, sans-serif',
+                            boxShadow: '0 4px 14px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                            transition: 'all 0.2s ease'
+                          }}
+                          title="Answer Key જુઓ/એડિટ કરો"
+                        >
+                          <Edit3 size={13} /> <span>Answer Key</span>
+                        </button>
+
+                        {group.hasMCQ && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReEvaluate(group.testCode);
+                            }}
+                            disabled={reEvaluating[group.testCode]}
+                            className="sa-btn-shimmer"
+                            style={{
+                              flex: 1,
+                              background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: 9,
+                              fontSize: '0.78rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              fontFamily: 'Hind Vadodara, sans-serif',
+                              boxShadow: '0 4px 14px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                              opacity: reEvaluating[group.testCode] ? 0.6 : 1,
+                              transition: 'all 0.2s ease'
+                            }}
+                            title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
+                          >
+                            <RotateCw size={13} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} />
+                            <span>ફરી ગણો</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* 🌟 3. Bottom Full-Width Expand / Collapse Button with Liquid Shimmer & Bouncing Arrow */}
+                    <button
+                      type="button"
+                      onClick={() => toggleTestGroup(group.testCode)}
+                      className="sa-btn-shimmer"
+                      style={{
+                        width: '100%',
+                        padding: '11px 16px',
+                        background: isOpen
+                          ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))'
+                          : subTheme.gradient,
+                        border: 'none',
+                        borderTop: '1px solid rgba(255,255,255,0.12)',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        fontFamily: 'Hind Vadodara, sans-serif',
+                        boxShadow: isOpen ? 'none' : `0 4px 14px ${subTheme.glow}`,
+                        transition: 'all 0.25s ease'
+                      }}
+                    >
+                      <span className={isOpen ? '' : 'sa-bounce-arrow'}>{isOpen ? '✕' : '▼'}</span>
+                      <span>{isOpen ? 'વિદ્યાર્થીઓ છુપાવો' : `${group.subs.length} વિદ્યાર્થીઓના પેપર્સ & જવાબો જુઓ`}</span>
+                    </button>
 
                     {/* ── Student List (collapsible) ── */}
                     {isOpen && (
@@ -9914,14 +9985,15 @@ function StudentAnswers({ showToast }) {
                   `_શુભેચ્છાઓ સહ - ત્રિનેત્ર એકેડેમી_`;
 
                 return (
-                  <div key={sub.id} className="glass-card animate-fade-in"
+                  <div key={sub.id} className="glass-card sa-stagger-card"
                     style={{
                       padding: '16px 18px',
                       borderRadius: 16,
                       border: cardBorder,
                       background: 'linear-gradient(145deg, #0e172a 0%, #090f1d 100%)',
                       transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      boxShadow: cardShadow
+                      boxShadow: cardShadow,
+                      animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s`
                     }}>
 
                     {/* Top Row: Student info + Status Badges */}
