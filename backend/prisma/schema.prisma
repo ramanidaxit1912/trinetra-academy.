@@ -54,6 +54,7 @@ model Question {
   timeLimit   Int?     // Minutes e.g. 60
   scheduledAt String?  // ISO date/time string for scheduled live test e.g. "2026-08-16T18:00"
   scheduledEndAt String? // ISO date/time string for scheduled test END/CLOSING e.g. "2026-08-16T21:00"
+  resultsPublishAt String? // ISO date/time string for scheduled results/solution/leaderboard publish e.g. "2026-08-16T22:00"
   imageUrl        String?  // Optional question image or base64 data
   image           String?  // Alias for image data
   optionA_img     String?  // Optional image for Option A
@@ -69,6 +70,7 @@ model Question {
   @@index([testCode])
   @@index([scheduledAt])
   @@index([scheduledEndAt])
+  @@index([resultsPublishAt])
   @@map("questions")
 }
 
@@ -92,6 +94,7 @@ model Submission {
   status          String   @default("COMPLETED") // "IN_PROGRESS" | "COMPLETED"
   currentIndex    Int?     @default(0)
   savedAnswers    Json?
+  customRank      Int?     // Teacher manual rank override e.g. 1
   startedAt       DateTime @default(now())
   submittedAt     DateTime @default(now())
 
@@ -169,6 +172,32 @@ model EnrolledStudent {
 
   @@index([mobile])
   @@map("enrolled_students")
+}
+
+model LeaderboardOverride {
+  id           Int      @id @default(autoincrement())
+  testCode     String   // testCode e.g. "TET2-CH3-2024" or "ALL"
+  submissionId Int?     // Linked submission id if chosen from existing
+  studentName  String   // Name displayed as leader
+  mobile       String?  // Mobile
+  score        Float    // Overridden or assigned score
+  totalMarks   Int?     // Total marks
+  rank         Int      @default(1) // Rank (e.g. 1 for topper, 2, 3...)
+  isActive     Boolean  @default(true)
+  note         String?  // Optional note
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([testCode, isActive])
+  @@map("leaderboard_overrides")
+}
+
+model WhatsAppSession {
+  id         String    @id @db.VarChar(255)
+  data       String    @db.Text
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("whatsapp_sessions")
 }
 
 

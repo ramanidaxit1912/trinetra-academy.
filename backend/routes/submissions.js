@@ -1,4 +1,5 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const prisma = require('../prismaClient');
 const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer, buildScorecardHTML, buildPragatiReportHTML } = require('../services/pdfService');
@@ -6,6 +7,33 @@ const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardS
 const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
 
 const router = express.Router();
+
+// Helper to parse scheduled time in Indian Standard Time (IST) or UTC
+function parseScheduledTime(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  if (s.includes('Z') || /[+-]\d{2}:\d{2}$/.test(s)) {
+    const t = new Date(s).getTime();
+    return isNaN(t) ? null : t;
+  }
+  const withSec = s.length === 16 ? `${s}:00` : s;
+  const t = new Date(`${withSec}+05:30`).getTime();
+  return isNaN(t) ? null : t;
+}
+
+// Helper to check if request is authenticated by a teacher
+function isTeacherRequest(req) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded && decoded.role === 'teacher';
+  } catch {
+    return false;
+  }
+}
+
 
 // Memory cache for recent generated PDF URLs: submissionId -> url (capped at 150 entries to prevent memory leak)
 const scorecardPdfUrlCache = new Map();
@@ -410,12 +438,13 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     // ⚡ Instant WhatsApp Scorecard Notification (Background, Non-blocking)
+    const resultsPublishAt = allTestQuestions.find(q => q.resultsPublishAt)?.resultsPublishAt || null;
     if (submission?.student?.mobile) {
       const cleanMob = submission.student.mobile;
       const sName = submission.student.name || 'વિદ્યાર્થી';
       const tName = submission.testName || 'કસોટી';
       const totalMarksVal = calculatedTotalMarks || total;
-      sendWhatsAppScorecardSummary(cleanMob, sName, tName, score, totalMarksVal, submission.id).catch(err => {
+      sendWhatsAppScorecardSummary(cleanMob, sName, tName, score, totalMarksVal, submission.id, resultsPublishAt).catch(err => {
         console.warn('⚠️ [Auto WhatsApp Scorecard Note]:', err.message);
       });
     }
@@ -434,7 +463,8 @@ router.post('/', authMiddleware, async (req, res) => {
         wrongCount:    submission.wrongCount,
         negativeMarks: submission.negativeMarks,
         percentage:    total > 0 ? Math.round((score / total) * 100) : null,
-        submittedAt:   submission.submittedAt
+        submittedAt:   submission.submittedAt,
+        resultsPublishAt: resultsPublishAt
       }
     });
   } catch (err) {
@@ -562,6 +592,47 @@ router.get('/review/:id', async (req, res) => {
       }
     }
 
+    // 🔒 Cheating Prevention: Check if test solution/scorecard has a scheduled future release time
+    let resultsPublishAt = null;
+    const qWithPublish = questions.find(q => q.resultsPublishAt);
+    if (qWithPublish?.resultsPublishAt) {
+      resultsPublishAt = qWithPublish.resultsPublishAt;
+    } else if (submission.testCode) {
+      const sampleQ = await prisma.question.findFirst({
+        where: { testCode: submission.testCode, resultsPublishAt: { not: null } },
+        select: { resultsPublishAt: true }
+      });
+      if (sampleQ?.resultsPublishAt) resultsPublishAt = sampleQ.resultsPublishAt;
+    }
+
+    const isTeacher = isTeacherRequest(req);
+    const pubTime = resultsPublishAt ? parseScheduledTime(resultsPublishAt) : null;
+    const isLocked = Boolean(!isTeacher && pubTime && pubTime > Date.now());
+
+    if (isLocked) {
+      return res.json({
+        isLocked: true,
+        resultsPublishAt,
+        submission: {
+          id: submission.id,
+          testCode: submission.testCode,
+          testName: submission.testName,
+          subject: submission.subject,
+          mcqScore: submission.mcqScore,
+          totalMCQ: submission.totalMCQ,
+          totalMarks: submission.totalMarks,
+          correctCount: submission.correctCount,
+          wrongCount: submission.wrongCount,
+          negativeMarks: submission.negativeMarks,
+          teacherMarks: submission.teacherMarks,
+          remarks: submission.remarks,
+          submittedAt: submission.submittedAt
+        },
+        review: [],
+        message: '⏳ આ કસોટીનું વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ નિયત સમયે જાહેર થશે.'
+      });
+    }
+
     const detailedReview = questions.map((q, idx) => {
       const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
       const selected = ans.selectedOpt || ans.text || '';
@@ -652,6 +723,58 @@ router.get('/:id/html', async (req, res) => {
           orderBy: { orderIndex: 'asc' }
         });
       }
+    }
+
+    // 🔒 Cheating Prevention: Check if test solution/scorecard has a scheduled future release time
+    let resultsPublishAt = null;
+    const qWithPublish = questions.find(q => q.resultsPublishAt);
+    if (qWithPublish?.resultsPublishAt) {
+      resultsPublishAt = qWithPublish.resultsPublishAt;
+    } else if (submission.testCode) {
+      const sampleQ = await prisma.question.findFirst({
+        where: { testCode: submission.testCode, resultsPublishAt: { not: null } },
+        select: { resultsPublishAt: true }
+      });
+      if (sampleQ?.resultsPublishAt) resultsPublishAt = sampleQ.resultsPublishAt;
+    }
+
+    const isTeacher = isTeacherRequest(req);
+    const pubTime = resultsPublishAt ? parseScheduledTime(resultsPublishAt) : null;
+    const isLocked = Boolean(!isTeacher && pubTime && pubTime > Date.now());
+
+    if (isLocked) {
+      let formattedDate = resultsPublishAt;
+      try {
+        const istDate = new Date(pubTime);
+        formattedDate = istDate.toLocaleDateString('gu-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' }) + ' ' +
+                        istDate.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+      } catch (e) {}
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>પરિણામ શિડ્યુલ થયેલ છે - ત્રિનેત્ર એકેડેમી</title>
+        </head>
+        <body style="font-family: 'Hind Vadodara', -apple-system, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;">
+          <div style="background: rgba(30, 41, 59, 0.9); border: 1.5px solid rgba(245, 158, 11, 0.4); border-radius: 20px; padding: 36px 24px; max-width: 500px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="font-size: 3rem; margin-bottom: 12px;">⏳ 🔒</div>
+            <h2 style="margin: 0 0 10px; color: #fbbf24; font-size: 1.4rem;">પરિણામ & સોલ્યુશન સુરક્ષિત છે</h2>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; margin: 0 0 20px;">
+              કસોટીમાં ચોરી અટકાવવા માટે તમામ પ્રશ્નોના વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ નિયત સમયે જાહેર થશે.
+            </p>
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+              <div style="font-size: 0.8rem; color: #94a3b8;">જાહેર થવાનો સમય:</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #f59e0b; margin-top: 4px;">📅 ${formattedDate}</div>
+            </div>
+            <div style="font-size: 0.82rem; color: #64748b;">ત્રિનેત્ર ઓનલાઇન એકેડેમી • trinetraonline.in</div>
+          </div>
+        </body>
+        </html>
+      `);
     }
 
     const detailedReview = questions.map((q, idx) => {
@@ -762,6 +885,30 @@ router.get('/:id/pdf', async (req, res) => {
           orderBy: { orderIndex: 'asc' }
         });
       }
+    }
+
+    // 🔒 Cheating Prevention: Check if test solution/scorecard has a scheduled future release time
+    let resultsPublishAt = null;
+    const qWithPublish = questions.find(q => q.resultsPublishAt);
+    if (qWithPublish?.resultsPublishAt) {
+      resultsPublishAt = qWithPublish.resultsPublishAt;
+    } else if (submission.testCode) {
+      const sampleQ = await prisma.question.findFirst({
+        where: { testCode: submission.testCode, resultsPublishAt: { not: null } },
+        select: { resultsPublishAt: true }
+      });
+      if (sampleQ?.resultsPublishAt) resultsPublishAt = sampleQ.resultsPublishAt;
+    }
+
+    const isTeacher = isTeacherRequest(req);
+    const pubTime = resultsPublishAt ? parseScheduledTime(resultsPublishAt) : null;
+    const isLocked = Boolean(!isTeacher && pubTime && pubTime > Date.now());
+
+    if (isLocked) {
+      return res.status(403).json({
+        error: 'આ કસોટીનું વિગતવાર સ્કોરકાર્ડ PDF નિયત સમયે ઉપલબ્ધ થશે.',
+        resultsPublishAt
+      });
     }
 
     const detailedReview = questions.map((q, idx) => {
@@ -1216,27 +1363,29 @@ let leaderboardCache = null;
 let leaderboardCacheTime = 0;
 let testWiseLeaderboardCache = null;
 let testWiseLeaderboardCacheTime = 0;
-const LB_CACHE_TTL = 60 * 1000; // 60 seconds cache (was 10s) — saves Supabase egress
+const LB_CACHE_TTL = 30 * 1000; // 30 seconds cache
 
 // ─── GET /api/submissions/leaderboard ────────────────────────
 // Top students by MCQ score (public) - overall with RAM Caching
 router.get('/leaderboard', async (req, res) => {
   try {
+    const isTeacher = isTeacherRequest(req);
     const now = Date.now();
-    if (leaderboardCache && (now - leaderboardCacheTime < LB_CACHE_TTL)) {
+    if (!isTeacher && leaderboardCache && (now - leaderboardCacheTime < LB_CACHE_TTL)) {
       return res.json(leaderboardCache);
     }
 
     const topSubmissions = await prisma.submission.findMany({
       where: { mcqScore: { not: null }, status: { not: 'IN_PROGRESS' } },
       orderBy: [{ mcqScore: 'desc' }, { submittedAt: 'asc' }],
-      take: 10,
+      take: 15,
       include: {
         student: { select: { name: true, mobile: true } }
       }
     });
 
-    const leaderboard = topSubmissions.map((sub, index) => ({
+    let leaderboard = topSubmissions.map((sub, index) => ({
+      submissionId: sub.id,
       rank: index + 1,
       studentName: sub.student.name,
       mobile: sub.student.mobile.slice(0, 5) + '*****',
@@ -1248,8 +1397,42 @@ router.get('/leaderboard', async (req, res) => {
       submittedAt: sub.submittedAt
     }));
 
-    leaderboardCache = leaderboard;
-    leaderboardCacheTime = now;
+    // Check for active override for ALL tests
+    const allOverride = await prisma.leaderboardOverride.findFirst({
+      where: { testCode: 'ALL', isActive: true },
+      orderBy: { rank: 'asc' }
+    });
+
+    if (allOverride) {
+      const existingIdx = leaderboard.findIndex(l => 
+        (allOverride.submissionId && l.submissionId === allOverride.submissionId) ||
+        (l.studentName && l.studentName.trim().toLowerCase() === allOverride.studentName.trim().toLowerCase())
+      );
+      let leaderItem;
+      if (existingIdx >= 0) {
+        leaderItem = { ...leaderboard[existingIdx], mcqScore: allOverride.score, isTeacherOverride: true };
+        leaderboard.splice(existingIdx, 1);
+      } else {
+        leaderItem = {
+          submissionId: allOverride.submissionId,
+          studentName: allOverride.studentName,
+          mobile: allOverride.mobile ? (allOverride.mobile.slice(0, 5) + '*****') : '******',
+          mcqScore: allOverride.score,
+          totalMCQ: allOverride.totalMarks || 100,
+          percentage: (allOverride.totalMarks && allOverride.totalMarks > 0) ? Math.round((allOverride.score / allOverride.totalMarks) * 100) : 100,
+          submittedAt: allOverride.updatedAt || allOverride.createdAt,
+          isTeacherOverride: true
+        };
+      }
+      const targetPos = Math.max(0, (allOverride.rank || 1) - 1);
+      leaderboard.splice(targetPos, 0, leaderItem);
+      leaderboard = leaderboard.slice(0, 10).map((l, idx) => ({ ...l, rank: idx + 1 }));
+    }
+
+    if (!isTeacher) {
+      leaderboardCache = leaderboard;
+      leaderboardCacheTime = now;
+    }
 
     res.json(leaderboard);
   } catch (err) {
@@ -1258,13 +1441,33 @@ router.get('/leaderboard', async (req, res) => {
 });
 
 // ─── GET /api/submissions/leaderboard/by-test ─────────────────
-// Test-wise leaderboard — grouped by testCode/testName with RAM Caching
+// Test-wise leaderboard — grouped by testCode/testName with scheduled lock & teacher override
 router.get('/leaderboard/by-test', async (req, res) => {
   try {
+    const isTeacher = isTeacherRequest(req);
     const now = Date.now();
-    if (testWiseLeaderboardCache && (now - testWiseLeaderboardCacheTime < LB_CACHE_TTL)) {
+    if (!isTeacher && testWiseLeaderboardCache && (now - testWiseLeaderboardCacheTime < LB_CACHE_TTL)) {
       return res.json(testWiseLeaderboardCache);
     }
+
+    // 1. Fetch questions with scheduled resultsPublishAt
+    const questionsWithPublish = await prisma.question.findMany({
+      where: { resultsPublishAt: { not: null } },
+      select: { testCode: true, resultsPublishAt: true }
+    });
+    const scheduledPublishMap = {};
+    questionsWithPublish.forEach(q => {
+      if (q.testCode && !scheduledPublishMap[q.testCode]) {
+        scheduledPublishMap[q.testCode] = q.resultsPublishAt;
+      }
+    });
+
+    // 2. Fetch active leaderboard overrides
+    const overrides = await prisma.leaderboardOverride.findMany({
+      where: { isActive: true },
+      orderBy: { rank: 'asc' }
+    });
+
     const allSubs = await prisma.submission.findMany({
       where: {
         mcqScore: { not: null },
@@ -1286,16 +1489,20 @@ router.get('/leaderboard/by-test', async (req, res) => {
           testName: sub.testName || key,
           subject: sub.subject || 'General',
           participants: 0,
+          isLocked: false,
+          resultsPublishAt: scheduledPublishMap[key] || null,
           leaders: []
         };
       }
       testMap[key].participants++;
-      // Only keep top 10 per test
-      if (testMap[key].leaders.length < 10) {
+      // Only keep top 15 per test for ranking
+      if (testMap[key].leaders.length < 15) {
         testMap[key].leaders.push({
+          submissionId: sub.id,
           rank: testMap[key].leaders.length + 1,
           studentName: sub.student.name,
           mobile: sub.student.mobile.slice(0, 5) + '*****',
+          rawMobile: sub.student.mobile,
           mcqScore: sub.mcqScore,
           totalMCQ: sub.totalMCQ,
           totalMarks: sub.totalMarks,
@@ -1307,13 +1514,154 @@ router.get('/leaderboard/by-test', async (req, res) => {
       }
     });
 
+    // Apply scheduled result lock and teacher overrides per test
+    Object.keys(testMap).forEach(key => {
+      const pubAt = scheduledPublishMap[key];
+      const pubTime = pubAt ? parseScheduledTime(pubAt) : null;
+      const isLocked = Boolean(!isTeacher && pubTime && pubTime > now);
+
+      if (isLocked) {
+        testMap[key].isLocked = true;
+        testMap[key].resultsPublishAt = pubAt;
+        testMap[key].leaders = []; // Conceal leaders until scheduled release time
+      } else {
+        testMap[key].isLocked = false;
+        testMap[key].resultsPublishAt = pubAt || null;
+
+        // Apply any leaderboard overrides for this testCode
+        const testOverrides = overrides.filter(o => o.testCode === key || o.testCode === 'ALL');
+        if (testOverrides.length > 0) {
+          testOverrides.forEach(ov => {
+            const existingIdx = testMap[key].leaders.findIndex(l => 
+              (ov.submissionId && l.submissionId === ov.submissionId) || 
+              (l.studentName && l.studentName.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
+            );
+
+            let leaderItem;
+            if (existingIdx >= 0) {
+              leaderItem = { 
+                ...testMap[key].leaders[existingIdx], 
+                mcqScore: ov.score,
+                isTeacherOverride: true,
+                overrideNote: ov.note
+              };
+              testMap[key].leaders.splice(existingIdx, 1);
+            } else {
+              leaderItem = {
+                submissionId: ov.submissionId,
+                studentName: ov.studentName,
+                mobile: ov.mobile ? (ov.mobile.slice(0, 5) + '*****') : '******',
+                rawMobile: ov.mobile,
+                mcqScore: ov.score,
+                totalMCQ: ov.totalMarks || 100,
+                totalMarks: ov.totalMarks || 100,
+                percentage: (ov.totalMarks && ov.totalMarks > 0) ? Math.round((ov.score / ov.totalMarks) * 100) : 100,
+                submittedAt: ov.updatedAt || ov.createdAt,
+                isTeacherOverride: true,
+                overrideNote: ov.note
+              };
+            }
+            const targetPos = Math.max(0, (ov.rank || 1) - 1);
+            testMap[key].leaders.splice(targetPos, 0, leaderItem);
+          });
+
+          // Re-index ranks
+          testMap[key].leaders = testMap[key].leaders.slice(0, 10).map((l, idx) => ({
+            ...l,
+            rank: idx + 1
+          }));
+        } else {
+          testMap[key].leaders = testMap[key].leaders.slice(0, 10);
+        }
+      }
+    });
+
     // Sort tests: most participants first
     const testList = Object.values(testMap).sort((a, b) => b.participants - a.participants);
+
+    if (!isTeacher) {
+      testWiseLeaderboardCache = testList;
+      testWiseLeaderboardCacheTime = now;
+    }
 
     res.json(testList);
   } catch (err) {
     console.error('by-test leaderboard error:', err);
     res.status(500).json({ error: 'Test-wise leaderboard fetch ભૂલ.' });
+  }
+});
+
+// ─── POST /api/submissions/leaderboard/override ──────────────
+// Teacher manually changes/sets the leader or rank for a test
+router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, res) => {
+  const { testCode, submissionId, studentName, mobile, score, totalMarks, rank, action } = req.body;
+  if (!testCode) {
+    return res.status(400).json({ error: 'testCode જરૂરી છે.' });
+  }
+
+  try {
+    // Clear RAM cache immediately
+    leaderboardCache = null;
+    leaderboardCacheTime = 0;
+    testWiseLeaderboardCache = null;
+    testWiseLeaderboardCacheTime = 0;
+
+    if (action === 'reset') {
+      await prisma.leaderboardOverride.updateMany({
+        where: { testCode },
+        data: { isActive: false }
+      });
+      return res.json({ success: true, message: 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.' });
+    }
+
+    if (!studentName || score === undefined) {
+      return res.status(400).json({ error: 'વિદ્યાર્થીનું નામ અને ગુણ જરૂરી છે.' });
+    }
+
+    const targetRank = rank ? parseInt(rank) : 1;
+
+    // Deactivate previous active override for this testCode and rank
+    await prisma.leaderboardOverride.updateMany({
+      where: { testCode, rank: targetRank },
+      data: { isActive: false }
+    });
+
+    const override = await prisma.leaderboardOverride.create({
+      data: {
+        testCode,
+        submissionId: submissionId ? parseInt(submissionId) : null,
+        studentName: studentName.trim(),
+        mobile: mobile ? String(mobile).trim() : null,
+        score: parseFloat(score),
+        totalMarks: totalMarks ? parseInt(totalMarks) : null,
+        rank: targetRank,
+        isActive: true,
+        note: 'શિક્ષક દ્વારા મેન્યુઅલ લીડર સિલેક્શન'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `👑 લીડર સફળતાપૂર્વક બદલાઈ ગયો! ${studentName} ને રેન્ક #${targetRank} પર સેટ કરવામાં આવ્યા છે.`,
+      override
+    });
+  } catch (err) {
+    console.error('Leaderboard override error:', err);
+    res.status(500).json({ error: 'લીડર બદલવામાં સર્વર ક્ષતિ: ' + (err.message || '') });
+  }
+});
+
+// ─── GET /api/submissions/leaderboard/overrides ──────────────
+// Fetch all active overrides (Teacher only)
+router.get('/leaderboard/overrides', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const overrides = await prisma.leaderboardOverride.findMany({
+      where: { isActive: true },
+      orderBy: [{ testCode: 'asc' }, { rank: 'asc' }]
+    });
+    res.json(overrides);
+  } catch (err) {
+    res.status(500).json({ error: 'Overrides fetch કરવામાં ભૂલ.' });
   }
 });
 

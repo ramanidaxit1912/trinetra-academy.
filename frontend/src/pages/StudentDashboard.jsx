@@ -5094,6 +5094,55 @@ export default function StudentDashboard() {
                 <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
                   ⏳ સોલ્યુશન લોડ થઈ રહ્યું છે...
                 </div>
+              ) : reviewData?.isLocked ? (
+                <div style={{
+                  padding: '36px 20px',
+                  textAlign: 'center',
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  borderRadius: 16,
+                  border: '2px dashed #f59e0b',
+                  margin: '12px 0'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: 12 }}>🔒</div>
+                  <h4 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#92400e', marginBottom: 8 }}>
+                    સોલ્યુશન અને આન્સર કી હાલ લૉક છે
+                  </h4>
+                  <p style={{ color: '#b45309', fontSize: '0.92rem', maxWidth: 440, margin: '0 auto 16px', lineHeight: 1.5 }}>
+                    પરીક્ષાની પારદર્શિતા અને ચોરી અટકાવવા માટે, આ કસોટીનું વિગતવાર સોલ્યુશન અને આન્સર કી નિયત સમયે જાહેર કરવામાં આવશે.
+                  </p>
+                  {reviewData?.resultsPublishAt && (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      background: '#ffffff',
+                      padding: '10px 18px',
+                      borderRadius: 12,
+                      border: '1.5px solid #fde68a',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)',
+                      fontWeight: 800,
+                      color: '#b45309',
+                      fontSize: '0.95rem'
+                    }}>
+                      <span>⏳ જાહેર થવાનો સમય:</span>
+                      <span style={{ color: '#1e3a8a' }}>
+                        {new Date(reviewData.resultsPublishAt).toLocaleString('gu-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {reviewData?.submission && (
+                    <div style={{ marginTop: 20, fontSize: '0.9rem', color: '#64748b' }}>
+                      તમારા મેળવેલ ગુણ: <strong style={{ color: '#047857', fontSize: '1.1rem' }}>{reviewData.submission.score}</strong> / {reviewData.submission.totalMarks}
+                    </div>
+                  )}
+                </div>
               ) : !reviewData?.review?.length ? (
                 <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
                   પ્રશ્ન વિગતો ઉપલબ્ધ નથી.

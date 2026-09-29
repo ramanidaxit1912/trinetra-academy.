@@ -354,9 +354,9 @@ router.post('/activate-test', authMiddleware, teacherOnly, async (req, res) => {
 });
 
 // ─── POST /api/questions/schedule-test ────────────────────────
-// Schedule single or bulk tests for future start and/or auto-end date/time
+// Schedule single or bulk tests for future start, auto-end, and/or results/solutions publish date/time
 router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
-  const { testCode, testCodes, scheduledAt, scheduledEndAt, clearAll, clearStart, clearEnd } = req.body;
+  const { testCode, testCodes, scheduledAt, scheduledEndAt, resultsPublishAt, clearAll, clearStart, clearEnd, clearResultsPublish } = req.body;
   try {
     invalidateQuestionsCache();
     const targets = Array.isArray(testCodes) ? testCodes.filter(Boolean) : (testCode ? [testCode] : []);
@@ -365,10 +365,10 @@ router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
     }
 
     // Explicit Clear Requests
-    if (clearAll || (!scheduledAt && !scheduledEndAt && req.body.clear)) {
+    if (clearAll || (!scheduledAt && !scheduledEndAt && !resultsPublishAt && req.body.clear)) {
       await prisma.question.updateMany({
         where: { testCode: { in: targets } },
-        data: { scheduledAt: null, scheduledEndAt: null }
+        data: { scheduledAt: null, scheduledEndAt: null, resultsPublishAt: null }
       });
       return res.json({
         success: true,
@@ -414,18 +414,25 @@ router.post('/schedule-test', authMiddleware, teacherOnly, async (req, res) => {
       updateData.scheduledEndAt = scheduledEndAt ? scheduledEndAt : null;
     }
 
+    // 3. Handling resultsPublishAt (Results, Solutions & Leaderboard Release Time)
+    if (clearResultsPublish) {
+      updateData.resultsPublishAt = null;
+    } else if (resultsPublishAt !== undefined) {
+      updateData.resultsPublishAt = resultsPublishAt ? resultsPublishAt : null;
+    }
+
     await prisma.question.updateMany({
       where: { testCode: { in: targets } },
       data: updateData
     });
 
     let msg = `${targets.length} કસોટી(ઓ)નું શિડ્યુલ સફળતાપૂર્વક સાચવવામાં આવ્યું!`;
-    if (updateData.scheduledEndAt && updateData.scheduledAt) {
-      msg = `⏰ ${targets.length} કસોટી(ઓ)નો શરૂ અને સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક શિડ્યુલ થયો!`;
-    } else if (updateData.scheduledEndAt) {
-      msg = `🛑 ${targets.length} કસોટી(ઓ)નો સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક શિડ્યુલ થયો!`;
-    } else if (updateData.scheduledAt) {
-      msg = `⏰ ${targets.length} કસોટી(ઓ)નો શરૂ સમય સફળતાપૂર્વક શિડ્યુલ થયો!`;
+    const parts = [];
+    if (updateData.scheduledAt) parts.push('શરૂ સમય');
+    if (updateData.scheduledEndAt) parts.push('સમાપ્તિ સમય (Auto-End)');
+    if (updateData.resultsPublishAt) parts.push('સોલ્યુશન & લીડરબોર્ડ જાહેર કરવાનો સમય');
+    if (parts.length > 0) {
+      msg = `⏰ ${targets.length} કસોટી(ઓ)નો ${parts.join(' + ')} સફળતાપૂર્વક શિડ્યુલ થયો!`;
     }
 
     res.json({
@@ -470,7 +477,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
     text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
     image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
-    scheduledAt, scheduledEndAt, negativeMarking, isEnrolledOnly
+    scheduledAt, scheduledEndAt, resultsPublishAt, negativeMarking, isEnrolledOnly
   } = req.body;
 
   try {
@@ -496,6 +503,7 @@ router.put('/:id', authMiddleware, teacherOnly, async (req, res) => {
         ...(timeLimit !== undefined && { timeLimit: parseInt(timeLimit) }),
         ...(scheduledAt !== undefined && { scheduledAt }),
         ...(scheduledEndAt !== undefined && { scheduledEndAt }),
+        ...(resultsPublishAt !== undefined && { resultsPublishAt }),
         ...(finalImage !== undefined && { imageUrl: finalImage, image: finalImage }),
         ...(optionA_img !== undefined && { optionA_img: optionA_img || null }),
         ...(optionB_img !== undefined && { optionB_img: optionB_img || null }),

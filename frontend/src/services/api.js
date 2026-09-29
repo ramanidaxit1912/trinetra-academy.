@@ -102,6 +102,8 @@ export const getSubmissionReview = (id) => api.get(`/submissions/review/${id}`);
 export const getAllSubmissions = ()      => api.get('/submissions');
 export const getLeaderboard   = ()      => api.get('/submissions/leaderboard');
 export const getTestWiseLeaderboard = () => api.get('/submissions/leaderboard/by-test');
+export const overrideLeaderboard = (data) => api.post('/submissions/leaderboard/override', data);
+export const getLeaderboardOverrides = () => api.get('/submissions/leaderboard/overrides');
 
 export const gradeSubmission  = (id, d) => api.put(`/submissions/${id}/grade`, d);
 export const reEvaluateSubmissions = (data) => api.post('/submissions/re-evaluate', data);

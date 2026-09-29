@@ -475,14 +475,45 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
 
 
 // ─── Send Scorecard Summary Link (Instant 1-second delivery, 0% Puppeteer/RAM load) ──
-async function sendWhatsAppScorecardSummary(mobile, studentName, testName, score, totalMarks, submissionId) {
+async function sendWhatsAppScorecardSummary(mobile, studentName, testName, score, totalMarks, submissionId, resultsPublishAt = null) {
   const cleanMobile = cleanIndianMobile(mobile);
   const jid = `91${cleanMobile}@s.whatsapp.net`;
   const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
   const resultStatus = pct >= 75 ? '👑 ઉત્કૃષ્ટ (PASS)' : pct >= 60 ? '🟢 પાસ (PASS)' : '🔴 સુધારો જરૂરી';
   const scorecardUrl = `https://trinetraonline.in/scorecard/${submissionId}`;
 
-  const messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સત્તાવાર સ્કોરકાર્ડ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+  // Check if results/solutions are scheduled for future release
+  let isScheduled = false;
+  let publishTimeStr = '';
+  if (resultsPublishAt) {
+    const rawTime = String(resultsPublishAt).trim();
+    let pubTime = 0;
+    if (rawTime.includes('Z') || /[+-]\d{2}:\d{2}$/.test(rawTime)) {
+      pubTime = new Date(rawTime).getTime();
+    } else {
+      const withSec = rawTime.length === 16 ? `${rawTime}:00` : rawTime;
+      pubTime = new Date(`${withSec}+05:30`).getTime();
+    }
+
+    if (pubTime && pubTime > Date.now()) {
+      isScheduled = true;
+      try {
+        const istDate = new Date(pubTime);
+        publishTimeStr = istDate.toLocaleDateString('gu-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' }) + ' ' +
+                         istDate.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+      } catch (e) {
+        publishTimeStr = String(resultsPublishAt);
+      }
+    }
+  }
+
+  // 🔒 When scheduled: only send marks to prevent cheating/answer sharing
+  let messageText = '';
+  if (isScheduled) {
+    messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા મેળવેલ ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n🔒 *ચોરી અટકાવવા સુરક્ષા:* વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ નિયત સમયે (*${publishTimeStr}*) જાહેર કરવામાં આવશે.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+  } else {
+    messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા મેળવેલ ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સત્તાવાર સ્કોરકાર્ડ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+  }
 
   if (!waSocket || connectionStatus !== 'CONNECTED') {
     return { success: false, isOffline: true, error: 'WhatsApp ઑફલાઇન છે.' };
@@ -492,10 +523,10 @@ async function sendWhatsAppScorecardSummary(mobile, studentName, testName, score
     enqueueWAMessage(async () => {
       try {
         await waSocket.sendMessage(jid, { text: messageText });
-        console.log(`✅ [WhatsApp Result Link] Sent to +91${cleanMobile} for submission #${submissionId}`);
-        resolve({ success: true, message: `પરિણામની લિંક (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` });
+        console.log(`✅ [WhatsApp Result Note] Sent to +91${cleanMobile} (Scheduled: ${isScheduled}) for submission #${submissionId}`);
+        resolve({ success: true, message: `પરિણામ વિગત (+91${cleanMobile}) WhatsApp પર મોકલાઈ ગઈ!` });
       } catch (err) {
-        console.warn('⚠️ [WhatsApp Result Link Error]:', err.message);
+        console.warn('⚠️ [WhatsApp Result Note Error]:', err.message);
         resolve({ success: false, error: err.message });
       }
     });

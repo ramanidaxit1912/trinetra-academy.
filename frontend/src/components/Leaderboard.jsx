@@ -146,14 +146,27 @@ export function LeaderboardUI({ tests = [], loading = false, currentUserName = n
               >
                 <span style={{ fontSize: '1.05rem' }}>{icon}</span>
                 <span>{t.testName}</span>
-                <span style={{
-                  background: isActive ? '#38bdf8' : '#e2e8f0',
-                  color: isActive ? '#0b1329' : '#475569',
-                  fontSize: '0.68rem', fontWeight: 900,
-                  padding: '2px 7px', borderRadius: 12
-                }}>
-                  👥 {t.participants}
-                </span>
+                {t.isLocked ? (
+                  <span style={{
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                    fontSize: '0.66rem', fontWeight: 900,
+                    padding: '2px 6px', borderRadius: 12,
+                    display: 'inline-flex', alignItems: 'center', gap: 3
+                  }}>
+                    🔒 શિડ્યુલ
+                  </span>
+                ) : (
+                  <span style={{
+                    background: isActive ? '#38bdf8' : '#e2e8f0',
+                    color: isActive ? '#0b1329' : '#475569',
+                    fontSize: '0.68rem', fontWeight: 900,
+                    padding: '2px 7px', borderRadius: 12
+                  }}>
+                    👥 {t.participants}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -191,20 +204,65 @@ export function LeaderboardUI({ tests = [], loading = false, currentUserName = n
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <h3 style={{ margin: '0 0 2px 0', fontSize: 'clamp(0.95rem, 3vw, 1.15rem)', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {activeData.testName}
+                  {activeData.testName} {activeData.isLocked ? '🔒' : ''}
                 </h3>
                 <div style={{ color: '#93c5fd', fontSize: '0.74rem', fontWeight: 700, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span>📚 {activeData.subject}</span>
                   <span style={{ opacity: 0.6 }}>•</span>
                   <span>👥 {activeData.participants} વિદ્યાર્થીઓ</span>
-                  <span style={{ opacity: 0.6 }}>•</span>
-                  <span>🏅 Top {leaders.length} Rankers</span>
+                  {activeData.isLocked ? (
+                    <>
+                      <span style={{ opacity: 0.6 }}>•</span>
+                      <span style={{ color: '#fde68a' }}>🔒 શિડ્યુલ સમય બાદ જાહેર થશે</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ opacity: 0.6 }}>•</span>
+                      <span>🏅 Top {leaders.length} Rankers</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* If no leaders */}
-            {leaders.length === 0 ? (
+            {/* If test leaderboard is locked */}
+            {activeData.isLocked ? (
+              <div style={{
+                textAlign: 'center', padding: '36px 20px', background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                borderRadius: 18, border: '2px solid #f59e0b', boxShadow: '0 4px 20px rgba(245,158,11,0.15)'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: 10 }}>⏳ 🔒</div>
+                <h4 style={{ color: '#92400e', fontWeight: 900, margin: '0 0 6px', fontSize: '1.15rem' }}>
+                  લીડરબોર્ડ નિયત સમયે જાહેર થશે!
+                </h4>
+                <p style={{ color: '#78350f', fontSize: '0.88rem', margin: '0 0 16px', lineHeight: 1.5, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
+                  કસોટીમાં ચોરી અટકાવવા માટે તમામ વિદ્યાર્થીઓનું પરિણામ, આન્સર કી અને ટોપર્સ લીડરબોર્ડ નિયત સમયે એકસાથે જાહેર કરવામાં આવશે.
+                </p>
+                {activeData.resultsPublishAt && (
+                  <div style={{
+                    display: 'inline-block',
+                    background: '#ffffff',
+                    border: '1.5px dashed #f59e0b',
+                    borderRadius: 12,
+                    padding: '8px 18px',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
+                    color: '#b45309'
+                  }}>
+                    📅 જાહેર થવાનો સમય:{' '}
+                    {(() => {
+                      try {
+                        const d = new Date(activeData.resultsPublishAt);
+                        return d.toLocaleDateString('gu-IN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Kolkata' }) + ' ' +
+                               d.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+                      } catch {
+                        return activeData.resultsPublishAt;
+                      }
+                    })()}
+                  </div>
+                )}
+              </div>
+            ) : leaders.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 34, background: 'white', borderRadius: 16, border: '1.5px solid #e2e8f0' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>📝</div>
                 <h4 style={{ color: '#0f172a', fontWeight: 900, margin: '0 0 4px' }}>હજુ કોઈ પરિણામ નથી</h4>

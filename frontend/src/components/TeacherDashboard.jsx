@@ -14,7 +14,8 @@ import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, deleteTest, updateQuestion, updateTestMeta, activateTest, scheduleTest,
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
-  getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc
+  getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
+  overrideLeaderboard, getLeaderboardOverrides
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -6820,6 +6821,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
   const [schedulingTest, setSchedulingTest]         = useState(null);
   const [scheduleDateTime, setScheduleDateTime]     = useState('');
   const [scheduleEndDateTime, setScheduleEndDateTime] = useState('');
+  const [scheduleResultsDateTime, setScheduleResultsDateTime] = useState('');
 
   // Preview & Edit modal state
   const [previewTest, setPreviewTest]           = useState(null); // Test currently in preview modal
@@ -7056,7 +7058,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
     await fetchData();
   };
 
-  // ── Schedule Test (Single or Bulk: Start & Auto-End) ────
+  // ── Schedule Test (Single or Bulk: Start, Auto-End & Results Release) ────
   const handleSaveSchedule = async () => {
     if (!schedulingTest) return;
     try {
@@ -7064,15 +7066,17 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
       const res = await scheduleTest({
         testCodes: targets,
         scheduledAt: scheduleDateTime || null,
-        scheduledEndAt: scheduleEndDateTime || null
+        scheduledEndAt: scheduleEndDateTime || null,
+        resultsPublishAt: scheduleResultsDateTime || null
       });
       showToast(
-        res.data?.message || (scheduleEndDateTime ? '🛑 સમાપ્તિ સમય (Auto-End) સફળતાપૂર્વક સેટ થયો!' : '⏰ કસોટી સફળતાપૂર્વક શિડ્યુલ થઈ!'),
+        res.data?.message || (scheduleResultsDateTime ? '🔒 પરિણામ & સોલ્યુશન જાહેર કરવાનો સમય સફળતાપૂર્વક શિડ્યુલ થયો!' : '⏰ કસોટી સફળતાપૂર્વક શિડ્યુલ થઈ!'),
         'success'
       );
       setSchedulingTest(null);
       setScheduleDateTime('');
       setScheduleEndDateTime('');
+      setScheduleResultsDateTime('');
       await fetchData();
     } catch (err) {
       showToast(err.response?.data?.error || 'શિડ્યુલ કરવામાં ક્ષતિ.', 'error');
@@ -7629,9 +7633,10 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                         setSchedulingTest(t);
                         setScheduleDateTime(t.scheduledAt || '');
                         setScheduleEndDateTime(t.scheduledEndAt || '');
+                        setScheduleResultsDateTime(t.resultsPublishAt || '');
                       }}
                         style={{
-                          background: (t.scheduledAt || t.scheduledEndAt) ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.18)',
+                          background: (t.scheduledAt || t.scheduledEndAt || t.resultsPublishAt) ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.18)',
                           border: '1.5px solid #f59e0b',
                           color: '#fef3c7',
                           padding: '10px 12px',
@@ -8262,6 +8267,82 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                 />
               </div>
 
+              {/* ── 3. RESULTS, SOLUTIONS & LEADERBOARD SCHEDULED RELEASE TIME ── */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1.5px solid rgba(59, 130, 246, 0.35)',
+                borderRadius: 14,
+                padding: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                  <label style={{ color: '#93c5fd', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>🔒 ૩. પરિણામ, સોલ્યુશન & લીડરબોર્ડ જાહેર કરવાનો સમય</span>
+                  </label>
+                  {scheduleResultsDateTime && (
+                    <button
+                      type="button"
+                      onClick={() => setScheduleResultsDateTime('')}
+                      style={{ background: 'none', border: 'none', color: '#93c5fd', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                      રીસેટ કરો (તરત જ જાહેર)
+                    </button>
+                  )}
+                </div>
+
+                <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: '0 0 10px', lineHeight: 1.45 }}>
+                  🛡️ <strong>ચોરી અટકાવવા સુરક્ષા:</strong> વિદ્યાર્થી કસોટી પૂરી કરશે ત્યારે WhatsApp પર ફક્ત મેળવેલ ગુણ જ જશે. જ્યાં સુધી આ સમય ન આવે ત્યાં સુધી વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ વિદ્યાર્થીઓ માટે લોક (સુરક્ષિત) રહેશે.
+                </p>
+
+                {/* Quick Presets for Results Release */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  {[
+                    { label: '🏁 સમાપ્તિ બાદ +15m', mins: 15, fromEnd: true },
+                    { label: '🏁 સમાપ્તિ બાદ +30m', mins: 30, fromEnd: true },
+                    { label: '🏁 સમાપ્તિ બાદ +1 કલાક', mins: 60, fromEnd: true },
+                    { label: '🌙 આજે રાત્રે 10:00', time: 'today_22' },
+                    { label: '🌅 આવતીકાલે સવારે 9:00', time: 'tomorrow_09' }
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="schedule-preset-btn"
+                      style={{ borderColor: 'rgba(59, 130, 246, 0.4)', color: '#93c5fd' }}
+                      onClick={() => {
+                        let d = new Date();
+                        if (p.fromEnd && scheduleEndDateTime) {
+                          d = new Date(new Date(scheduleEndDateTime).getTime() + p.mins * 60000);
+                        } else if (p.mins) {
+                          d = new Date(Date.now() + p.mins * 60000);
+                        } else if (p.time === 'today_22') {
+                          d.setHours(22, 0, 0, 0);
+                        } else if (p.time === 'tomorrow_09') {
+                          d.setDate(d.getDate() + 1);
+                          d.setHours(9, 0, 0, 0);
+                        }
+                        const pad = n => String(n).padStart(2, '0');
+                        setScheduleResultsDateTime(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+                      }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="datetime-local"
+                  className="input-dark"
+                  value={scheduleResultsDateTime}
+                  onChange={e => setScheduleResultsDateTime(e.target.value)}
+                  style={{
+                    padding: '10px 12px',
+                    fontSize: '0.9rem',
+                    color: '#ffffff',
+                    colorScheme: 'dark',
+                    background: '#162032',
+                    borderColor: 'rgba(59, 130, 246, 0.4)',
+                    fontWeight: 700
+                  }}
+                />
+              </div>
+
             </div>
 
             {/* Footer */}
@@ -8284,12 +8365,13 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
               </button>
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {(schedulingTest.scheduledAt || schedulingTest.scheduledEndAt) && (
+                {(schedulingTest.scheduledAt || schedulingTest.scheduledEndAt || schedulingTest.resultsPublishAt) && (
                   <button
                     type="button"
                     onClick={async () => {
                       setScheduleDateTime('');
                       setScheduleEndDateTime('');
+                      setScheduleResultsDateTime('');
                       try {
                         const targets = schedulingTest.testCodes || (schedulingTest.testCode ? [schedulingTest.testCode] : []);
                         await scheduleTest({ testCodes: targets, clearAll: true });
@@ -11515,6 +11597,28 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
   const [selectedGroupKey, setSelectedGroupKey] = useState(testGroups[0]?.key || 'ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 👑 Leader Override State
+  const [overrides, setOverrides] = useState([]);
+  const [changingLeader, setChangingLeader] = useState(false);
+  const [candidateSubId, setCandidateSubId] = useState('');
+  const [customLeaderForm, setCustomLeaderForm] = useState({ studentName: '', mobile: '', score: '', totalMarks: '', rank: 1 });
+  const [savingOverride, setSavingOverride] = useState(false);
+
+  const fetchOverrides = async () => {
+    try {
+      const res = await getLeaderboardOverrides();
+      setOverrides(res.data || []);
+    } catch (e) {
+      console.warn('Leaderboard overrides fetch note:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverrides();
+  }, []);
+
+  const activeOverride = overrides.find(o => o.testCode === selectedGroupKey && o.isActive);
+
   // If testGroups loads asynchronously, select the first test automatically
   useEffect(() => {
     if ((!selectedGroupKey || selectedGroupKey === 'ALL') && testGroups.length > 0) {
@@ -11543,7 +11647,104 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
 
   const rawSubs = activeGroup ? activeGroup.submissions : displayedSubs;
 
-  // Compute enriched ranking with tie-breaking
+  // 👑 Fast promote to Rank 1 (Topper)
+  const handleMakeLeader = async (student) => {
+    if (!student) return;
+    const sName = student.student?.name || student.studentName || 'વિદ્યાર્થી';
+    const sMob = student.student?.mobile || student.mobile || '';
+    const sScore = Number(student.score);
+    const sTotal = Number(student.totalMarks || activeGroup?.totalMarks || 100);
+
+    try {
+      setSavingOverride(true);
+      const res = await overrideLeaderboard({
+        testCode: selectedGroupKey,
+        submissionId: student.id,
+        studentName: sName,
+        mobile: sMob,
+        score: sScore,
+        totalMarks: sTotal,
+        rank: 1,
+        action: 'set'
+      });
+      showToast?.(res.data?.message || `👑 ${sName} ને ૧મો રેન્ક (Leader) બનાવવામાં આવ્યા!`, 'success');
+      triggerConfetti();
+      await fetchOverrides();
+    } catch (err) {
+      showToast?.(err.response?.data?.error || 'લીડર બદલવામાં ક્ષતિ.', 'error');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  // 🔄 Reset override back to automatic calculation
+  const handleResetLeader = async () => {
+    try {
+      setSavingOverride(true);
+      const res = await overrideLeaderboard({
+        testCode: selectedGroupKey,
+        action: 'reset'
+      });
+      showToast?.(res.data?.message || 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.', 'info');
+      await fetchOverrides();
+    } catch (err) {
+      showToast?.(err.response?.data?.error || 'રીસેટ કરવામાં ક્ષતિ.', 'error');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  // 💾 Custom Leader Submit from modal
+  const handleSaveCustomLeader = async () => {
+    try {
+      setSavingOverride(true);
+      let sName = customLeaderForm.studentName;
+      let sMob = customLeaderForm.mobile;
+      let sScore = customLeaderForm.score;
+      let sTotal = customLeaderForm.totalMarks || (activeGroup?.totalMarks || 100);
+      let subId = null;
+
+      if (candidateSubId) {
+        const found = rawSubs.find(s => String(s.id) === String(candidateSubId));
+        if (found) {
+          subId = found.id;
+          if (!sName) sName = found.student?.name;
+          if (!sMob) sMob = found.student?.mobile;
+          if (sScore === '') sScore = found.mcqScore ?? found.score;
+        }
+      }
+
+      if (!sName || sScore === '') {
+        showToast?.('કૃપા કરીને વિદ્યાર્થીનું નામ અને ગુણ દાખલ કરો.', 'error');
+        setSavingOverride(false);
+        return;
+      }
+
+      const res = await overrideLeaderboard({
+        testCode: selectedGroupKey,
+        submissionId: subId,
+        studentName: sName,
+        mobile: sMob,
+        score: parseFloat(sScore),
+        totalMarks: parseInt(sTotal),
+        rank: parseInt(customLeaderForm.rank) || 1,
+        action: 'set'
+      });
+
+      showToast?.(res.data?.message || '👑 લીડર સફળતાપૂર્વક અપડેટ થયો!', 'success');
+      triggerConfetti();
+      setChangingLeader(false);
+      setCandidateSubId('');
+      setCustomLeaderForm({ studentName: '', mobile: '', score: '', totalMarks: '', rank: 1 });
+      await fetchOverrides();
+    } catch (err) {
+      showToast?.(err.response?.data?.error || 'લીડર અપડેટ કરવામાં ક્ષતિ.', 'error');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  // Compute enriched ranking with tie-breaking and teacher overrides
   const rankedStudents = useMemo(() => {
     if (!rawSubs || rawSubs.length === 0) return [];
 
@@ -11579,16 +11780,42 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
     });
 
     // Multi-factor sorting:
-    // 1. Score desc
-    // 2. Accuracy % desc
-    // 3. Duration asc (faster)
-    // 4. SubmittedAt asc
     enriched.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
       if (a.duration && b.duration && a.duration !== b.duration) return a.duration - b.duration;
       return a.submittedAt - b.submittedAt;
     });
+
+    // 👑 If teacher set a custom leader / rank override for this test
+    if (activeOverride) {
+      const matchIdx = enriched.findIndex(s => 
+        (activeOverride.submissionId && s.id === activeOverride.submissionId) ||
+        (s.student?.name && s.student.name.trim().toLowerCase() === activeOverride.studentName.trim().toLowerCase())
+      );
+      if (matchIdx >= 0) {
+        const item = { ...enriched[matchIdx], isTeacherOverride: true, score: activeOverride.score };
+        enriched.splice(matchIdx, 1);
+        const targetPos = Math.max(0, (activeOverride.rank || 1) - 1);
+        enriched.splice(targetPos, 0, item);
+      } else {
+        const customItem = {
+          id: activeOverride.submissionId || 999999,
+          student: { name: activeOverride.studentName, mobile: activeOverride.mobile },
+          score: activeOverride.score,
+          totalMarks: activeOverride.totalMarks || (activeGroup?.totalMarks || 100),
+          pct: Math.round((activeOverride.score / (activeOverride.totalMarks || 100)) * 100),
+          accuracy: 100,
+          correct: Math.round(activeOverride.score),
+          wrong: 0,
+          skipped: 0,
+          submittedAt: new Date(activeOverride.updatedAt || activeOverride.createdAt).getTime(),
+          isTeacherOverride: true
+        };
+        const targetPos = Math.max(0, (activeOverride.rank || 1) - 1);
+        enriched.splice(targetPos, 0, customItem);
+      }
+    }
 
     // Assign rank with tie detection
     let currentRank = 1;
@@ -11609,7 +11836,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
         isTied: isTiedWithPrev || isTiedWithNext
       };
     });
-  }, [rawSubs, activeGroup]);
+  }, [rawSubs, activeGroup, activeOverride]);
 
   // Filtered by student name / mobile search
   const filteredStudents = useMemo(() => {
@@ -11761,6 +11988,38 @@ ${topperList}
           >
             📢 આખું ટોપર્સ લિસ્ટ WhatsApp શેર
           </button>
+
+          {/* 👑 Teacher Leader Change Button */}
+          <button
+            onClick={() => {
+              setChangingLeader(true);
+              setCandidateSubId('');
+              setCustomLeaderForm({
+                studentName: top1?.student?.name || '',
+                mobile: top1?.student?.mobile || '',
+                score: top1 ? top1.score : '',
+                totalMarks: top1?.totalMarks || (activeGroup?.totalMarks || 100),
+                rank: 1
+              });
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+              color: 'white',
+              border: '1.5px solid #f59e0b',
+              padding: '8px 16px',
+              borderRadius: 10,
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 16px rgba(217,119,6,0.4)',
+              fontFamily: 'Hind Vadodara, sans-serif'
+            }}
+          >
+            👑 લીડર બદલો / કસ્ટમ ટોપર
+          </button>
         </div>
       </div>
 
@@ -11812,6 +12071,54 @@ ${topperList}
             );
           })}
         </div>
+
+        {/* 👑 Active Teacher Override Banner */}
+        {activeOverride && (
+          <div style={{
+            marginTop: 10,
+            background: 'linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(180,83,9,0.25) 100%)',
+            border: '1.5px solid #f59e0b',
+            borderRadius: 12,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8,
+            boxShadow: '0 4px 16px rgba(245,158,11,0.15)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fef3c7' }}>
+              <span style={{ fontSize: '1.3rem' }}>👑</span>
+              <div>
+                <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#fbbf24' }}>
+                  શિક્ષક દ્વારા નિયુક્ત લીડર (Manual Override):
+                </span>{' '}
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#ffffff' }}>
+                  {activeOverride.studentName} ({activeOverride.score}/{activeOverride.totalMarks || 100} ગુણ • રેન્ક #{activeOverride.rank})
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={handleResetLeader}
+              disabled={savingOverride}
+              style={{
+                background: 'rgba(239,68,68,0.25)',
+                border: '1px solid rgba(239,68,68,0.5)',
+                color: '#fca5a5',
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              🔄 મૂળ ક્રમ પર રીસેટ કરો
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── 📊 Test Overview Metrics ── */}
@@ -12204,6 +12511,30 @@ ${topperList}
                     </div>
                   </div>
 
+                  {/* 👑 Quick Make Rank 1 / Leader Button */}
+                  <button
+                    onClick={() => handleMakeLeader(s)}
+                    disabled={savingOverride || (s.rank === 1 && s.isTeacherOverride)}
+                    title={s.isTeacherOverride ? 'આ વિદ્યાર્થી હાલ શિક્ષક દ્વારા પસંદિત લીડર છે' : 'આ વિદ્યાર્થીને ૧મો રેન્ક (Leader/Topper) બનાવો'}
+                    style={{
+                      background: s.isTeacherOverride ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.12)',
+                      border: `1px solid ${s.isTeacherOverride ? '#f59e0b' : 'rgba(245, 158, 11, 0.35)'}`,
+                      color: s.isTeacherOverride ? '#fbbf24' : '#fde68a',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: (s.rank === 1 && s.isTeacherOverride) ? 'default' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontFamily: 'Hind Vadodara, sans-serif',
+                      flexShrink: 0
+                    }}
+                  >
+                    👑 {s.isTeacherOverride ? 'પસંદિત લીડર' : '૧મો રેન્ક બનાવો'}
+                  </button>
+
                   {/* WhatsApp Action Button */}
                   {s.student?.mobile && (
                     <a
@@ -12235,6 +12566,186 @@ ${topperList}
           </div>
         )}
       </div>
+
+      {/* ── 👑 CHANGE LEADER MODAL (PORTALED TO BODY) ── */}
+      {changingLeader && typeof document !== 'undefined' && createPortal(
+        <div className="schedule-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setChangingLeader(false); }}>
+          <div className="glass-card animate-fade-in" onClick={e => e.stopPropagation()} style={{
+            maxWidth: 500, width: '92%', background: '#0f172a', border: '1.5px solid #f59e0b',
+            borderRadius: 18, padding: 0, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 35px rgba(245,158,11,0.2)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.25) 0%, rgba(180,83,9,0.3) 100%)',
+              padding: '16px 20px', borderBottom: '1px solid rgba(245,158,11,0.3)', display: 'flex',
+              alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div>
+                <h3 style={{ color: '#fbbf24', margin: 0, fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>👑</span> કસોટી લીડર બદલો / ટોપર સેટ કરો
+                </h3>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem', marginTop: 3 }}>
+                  {activeGroup?.testName || 'કસોટી'} ({selectedGroupKey})
+                </div>
+              </div>
+              <button onClick={() => setChangingLeader(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: 30, height: 30, borderRadius: 8, cursor: 'pointer', fontWeight: 900 }}>✕</button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, lineHeight: 1.5 }}>
+                અહીંથી તમે કોઈપણ વિદ્યાર્થીને પસંદ કરીને આ કસોટીના ૧લા નંબર (Topper/Leader) બનાવી શકો છો, અથવા તેમના ગુણ અને રેન્કમાં ફેરફાર કરી શકો છો.
+              </p>
+
+              {/* 1. Select Existing Student Dropdown */}
+              <div>
+                <label style={{ display: 'block', color: '#fef08a', fontSize: '0.82rem', fontWeight: 800, marginBottom: 6 }}>
+                  ૧. કસોટી આપનાર વિદ્યાર્થીઓમાંથી પસંદ કરો:
+                </label>
+                <select
+                  className="input-dark"
+                  value={candidateSubId}
+                  onChange={e => {
+                    const id = e.target.value;
+                    setCandidateSubId(id);
+                    if (id) {
+                      const found = rawSubs.find(s => String(s.id) === String(id));
+                      if (found) {
+                        setCustomLeaderForm({
+                          studentName: found.student?.name || '',
+                          mobile: found.student?.mobile || '',
+                          score: found.mcqScore ?? found.score ?? 0,
+                          totalMarks: found.totalMarks || (activeGroup?.totalMarks || 100),
+                          rank: 1
+                        });
+                      }
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem' }}
+                >
+                  <option value="">-- વિદ્યાર્થી પસંદ કરો (અથવા નીચે જાતે લખો) --</option>
+                  {rawSubs.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.student?.name || 'વિદ્યાર્થી'} ({s.student?.mobile}) — {s.mcqScore ?? s.score} ગુણ
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Custom Name */}
+              <div>
+                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700, marginBottom: 5 }}>
+                  વિદ્યાર્થીનું નામ:
+                </label>
+                <input
+                  className="input-dark"
+                  placeholder="વિદ્યાર્થીનું નામ લખો..."
+                  value={customLeaderForm.studentName}
+                  onChange={e => setCustomLeaderForm(p => ({ ...p, studentName: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* 3. Mobile Number */}
+              <div>
+                <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700, marginBottom: 5 }}>
+                  મોબાઇલ નંબર (વૈકલ્પિક):
+                </label>
+                <input
+                  className="input-dark"
+                  placeholder="10 અંકનો મોબાઇલ નંબર..."
+                  value={customLeaderForm.mobile}
+                  onChange={e => setCustomLeaderForm(p => ({ ...p, mobile: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* 4. Score and Total Marks Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700, marginBottom: 5 }}>
+                    મેળવેલ ગુણ (Score):
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input-dark"
+                    placeholder="ગુણ e.g. 50"
+                    value={customLeaderForm.score}
+                    onChange={e => setCustomLeaderForm(p => ({ ...p, score: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700, marginBottom: 5 }}>
+                    રેન્ક (Rank):
+                  </label>
+                  <select
+                    className="input-dark"
+                    value={customLeaderForm.rank}
+                    onChange={e => setCustomLeaderForm(p => ({ ...p, rank: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem' }}
+                  >
+                    <option value={1}>🥇 ૧મો રેન્ક (Leader / Topper)</option>
+                    <option value={2}>🥈 ૨જો રેન્ક (Silver)</option>
+                    <option value={3}>🥉 ૩જો રેન્ક (Bronze)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 20px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8
+            }}>
+              <button
+                type="button"
+                onClick={() => setChangingLeader(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.15)',
+                  padding: '9px 16px', borderRadius: 9, cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem'
+                }}
+              >
+                રદ કરો
+              </button>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {activeOverride && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleResetLeader();
+                      setChangingLeader(false);
+                    }}
+                    disabled={savingOverride}
+                    style={{
+                      background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)',
+                      padding: '9px 14px', borderRadius: 9, cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem'
+                    }}
+                  >
+                    🔄 મૂળ ક્રમ પર રીસેટ કરો
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveCustomLeader}
+                  disabled={savingOverride}
+                  style={{
+                    background: 'linear-gradient(135deg, #d97706, #f59e0b)', color: 'white', border: 'none',
+                    padding: '9px 20px', borderRadius: 9, cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem',
+                    boxShadow: '0 4px 14px rgba(245,158,11,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6
+                  }}
+                >
+                  <CheckCircle size={15} /> {savingOverride ? 'સાચવી રહ્યા છીએ...' : '💾 લીડર સાચવો'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

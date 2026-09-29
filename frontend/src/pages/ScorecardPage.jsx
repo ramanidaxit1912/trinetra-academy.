@@ -159,6 +159,130 @@ export default function ScorecardPage() {
     );
   }
 
+  if (data?.isLocked) {
+    const publishDateStr = data.resultsPublishAt 
+      ? new Date(data.resultsPublishAt).toLocaleString('gu-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      : null;
+
+    return (
+      <div style={{ minHeight: '100vh', background: '#0b1329', color: '#f8fafc', paddingBottom: 60, fontFamily: 'Plus Jakarta Sans, Noto Sans Gujarati, sans-serif' }}>
+        <Navbar />
+        <div style={{ maxWidth: 640, margin: '50px auto', padding: '0 16px', textAlign: 'center' }}>
+          <div style={{
+            background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+            border: '2px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: 24,
+            padding: '40px 24px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'rgba(245, 158, 11, 0.15)',
+              border: '2px solid rgba(245, 158, 11, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.5rem',
+              margin: '0 auto 20px'
+            }}>
+              🔒
+            </div>
+
+            <span style={{
+              display: 'inline-block',
+              background: 'rgba(245, 158, 11, 0.2)',
+              color: '#fef08a',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              padding: '6px 16px',
+              borderRadius: 20,
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              marginBottom: 16
+            }}>
+              વિગતવાર સ્કોરકાર્ડ & સોલ્યુશન લૉક છે
+            </span>
+
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', marginBottom: 6 }}>
+              {data.submission?.testName || 'ટેસ્ટ પરિણામ'}
+            </h2>
+            <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: 20 }}>
+              વિદ્યાર્થી: <strong style={{ color: '#38bdf8' }}>{data.submission?.student?.name || 'વિદ્યાર્થી'}</strong>
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: 500, margin: '0 auto 24px' }}>
+              પરીક્ષાની પારદર્શિતા જાળવવા અને પેપર લીક / ચોરી અટકાવવા માટે તમામ વિદ્યાર્થીઓનું વિગતવાર સોલ્યુશન, આન્સર કી અને રેન્ક કાર્ડ નિર્ધારિત સમયે જ જાહેર કરવામાં આવશે.
+            </p>
+
+            {publishDateStr && (
+              <div style={{
+                background: 'rgba(30, 58, 138, 0.35)',
+                border: '1.5px solid rgba(96, 165, 250, 0.4)',
+                borderRadius: 16,
+                padding: '16px 20px',
+                marginBottom: 24,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>⏳</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#93c5fd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    પરિણામ જાહેર થવાનો શિડ્યુલ સમય
+                  </div>
+                  <div style={{ fontSize: '1.05rem', color: '#ffffff', fontWeight: 900 }}>
+                    {publishDateStr}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {data.submission && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 14,
+                padding: '16px',
+                maxWidth: 360,
+                margin: '0 auto 28px'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: 4 }}>તમારા મેળવેલ પ્રાથમિક ગુણ</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#34d399' }}>
+                  {data.submission.score} <span style={{ fontSize: '1rem', color: '#94a3b8', fontWeight: 600 }}>/ {data.submission.totalMarks}</span>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Link to="/student" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#2563eb',
+                color: '#ffffff',
+                padding: '12px 28px',
+                borderRadius: 12,
+                fontWeight: 800,
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)'
+              }}>
+                ← વિદ્યાર્થી ડેશબોર્ડ પર પાછા જાઓ
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { submission, review = [] } = data;
   const student = submission.student || {};
   const totalQ = review.length || submission.totalMCQ || 1;
