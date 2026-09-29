@@ -94,6 +94,7 @@ export default function ExamEngine({ onFinish }) {
       return saved ? Number(saved) : 0;
     } catch (_) { return 0; }
   });
+  const [isBlackoutShield, setIsBlackoutShield] = useState(false);
   const screenshotViolationsRef = useRef([]);
   const lastScreenshotAttemptTime = useRef(0);
   const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
@@ -176,6 +177,10 @@ export default function ExamEngine({ onFinish }) {
 
   // ─── 📸 Anti-Screenshot & Proctoring Violation Handler ──────────
   const recordScreenshotViolation = useCallback(() => {
+    // 🛡️ Immediately activate pitch-black privacy shield so any screen grab is 100% black
+    setIsBlackoutShield(true);
+    setTimeout(() => setIsBlackoutShield(false), 1600);
+
     const now = Date.now();
     // 2-second debounce to prevent multiple triggers from keydown + keyup + blur
     if (now - lastScreenshotAttemptTime.current < 2000) return;
@@ -272,6 +277,8 @@ export default function ExamEngine({ onFinish }) {
         (isCtrlOrCmd && ['p', 'P'].includes(e.key)) ||
         (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key))
       ) {
+        setIsBlackoutShield(true);
+        setTimeout(() => setIsBlackoutShield(false), 1600);
         e.preventDefault();
         e.stopPropagation();
         recordScreenshotViolation();
@@ -298,6 +305,8 @@ export default function ExamEngine({ onFinish }) {
     // 📸 KeyUp listener for PrintScreen (as some browsers only fire on keyup)
     const handleKeyUp = (e) => {
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        setIsBlackoutShield(true);
+        setTimeout(() => setIsBlackoutShield(false), 1600);
         e.preventDefault();
         e.stopPropagation();
         recordScreenshotViolation();
@@ -309,6 +318,18 @@ export default function ExamEngine({ onFinish }) {
       e.preventDefault();
       recordScreenshotViolation();
     };
+
+    // 🎥 Intercept & Disable Screen Recording / Capture API
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      try {
+        navigator.mediaDevices.getDisplayMedia = async function() {
+          setIsBlackoutShield(true);
+          setTimeout(() => setIsBlackoutShield(false), 1600);
+          recordScreenshotViolation();
+          throw new Error('Screen capture is strictly disabled during Trinetra Academy exams.');
+        };
+      } catch (_) {}
+    }
 
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
@@ -513,7 +534,10 @@ export default function ExamEngine({ onFinish }) {
       // ONLY trigger when document is hidden (user switched tabs, minimized, or opened another app)
       // Never trigger on mobile scrolling, touches, virtual keyboard, or window blur!
       if (document.hidden || document.visibilityState === 'hidden') {
+        setIsBlackoutShield(true);
         recordViolation();
+      } else {
+        setTimeout(() => setIsBlackoutShield(false), 300);
       }
     };
 
@@ -732,7 +756,88 @@ export default function ExamEngine({ onFinish }) {
   }).length;
 
   return (
-    <div className="exam-layout" style={{ userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none' }}>
+    <div className="exam-layout" style={{ userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', WebkitTouchCallout: 'none', position: 'relative' }}>
+      <style>{`
+        @media print {
+          html, body, #root, .exam-layout, * {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
+      `}</style>
+
+      {/* 🛡️ Pitch-Black Instant Privacy Shield (Guarantees zero question capture on any screenshot/screen snip) */}
+      {isBlackoutShield && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999999,
+          background: '#000000',
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          textAlign: 'center',
+          userSelect: 'none'
+        }}>
+          <div style={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '2px solid #ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2.5rem',
+            marginBottom: 16
+          }}>
+            🛡️
+          </div>
+          <h2 style={{ fontSize: '1.4rem', color: '#f87171', fontWeight: 900, margin: '0 0 10px 0' }}>
+            સ્ક્રીનશોટ બ્લોક કરેલ છે! (Screenshot Blocked)
+          </h2>
+          <p style={{ color: '#cbd5e1', fontSize: '0.95rem', maxWidth: 420, lineHeight: 1.6, margin: 0 }}>
+            સુરક્ષા કારણોસર પરીક્ષા દરમિયાન સ્ક્રીનશોટ પાડવાની સખત મનાઈ છે.
+          </p>
+        </div>
+      )}
+
+      {/* 🛡️ Dynamic Anti-Leak Diagonal Watermark Layer */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 4,
+          overflow: 'hidden',
+          opacity: 0.05,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gap: '80px 40px',
+          padding: 20,
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
+        }}
+      >
+        {Array.from({ length: 48 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              transform: 'rotate(-25deg)',
+              fontSize: '0.85rem',
+              fontWeight: 900,
+              color: '#000000',
+              whiteSpace: 'nowrap',
+              letterSpacing: '1px'
+            }}
+          >
+            TRINETRA • {user?.name || 'STUDENT'} • {user?.mobile || ''}
+          </div>
+        ))}
+      </div>
 
       {/* ── Main Question Area ── */}
       <div className="exam-main">
