@@ -81,13 +81,21 @@ export default function ExamEngine({ onFinish }) {
   const [showPalette, setShowPalette] = useState(false);
   const [lockedToast, setLockedToast] = useState('');
   const [securityWarning, setSecurityWarning] = useState('');
-  const [securityModal, setSecurityModal] = useState(null); // { strike, title, message, color, autoSubmit }
+  const [securityModal, setSecurityModal] = useState(null); // { strike, title, message, color, autoSubmit, type, questionNumber }
   const [tabSwitchCount, setTabSwitchCount] = useState(() => {
     try {
       const saved = localStorage.getItem(`trinetra_tab_switch_${user?.mobile || 'guest'}_${activeTestCode}`);
       return saved ? Number(saved) : 0;
     } catch (_) { return 0; }
   });
+  const [screenshotCount, setScreenshotCount] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`trinetra_ss_count_${user?.mobile || 'guest'}_${activeTestCode}`);
+      return saved ? Number(saved) : 0;
+    } catch (_) { return 0; }
+  });
+  const screenshotViolationsRef = useRef([]);
+  const lastScreenshotAttemptTime = useRef(0);
   const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [showReconnectedToast, setShowReconnectedToast] = useState(false);
@@ -166,7 +174,83 @@ export default function ExamEngine({ onFinish }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentIndex]);
 
-  // ─── 🛡️ Anti-Cheat & Copy Protection Engine ────────────────
+  // ─── 📸 Anti-Screenshot & Proctoring Violation Handler ──────────
+  const recordScreenshotViolation = useCallback(() => {
+    const now = Date.now();
+    // 2-second debounce to prevent multiple triggers from keydown + keyup + blur
+    if (now - lastScreenshotAttemptTime.current < 2000) return;
+    lastScreenshotAttemptTime.current = now;
+
+    // Blank out clipboard immediately so any captured text or clip is wiped
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText('🚫 સ્ક્રીનશોટ પાડવાની સખત મનાઈ છે! / Screenshots are not allowed.').catch(() => {});
+      }
+    } catch (_) {}
+
+    const qNum = currentIndex + 1;
+    const qId = currentQ?.id;
+    screenshotViolationsRef.current.push({
+      questionIndex: currentIndex,
+      questionNumber: qNum,
+      questionId: qId,
+      timestamp: now
+    });
+
+    setScreenshotCount(prev => {
+      const next = prev + 1;
+      try {
+        localStorage.setItem(`trinetra_ss_count_${user?.mobile || 'guest'}_${activeTestCode}`, String(next));
+      } catch (_) {}
+
+      if (next === 1) {
+        playAlertBeep(800, 2);
+        setSecurityWarning(`📸 ચેતવણી (૧/૩): પ્રશ્ન નં. ${qNum} પર સ્ક્રીનશોટ પાડવાની મનાઈ છે!`);
+        setSecurityModal({
+          strike: 1,
+          type: 'screenshot',
+          questionNumber: qNum,
+          title: '📸 સ્ક્રીનશોટ પાડવાની સખત મનાઈ છે! (Strike 1 / 3)',
+          message: `પ્રશ્ન નં. ${qNum} પર સ્ક્રીનશોટ પાડવાનો પ્રયાસ નોંધાયો છે! આ વિગત શિક્ષકના ડેશબોર્ડમાં દેખાશે. કસોટી શિસ્ત જાળવી રાખો અને ફરી સ્ક્રીનશોટ ન પાડો.`,
+          color: '#d97706',
+          autoSubmit: false
+        });
+      } else if (next === 2) {
+        playAlertBeep(950, 3);
+        setSecurityWarning(`🚨 આખરી ચેતવણી (૨/૩): પ્રશ્ન નં. ${qNum} પર ફરી સ્ક્રીનશોટનો પ્રયાસ!`);
+        setSecurityModal({
+          strike: 2,
+          type: 'screenshot',
+          questionNumber: qNum,
+          title: '🚨 આખરી ચેતવણી: સ્ક્રીનશોટ પ્રતિબંધિત છે! (Strike 2 / 3)',
+          message: `પ્રશ્ન નં. ${qNum} પર ફરીથી સ્ક્રીનશોટ પાડવાનો પ્રયાસ થયો! જો તમે હવે એક પણ વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કરશો, તો તમારી કસોટી તરત જ આપોઆપ સબમિટ થઈ જશે!`,
+          color: '#dc2626',
+          autoSubmit: false
+        });
+      } else {
+        playAlertBeep(1200, 4);
+        setSecurityWarning('🛑 નિયમભંગ: ૩ વાર સ્ક્રીનશોટ પાડવા બદલ પરીક્ષા આપમેળે સબમિટ થઈ રહી છે...');
+        setSecurityModal({
+          strike: 3,
+          type: 'screenshot',
+          questionNumber: qNum,
+          title: '🛑 પરીક્ષા આપોઆપ સબમિટ થઈ રહી છે...',
+          message: `નિયમભંગ: તમે કસોટી દરમિયાન ૩ વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો છે (તાજેતરમાં પ્રશ્ન નં. ${qNum}). પરીક્ષા નીતિ મુજબ તમારી કસોટી આપમેળે સબમિટ કરવામાં આવી રહી છે.`,
+          color: '#991b1b',
+          autoSubmit: true
+        });
+        setTimeout(() => {
+          onFinish(true, tabSwitchCount, {
+            screenshotCount: 3,
+            screenshotViolations: screenshotViolationsRef.current
+          });
+        }, 2500);
+      }
+      return next;
+    });
+  }, [currentIndex, currentQ?.id, user?.mobile, activeTestCode, onFinish, tabSwitchCount]);
+
+  // ─── 🛡️ Anti-Cheat, Copy & Screenshot Protection Engine ───────
   useEffect(() => {
     // 1. Block Context Menu (Right Click)
     const handleContextMenu = (e) => {
@@ -176,9 +260,24 @@ export default function ExamEngine({ onFinish }) {
       return false;
     };
 
-    // 2. Block Keyboard Shortcuts (Copy, Cut, Paste, Print, Select All, DevTools)
+    // 2. Block Keyboard Shortcuts (PrintScreen, Snipping Tool, Print, Copy, DevTools)
     const handleKeyDown = (e) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      // 📸 Screenshot & Screen Snip Detection (PrintScreen, Ctrl+P, Win+Shift+S, Cmd+Shift+3/4/5)
+      if (
+        e.key === 'PrintScreen' ||
+        e.keyCode === 44 ||
+        (isCtrlOrCmd && e.shiftKey && ['s', 'S'].includes(e.key)) ||
+        (isCtrlOrCmd && ['p', 'P'].includes(e.key)) ||
+        (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        recordScreenshotViolation();
+        return false;
+      }
+
       // F12 or Ctrl+Shift+I / J / C (DevTools)
       if (e.key === 'F12' || (isCtrlOrCmd && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key))) {
         e.preventDefault();
@@ -186,48 +285,43 @@ export default function ExamEngine({ onFinish }) {
         setTimeout(() => setSecurityWarning(''), 3000);
         return false;
       }
-      // Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+P, Ctrl+U
-      if (isCtrlOrCmd && ['c', 'C', 'v', 'V', 'x', 'X', 'a', 'A', 'p', 'P', 'u', 'U', 's', 'S'].includes(e.key)) {
+
+      // Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+U, Ctrl+S
+      if (isCtrlOrCmd && ['c', 'C', 'v', 'V', 'x', 'X', 'a', 'A', 'u', 'U', 's', 'S'].includes(e.key)) {
         e.preventDefault();
-        setSecurityWarning('🔒 કસોટી સુરક્ષા: કોપી / પેસ્ટ / પ્રિન્ટ / સિલેક્ટ પ્રતિબંધિત છે.');
+        setSecurityWarning('🔒 કસોટી સુરક્ષા: કોપી / પેસ્ટ / સેવ પ્રતિબંધિત છે.');
         setTimeout(() => setSecurityWarning(''), 3000);
         return false;
       }
     };
 
-    // 3. Tab Switch / Window Blur Detection
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setTabSwitchCount(prev => {
-          const next = prev + 1;
-          setSecurityWarning(`⚠️ ચેતવણી #${next}: કસોટી દરમિયાન ટેબ બદલવી કે અન્ય વિન્ડોમાં જવાની સખત મનાઈ છે!`);
-          setTimeout(() => setSecurityWarning(''), 5000);
-          return next;
-        });
+    // 📸 KeyUp listener for PrintScreen (as some browsers only fire on keyup)
+    const handleKeyUp = (e) => {
+      if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        e.preventDefault();
+        e.stopPropagation();
+        recordScreenshotViolation();
       }
     };
 
-    const handleWindowBlur = () => {
-      setTabSwitchCount(prev => {
-        const next = prev + 1;
-        setSecurityWarning(`⚠️ ચેતવણી #${next}: કસોટી સ્ક્રીન બહાર જવાની મનાઈ છે.`);
-        setTimeout(() => setSecurityWarning(''), 4000);
-        return next;
-      });
+    // 🔒 Block Clipboard Copy event
+    const handleCopy = (e) => {
+      e.preventDefault();
+      recordScreenshotViolation();
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
+    document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('copy', handleCopy);
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('copy', handleCopy);
     };
-  }, []);
+  }, [recordScreenshotViolation]);
 
   // ─── Save qTimeLeftMap to LocalStorage ───────────────────────
   useEffect(() => {
@@ -355,14 +449,14 @@ export default function ExamEngine({ onFinish }) {
     };
   }, [user, activeTestCode, activeTestName, activeSubject, currentIndex]);
 
-  // ─── 🛡️ Anti-Cheating: Tab Switch & Window Blur Detection (3-Strike Rule) ───
+  // ─── 🛡️ Anti-Cheating: Real Tab Switch Detection (3-Strike Rule, NO FALSE MOBILE BLURS) ───
   useEffect(() => {
     let lastViolationTime = 0;
 
     const recordViolation = () => {
       const now = Date.now();
-      // Debounce: prevent multiple triggers from blur + visibilitychange within 2 seconds
-      if (now - lastViolationTime < 2000) return;
+      // Debounce: prevent multiple triggers from rapid visibility changes within 2.5 seconds
+      if (now - lastViolationTime < 2500) return;
       lastViolationTime = now;
 
       setTabSwitchCount(prev => {
@@ -376,6 +470,7 @@ export default function ExamEngine({ onFinish }) {
           setSecurityWarning('⚠️ પ્રથમ ચેતવણી (૧/૩): તમે પરીક્ષા સ્ક્રીન છોડી હતી!');
           setSecurityModal({
             strike: 1,
+            type: 'tab_switch',
             title: '⚠️ પ્રથમ ચેતવણી (Strike 1 / 3)',
             message: 'તમે પરીક્ષા સ્ક્રીન છોડી દીધી હતી! કૃપા કરીને પરીક્ષા દરમિયાન અન્ય કોઈ ટેબ, એપ્લિકેશન કે ગૂગલ ન ખોલો.',
             color: '#d97706',
@@ -386,6 +481,7 @@ export default function ExamEngine({ onFinish }) {
           setSecurityWarning('🚨 આખરી ચેતવણી (૨/૩): હવે ફરીથી સ્ક્રીન બદલશો તો ટેસ્ટ આપોઆપ સબમિટ થશે!');
           setSecurityModal({
             strike: 2,
+            type: 'tab_switch',
             title: '🚨 આખરી ચેતવણી (Strike 2 / 3)',
             message: 'આ તમારી છેલ્લી ચેતવણી છે! જો તમે ફરીથી એક પણ વાર સ્ક્રીન બદલશો કે અન્ય એપ ખોલશો, તો તમારી કસોટી આપોઆપ સબમિટ થઈ જશે!',
             color: '#dc2626',
@@ -396,37 +492,37 @@ export default function ExamEngine({ onFinish }) {
           setSecurityWarning('🛑 નિયમભંગ: ૩ વાર સ્ક્રીન છોડવા બદલ પરીક્ષા આપમેળે સબમિટ થઈ રહી છે...');
           setSecurityModal({
             strike: 3,
+            type: 'tab_switch',
             title: '🛑 પરીક્ષા આપોઆપ સબમિટ થઈ રહી છે...',
             message: 'નિયમભંગ: તમે ૩ વાર પરીક્ષા સ્ક્રીન છોડી છે. પરીક્ષા શિસ્ત અને સુરક્ષા નીતિ અનુસાર તમારી કસોટી આપમેળે સબમિટ કરવામાં આવી છે.',
             color: '#991b1b',
             autoSubmit: true
           });
           setTimeout(() => {
-            onFinish(true, 3);
-          }, 3000);
+            onFinish(true, 3, {
+              screenshotCount,
+              screenshotViolations: screenshotViolationsRef.current
+            });
+          }, 2500);
         }
         return next;
       });
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden) {
+      // ONLY trigger when document is hidden (user switched tabs, minimized, or opened another app)
+      // Never trigger on mobile scrolling, touches, virtual keyboard, or window blur!
+      if (document.hidden || document.visibilityState === 'hidden') {
         recordViolation();
       }
     };
 
-    const handleBlur = () => {
-      recordViolation();
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
     };
-  }, [activeTestCode, user, onFinish]);
+  }, [activeTestCode, user, onFinish, screenshotCount]);
 
   // ─── Auto-advance when Per-Question Timer hits 0 ────────────
   const goNextAuto = useCallback(() => {
@@ -439,10 +535,13 @@ export default function ExamEngine({ onFinish }) {
         }
       }
       // If no further unexpired questions, finish test
-      onFinish();
+      onFinish(false, tabSwitchCount, {
+        screenshotCount,
+        screenshotViolations: screenshotViolationsRef.current
+      });
       return prev;
     });
-  }, [totalQ, onFinish, setCurrentIndex, qTimeLeftMap]);
+  }, [totalQ, onFinish, setCurrentIndex, qTimeLeftMap, tabSwitchCount, screenshotCount]);
 
   // ─── Timer Countdown Logic ─────────────────────────────────
   // 1. If TOTAL TEST TIMER: countdown runs for entire test continuously across questions
@@ -453,7 +552,10 @@ export default function ExamEngine({ onFinish }) {
       setTotalTestTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          onFinish();
+          onFinish(false, tabSwitchCount, {
+            screenshotCount,
+            screenshotViolations: screenshotViolationsRef.current
+          });
           return 0;
         }
         return prev - 1;
@@ -461,7 +563,7 @@ export default function ExamEngine({ onFinish }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTotalTestTimer, onFinish]);
+  }, [isTotalTestTimer, onFinish, tabSwitchCount, screenshotCount]);
 
   // 2. If PER-QUESTION TIMER: counts down for current question index
   useEffect(() => {
@@ -533,7 +635,10 @@ export default function ExamEngine({ onFinish }) {
         alert('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\n\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ પેપર સબમિટ થઈ જશે.');
         return;
       }
-      onFinish(false, tabSwitchCount);
+      onFinish(false, tabSwitchCount, {
+        screenshotCount,
+        screenshotViolations: screenshotViolationsRef.current
+      });
     } else {
       // Find the next available unexpired question
       let targetNext = currentIndex + 1;
@@ -543,14 +648,17 @@ export default function ExamEngine({ onFinish }) {
         }
       }
       if (targetNext >= totalQ) {
-        onFinish(false, tabSwitchCount);
+        onFinish(false, tabSwitchCount, {
+          screenshotCount,
+          screenshotViolations: screenshotViolationsRef.current
+        });
       } else {
         playSlideWhoosh();
         setSlideDirection('next');
         setCurrentIndex(targetNext);
       }
     }
-  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount, flushCurrentQuestionTime]);
+  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount, screenshotCount, flushCurrentQuestionTime]);
 
   const goPrev = useCallback(() => {
     flushCurrentQuestionTime();
@@ -733,7 +841,7 @@ export default function ExamEngine({ onFinish }) {
                 margin: '0 auto 16px auto',
                 boxShadow: `0 0 24px ${securityModal.color}30`
               }}>
-                {securityModal.strike === 3 ? '🛑' : '⚠️'}
+                {securityModal.strike === 3 ? '🛑' : (securityModal.type === 'screenshot' ? '📸' : '⚠️')}
               </div>
 
               <h3 style={{

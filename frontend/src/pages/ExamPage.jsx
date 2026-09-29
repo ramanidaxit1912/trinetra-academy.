@@ -107,6 +107,7 @@ export default function ExamPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(2);
   const [tabSwitchViolations, setTabSwitchViolations] = useState(0);
+  const [screenshotViolationsData, setScreenshotViolationsData] = useState({ screenshotCount: 0, screenshotViolations: [] });
   const [enrolledLockModal, setEnrolledLockModal] = useState({ isOpen: false, testName: '' });
   const navigate = useNavigate();
 
@@ -329,23 +330,42 @@ export default function ExamPage() {
       }
     }
 
+    // Reset violations cache for this exam session to guarantee 0 initial false strikes
+    try {
+      const firstQ = (selectedTestQuestions && selectedTestQuestions[0]) || {};
+      const targetTestCode = firstQ.testCode || (firstQ.chapter ? `CHAPTER-${firstQ.chapter}` : 'GENERAL');
+      localStorage.removeItem(`trinetra_tab_switch_${user?.mobile || 'guest'}_${targetTestCode}`);
+      localStorage.removeItem(`trinetra_ss_count_${user?.mobile || 'guest'}_${targetTestCode}`);
+    } catch (e) {}
+
+    setTabSwitchViolations(0);
+    setScreenshotViolationsData({ screenshotCount: 0, screenshotViolations: [] });
     startExam(selectedTestQuestions);
     setStep(STEPS.EXAM);
   };
 
   // ─── Exam Done → Upload Screen or Instant Auto-Submit ────
-  const handleExamFinish = (isCheatingAutoSubmit = false, violations = 0) => {
+  const handleExamFinish = (isCheatingAutoSubmit = false, violations = 0, ssData = {}) => {
     setTabSwitchViolations(violations);
+    const ssInfo = {
+      screenshotCount: ssData?.screenshotCount || 0,
+      screenshotViolations: ssData?.screenshotViolations || []
+    };
+    setScreenshotViolationsData(ssInfo);
+
     if (isCheatingAutoSubmit) {
-      handleFinalSubmit(violations);
+      handleFinalSubmit(violations, ssInfo);
     } else {
       setStep(STEPS.UPLOAD);
     }
   };
 
   // ─── Final Submit with Popup & Dashboard Redirect ─────────
-  const handleFinalSubmit = async (forcedViolations) => {
+  const handleFinalSubmit = async (forcedViolations, forcedSsData) => {
     const finalViolations = typeof forcedViolations === 'number' ? forcedViolations : tabSwitchViolations;
+    const finalSsData = forcedSsData || screenshotViolationsData || {};
+    const ssCount = Number(finalSsData.screenshotCount || 0);
+    const ssViolationsList = Array.isArray(finalSsData.screenshotViolations) ? finalSsData.screenshotViolations : [];
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setError('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ સબમિટ થઈ જશે.');
@@ -355,13 +375,18 @@ export default function ExamPage() {
     setLoading(true);
     setError('');
     try {
-      const answersArr = Object.entries(answers || {}).map(([questionId, ans]) => ({
-        questionId: Number(questionId),
-        type: ans.type || 'mcq',
-        selectedOpt: ans.selectedOpt || null,
-        answerText: ans.answerText || '',
-        timeSpent: ans.timeSpent || 0
-      })).filter(a => !isNaN(a.questionId) && a.questionId > 0);
+      const answersArr = Object.entries(answers || {}).map(([questionId, ans]) => {
+        const qIdNum = Number(questionId);
+        const hasSsAttempt = ssViolationsList.some(v => Number(v.questionId) === qIdNum);
+        return {
+          questionId: qIdNum,
+          type: ans.type || 'mcq',
+          selectedOpt: ans.selectedOpt || null,
+          answerText: ans.answerText || '',
+          timeSpent: ans.timeSpent || 0,
+          screenshotAttempt: hasSsAttempt
+        };
+      }).filter(a => !isNaN(a.questionId) && a.questionId > 0);
 
       const firstQ = (questions && questions.length > 0) ? questions[0] : (selectedTestQuestions && selectedTestQuestions[0]) || {};
       const targetTestCode = firstQ.testCode || (firstQ.chapter ? `CHAPTER-${firstQ.chapter}` : 'GENERAL');
@@ -374,13 +399,17 @@ export default function ExamPage() {
         testCode: targetTestCode,
         testName: targetTestName,
         subject:  targetSubject,
-        tabSwitchCount: finalViolations
+        tabSwitchCount: finalViolations,
+        screenshotCount: ssCount,
+        screenshotViolations: ssViolationsList
       });
 
       // Clear local storage progress upon successful completion
       try {
         localStorage.removeItem(`trinetra_exam_progress_${user?.mobile || 'guest'}_${targetTestCode}`);
         localStorage.removeItem(`trinetra_exam_q_timers_${user?.mobile || 'guest'}_${targetTestCode}`);
+        localStorage.removeItem(`trinetra_tab_switch_${user?.mobile || 'guest'}_${targetTestCode}`);
+        localStorage.removeItem(`trinetra_ss_count_${user?.mobile || 'guest'}_${targetTestCode}`);
         clearShuffledTestCache(user?.mobile, targetTestCode);
       } catch (e) {}
 

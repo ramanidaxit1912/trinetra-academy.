@@ -9517,6 +9517,30 @@ function StudentAnswers({ showToast }) {
                                 </span>
                               );
                             })()}
+                            {(() => {
+                              const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
+                              const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
+                              if (!ssMatch) return null;
+                              return (
+                                <span
+                                  title={ssQMatch ? `વિદ્યાર્થીએ સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો: ${ssQMatch[1]}` : 'કસોટી દરમિયાન સ્ક્રીનશોટ પ્રયાસ'}
+                                  style={{
+                                    color: '#f59e0b',
+                                    background: 'rgba(245,158,11,0.18)',
+                                    padding: '1px 8px',
+                                    borderRadius: 6,
+                                    fontSize: '0.74rem',
+                                    border: '1px solid rgba(245,158,11,0.4)',
+                                    fontWeight: 800,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}
+                                >
+                                  📸 {ssMatch[1]} વાર સ્ક્રીનશોટ {ssQMatch ? `(${ssQMatch[1]})` : ''}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -9910,6 +9934,10 @@ function StudentAnswers({ showToast }) {
                             const suspiciousFast = answeredItems.filter(r => (Number(r.timeSpent) || 0) > 0 && (Number(r.timeSpent) || 0) < 4);
                             const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
                             const tabSwitches = tabMatch ? parseInt(tabMatch[1], 10) : 0;
+                            const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
+                            const ssCount = ssMatch ? parseInt(ssMatch[1], 10) : 0;
+                            const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
+                            const ssQText = ssQMatch ? ssQMatch[1] : '';
 
                             const fmtTime = (s) => {
                               if (!s || s <= 0) return '0 સેકન્ડ';
@@ -9919,7 +9947,7 @@ function StudentAnswers({ showToast }) {
                               return rem > 0 ? `${m} મિનિટ ${rem} સે.` : `${m} મિનિટ`;
                             };
 
-                            const hasAlerts = suspiciousFast.length > 0 || tabSwitches > 0;
+                            const hasAlerts = suspiciousFast.length > 0 || tabSwitches > 0 || ssCount > 0;
 
                             return (
                               <div style={{
@@ -9936,13 +9964,20 @@ function StudentAnswers({ showToast }) {
                               }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.88rem', color: hasAlerts ? '#fca5a5' : '#38bdf8' }}>
-                                    <span>🛡️ એન્ટી-ચીટિંગ પ્રોક્ટરિંગ અને સમય વિશ્લેષણ (Anti-Cheating & Time Tracking)</span>
+                                    <span>🛡️ એન્ટી-ચીટિંગ પ્રોક્ટરિંગ અને સુરક્ષા વિશ્લેષણ (Anti-Cheating & Proctoring)</span>
                                   </div>
-                                  {suspiciousFast.length > 0 && (
-                                    <span style={{ background: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                      🚨 {suspiciousFast.length} શંકાસ્પદ ઝડપી ઉત્તર!
-                                    </span>
-                                  )}
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    {suspiciousFast.length > 0 && (
+                                      <span style={{ background: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        🚨 {suspiciousFast.length} શંકાસ્પદ ઝડપી ઉત્તર!
+                                      </span>
+                                    )}
+                                    {ssCount > 0 && (
+                                      <span style={{ background: '#dc2626', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        📸 {ssCount} વાર સ્ક્રીનશોટ પ્રયાસ!
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
@@ -9983,11 +10018,31 @@ function StudentAnswers({ showToast }) {
                                       {tabSwitches > 0 ? `${tabSwitches} વાર સ્વિચ કર્યું` : 'કોઈ સ્વિચ નહીં'}
                                     </div>
                                   </div>
+
+                                  <div style={{
+                                    background: ssCount > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    border: ssCount > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                  }}>
+                                    <div style={{ fontSize: '0.7rem', color: ssCount > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
+                                      📸 સ્ક્રીનશોટ પ્રયાસ:
+                                    </div>
+                                    <div style={{ fontSize: '0.88rem', color: ssCount > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                      {ssCount > 0 ? `${ssCount} વાર ${ssQText ? `(${ssQText})` : ''}` : 'કોઈ પ્રયાસ નહીં'}
+                                    </div>
+                                  </div>
                                 </div>
 
                                 {suspiciousFast.length > 0 && (
                                   <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span>⚠️ <strong>શિક્ષક માટે ચેતવણી:</strong> લાલ રંગથી દર્શાવેલા પ્રશ્નો વિદ્યાર્થીએ ૪ સેકન્ડથી પણ ઓછા સમયમાં ટીક કર્યા છે, જે સંભવિત ચોરી કે અંદાજ દર્શાવે છે.</span>
+                                  </div>
+                                )}
+
+                                {ssCount > 0 && (
+                                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>📸 <strong>સ્ક્રીનશોટ એલર્ટ:</strong> વિદ્યાર્થીએ કસોટી દરમિયાન {ssCount} વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો {ssQText ? `(${ssQText})` : ''}. જે પ્રશ્ન પર પ્રયાસ થયો તેની વિગત નીચે પ્રશ્ન કાર્ડ પર દર્શાવેલ છે.</span>
                                   </div>
                                 )}
                               </div>
@@ -10159,6 +10214,34 @@ function StudentAnswers({ showToast }) {
                                               }}
                                             >
                                               ⏱️ {badgeFmt}
+                                            </span>
+                                          );
+                                        })()}
+
+                                        {(() => {
+                                          const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
+                                          const hasSsAttempt = Boolean(item.screenshotAttempt) || (
+                                            ssQMatch && ssQMatch[1] && new RegExp(`\\b${qIdx + 1}\\b`).test(ssQMatch[1])
+                                          );
+                                          if (!hasSsAttempt) return null;
+                                          return (
+                                            <span
+                                              title={`📸 વિદ્યાર્થીએ આ પ્રશ્ન (પ્રશ્ન નં. ${qIdx + 1}) પર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો!`}
+                                              style={{
+                                                background: 'rgba(239, 68, 68, 0.25)',
+                                                color: '#f87171',
+                                                border: '1px solid rgba(239, 68, 68, 0.6)',
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                padding: '2px 8px',
+                                                borderRadius: 6,
+                                                whiteSpace: 'nowrap',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4
+                                              }}
+                                            >
+                                              📸 સ્ક્રીનશોટ પ્રયાસ!
                                             </span>
                                           );
                                         })()}

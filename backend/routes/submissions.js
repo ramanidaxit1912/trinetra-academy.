@@ -255,7 +255,7 @@ router.delete('/active-session', authMiddleware, async (req, res) => {
 // ─── POST /api/submissions ────────────────────────────────────
 // Student submits final test
 router.post('/', authMiddleware, async (req, res) => {
-  const { answers, photoUrl, testCode, testName, subject, tabSwitchCount } = req.body;
+  const { answers, photoUrl, testCode, testName, subject, tabSwitchCount, screenshotCount, screenshotViolations } = req.body;
   let studentId = req.user.id;
 
   if (!studentId) {
@@ -345,12 +345,24 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     const violations = Number(tabSwitchCount || 0);
+    const ssCount = Number(screenshotCount || 0);
+    const ssList = Array.isArray(screenshotViolations) ? screenshotViolations : [];
+    const ssQuestionNumbers = [...new Set(ssList.map(v => v.questionNumber).filter(Boolean))].sort((a, b) => a - b);
+    const ssQStr = ssQuestionNumbers.length > 0 ? ssQuestionNumbers.join(', ') : '';
+
+    const remarksParts = [];
+    if (violations > 0) {
+      remarksParts.push(`⚠️ વિદ્યાર્થીએ કસોટી દરમિયાન ${violations} વાર સ્ક્રીન સ્વિચ કરી હતી${violations >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`);
+    }
+    if (ssCount > 0) {
+      const qDetail = ssQStr ? ` (પ્રશ્ન નં. ${ssQStr})` : '';
+      remarksParts.push(`📸 વિદ્યાર્થીએ કસોટી દરમિયાન ${ssCount} વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો${qDetail}${ssCount >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`);
+    }
+
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
     const ipTag = clientIp ? `[IP: ${clientIp}]` : '';
 
-    let baseRemark = violations > 0
-      ? `⚠️ વિદ્યાર્થીએ કસોટી દરમિયાન ${violations} વાર સ્ક્રીન સ્વિચ કરી હતી${violations >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`
-      : '';
+    const baseRemark = remarksParts.join(' ');
     const finalRemark = baseRemark ? `${baseRemark} ${ipTag}`.trim() : (ipTag || null);
 
     let submission;
@@ -569,6 +581,7 @@ router.get('/review/:id', async (req, res) => {
         isCorrect,
         isSkipped: !selected || selected === 'E',
         timeSpent: ans.timeSpent || 0,
+        screenshotAttempt: Boolean(ans.screenshotAttempt),
         studentUploadedPhoto: submission.photoUrl
       };
     });
@@ -660,6 +673,7 @@ router.get('/:id/html', async (req, res) => {
         isCorrect,
         isSkipped: !selected || selected === 'E',
         timeSpent: ans.timeSpent || 0,
+        screenshotAttempt: Boolean(ans.screenshotAttempt),
         studentUploadedPhoto: submission.photoUrl
       };
     });
@@ -769,6 +783,7 @@ router.get('/:id/pdf', async (req, res) => {
         isCorrect,
         isSkipped: !selected || selected === 'E',
         timeSpent: ans.timeSpent || 0,
+        screenshotAttempt: Boolean(ans.screenshotAttempt),
         studentUploadedPhoto: submission.photoUrl
       };
     });
@@ -880,6 +895,7 @@ router.post('/:id/send-whatsapp', async (req, res) => {
         isCorrect,
         isSkipped: !selected || selected === 'E',
         timeSpent: ans.timeSpent || 0,
+        screenshotAttempt: Boolean(ans.screenshotAttempt),
         studentUploadedPhoto: submission.photoUrl
       };
     });
