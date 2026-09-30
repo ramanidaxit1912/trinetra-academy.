@@ -14055,6 +14055,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
   const [candidateSubId, setCandidateSubId] = useState('');
   const [customLeaderForm, setCustomLeaderForm] = useState({ studentName: '', mobile: '', score: '', totalMarks: '', rank: 1 });
   const [savingOverride, setSavingOverride] = useState(false);
+  const [customRankInputs, setCustomRankInputs] = useState({});
 
   const fetchOverrides = async () => {
     try {
@@ -14138,6 +14139,62 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
         action: 'reset'
       });
       showToast?.(res.data?.message || 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.', 'info');
+      await fetchOverrides();
+    } catch (err) {
+      showToast?.(err.response?.data?.error || 'રીસેટ કરવામાં ક્ષતિ.', 'error');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  // 👑 Assign any custom rank (Rank 1, 2, 3...) to any student
+  const handleAssignRank = async (student, targetRank) => {
+    if (!student) return;
+    const rankNum = parseInt(targetRank, 10);
+    if (isNaN(rankNum) || rankNum < 1) {
+      showToast?.('કૃપા કરીને માન્ય રેન્ક નંબર (૧ કે તેથી વધુ) દાખલ કરો.', 'error');
+      return;
+    }
+    const sName = student.student?.name || student.studentName || 'વિદ્યાર્થી';
+    const sMob = student.student?.mobile || student.mobile || '';
+    const sScore = Number(student.score);
+    const sTotal = Number(student.totalMarks || activeGroup?.totalMarks || 100);
+
+    try {
+      setSavingOverride(true);
+      const res = await overrideLeaderboard({
+        testCode: selectedGroupKey,
+        submissionId: student.id,
+        studentName: sName,
+        mobile: sMob,
+        score: sScore,
+        totalMarks: sTotal,
+        rank: rankNum,
+        action: 'set'
+      });
+      showToast?.(res.data?.message || `👑 ${sName} ને #${rankNum} મો રેન્ક આપવામાં આવ્યો!`, 'success');
+      triggerConfetti();
+      await fetchOverrides();
+    } catch (err) {
+      showToast?.(err.response?.data?.error || 'રેન્ક બદલવામાં ક્ષતિ.', 'error');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
+
+  // 🔄 Reset override for a single student
+  const handleResetSingleStudent = async (student) => {
+    if (!student) return;
+    const sName = student.student?.name || student.studentName || 'વિદ્યાર્થી';
+    try {
+      setSavingOverride(true);
+      const res = await overrideLeaderboard({
+        testCode: selectedGroupKey,
+        submissionId: student.id,
+        studentName: sName,
+        action: 'reset_student'
+      });
+      showToast?.(res.data?.message || `${sName} નો મેન્યુઅલ રેન્ક રદ થયો.`, 'info');
       await fetchOverrides();
     } catch (err) {
       showToast?.(err.response?.data?.error || 'રીસેટ કરવામાં ક્ષતિ.', 'error');
@@ -14239,35 +14296,40 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       return a.submittedAt - b.submittedAt;
     });
 
-    // 👑 If teacher set a custom leader / rank override for this test
-    if (activeOverride) {
+    // 👑 Apply teacher rank overrides for this test
+    const testOverrides = overrides
+      .filter(o => (o.testCode === selectedGroupKey || o.testCode === 'ALL') && o.isActive)
+      .sort((a, b) => (b.rank || 1) - (a.rank || 1)); // reverse order so higher rank numbers inserted first, lower ranks (1, 2) on top
+
+    testOverrides.forEach(ov => {
       const matchIdx = enriched.findIndex(s => 
-        (activeOverride.submissionId && s.id === activeOverride.submissionId) ||
-        (s.student?.name && s.student.name.trim().toLowerCase() === activeOverride.studentName.trim().toLowerCase())
+        (ov.submissionId && s.id === ov.submissionId) ||
+        (s.student?.name && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
       );
       if (matchIdx >= 0) {
-        const item = { ...enriched[matchIdx], isTeacherOverride: true, score: activeOverride.score };
+        const item = { ...enriched[matchIdx], isTeacherOverride: true, overrideRank: ov.rank, score: ov.score ?? enriched[matchIdx].score };
         enriched.splice(matchIdx, 1);
-        const targetPos = Math.max(0, (activeOverride.rank || 1) - 1);
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
         enriched.splice(targetPos, 0, item);
       } else {
         const customItem = {
-          id: activeOverride.submissionId || 999999,
-          student: { name: activeOverride.studentName, mobile: activeOverride.mobile },
-          score: activeOverride.score,
-          totalMarks: activeOverride.totalMarks || (activeGroup?.totalMarks || 100),
-          pct: Math.round((activeOverride.score / (activeOverride.totalMarks || 100)) * 100),
+          id: ov.submissionId || Math.floor(Math.random() * 100000),
+          student: { name: ov.studentName, mobile: ov.mobile },
+          score: ov.score,
+          totalMarks: ov.totalMarks || (activeGroup?.totalMarks || 100),
+          pct: Math.round((ov.score / (ov.totalMarks || 100)) * 100),
           accuracy: 100,
-          correct: Math.round(activeOverride.score),
+          correct: Math.round(ov.score),
           wrong: 0,
           skipped: 0,
-          submittedAt: new Date(activeOverride.updatedAt || activeOverride.createdAt).getTime(),
-          isTeacherOverride: true
+          submittedAt: new Date(ov.updatedAt || ov.createdAt).getTime(),
+          isTeacherOverride: true,
+          overrideRank: ov.rank
         };
-        const targetPos = Math.max(0, (activeOverride.rank || 1) - 1);
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
         enriched.splice(targetPos, 0, customItem);
       }
-    }
+    });
 
     // Assign rank with tie detection
     let currentRank = 1;
@@ -15004,29 +15066,93 @@ ${topperList}
                     </div>
                   </div>
 
-                  {/* 👑 Quick Make Rank 1 / Leader Button */}
-                  <button
-                    onClick={() => handleMakeLeader(s)}
-                    disabled={savingOverride || (s.rank === 1 && s.isTeacherOverride)}
-                    title={s.isTeacherOverride ? 'આ વિદ્યાર્થી હાલ શિક્ષક દ્વારા પસંદિત લીડર છે' : 'આ વિદ્યાર્થીને ૧મો રેન્ક (Leader/Topper) બનાવો'}
-                    style={{
-                      background: s.isTeacherOverride ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.12)',
-                      border: `1px solid ${s.isTeacherOverride ? '#f59e0b' : 'rgba(245, 158, 11, 0.35)'}`,
-                      color: s.isTeacherOverride ? '#fbbf24' : '#fde68a',
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      cursor: (s.rank === 1 && s.isTeacherOverride) ? 'default' : 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontFamily: 'Hind Vadodara, sans-serif',
-                      flexShrink: 0
-                    }}
-                  >
-                    👑 {s.isTeacherOverride ? 'પસંદિત લીડર' : '૧મો રેન્ક બનાવો'}
-                  </button>
+                  {/* 👑 Teacher Rank Assignment Field & Action Button */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: s.isTeacherOverride ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                    border: `1.5px solid ${s.isTeacherOverride ? '#f59e0b' : 'rgba(245, 158, 11, 0.4)'}`,
+                    borderRadius: 9,
+                    padding: '3px 4px 3px 8px',
+                    gap: 5,
+                    boxShadow: s.isTeacherOverride ? '0 0 10px rgba(245,158,11,0.2)' : 'none',
+                    flexShrink: 0
+                  }}>
+                    <span style={{ fontSize: '0.7rem', color: s.isTeacherOverride ? '#fbbf24' : '#cbd5e1', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                      👑 રેન્ક:
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={customRankInputs[s.id] !== undefined ? customRankInputs[s.id] : (s.overrideRank || s.rank || 1)}
+                      onChange={e => setCustomRankInputs(prev => ({ ...prev, [s.id]: e.target.value }))}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          handleAssignRank(s, customRankInputs[s.id] !== undefined ? customRankInputs[s.id] : (s.overrideRank || s.rank || 1));
+                        }
+                      }}
+                      title="આ વિદ્યાર્થીને આપવા માટેનો રેન્ક નંબર (દા.ત. 1, 2, 3...)"
+                      style={{
+                        width: 44,
+                        height: 25,
+                        background: '#090e1a',
+                        border: '1px solid rgba(245, 158, 11, 0.55)',
+                        color: '#fef08a',
+                        borderRadius: 6,
+                        padding: '0 4px',
+                        fontSize: '0.76rem',
+                        fontWeight: 900,
+                        textAlign: 'center',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      onClick={() => handleAssignRank(s, customRankInputs[s.id] !== undefined ? customRankInputs[s.id] : (s.overrideRank || s.rank || 1))}
+                      disabled={savingOverride}
+                      title="આ વિદ્યાર્થીને આ રેન્ક આપો"
+                      style={{
+                        background: 'linear-gradient(135deg, #d97706, #b45309)',
+                        border: 'none',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        fontFamily: 'Hind Vadodara, sans-serif',
+                        whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 6px rgba(217,119,6,0.3)',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {savingOverride ? '...' : (s.isTeacherOverride ? '✓ સેટ' : 'આપો')}
+                    </button>
+                    {s.isTeacherOverride && (
+                      <button
+                        onClick={() => handleResetSingleStudent(s)}
+                        title="મેન્યુઅલ રેન્ક રદ કરી ઓટોમેટિક ક્રમ કરો"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.2)',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          color: '#fca5a5',
+                          borderRadius: 6,
+                          width: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
 
                   {/* WhatsApp Action Button */}
                   {s.student?.mobile && (

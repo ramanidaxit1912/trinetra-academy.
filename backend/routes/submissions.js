@@ -1681,15 +1681,36 @@ router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, re
       return res.json({ success: true, message: 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.' });
     }
 
+    if (action === 'reset_student') {
+      await prisma.leaderboardOverride.updateMany({
+        where: {
+          testCode,
+          OR: [
+            ...(submissionId ? [{ submissionId: parseInt(submissionId) }] : []),
+            ...(studentName ? [{ studentName: studentName.trim() }] : [])
+          ]
+        },
+        data: { isActive: false }
+      });
+      return res.json({ success: true, message: 'વિદ્યાર્થીનો મેન્યુઅલ રેન્ક રદ થયો.' });
+    }
+
     if (!studentName || score === undefined) {
       return res.status(400).json({ error: 'વિદ્યાર્થીનું નામ અને ગુણ જરૂરી છે.' });
     }
 
     const targetRank = rank ? parseInt(rank) : 1;
 
-    // Deactivate previous active override for this testCode and rank
+    // Deactivate previous active override for this student OR this rank in this testCode
     await prisma.leaderboardOverride.updateMany({
-      where: { testCode, rank: targetRank },
+      where: {
+        testCode,
+        OR: [
+          { rank: targetRank },
+          ...(submissionId ? [{ submissionId: parseInt(submissionId) }] : []),
+          { studentName: studentName.trim() }
+        ]
+      },
       data: { isActive: false }
     });
 
