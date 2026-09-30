@@ -382,8 +382,48 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const testTitle = testMeta.testName || 'કસોટી પરિણામ';
   const metaTotal = Number(testMeta.totalMarks || 0);
 
-  // Helper for generating High-End Student Photo / Royal Golden Avatar
-  const getStudentAvatar = (s, rankNum, size = 48) => {
+  // Helper to extract duration and finish time
+  const getSubmissionTimeInfo = (s) => {
+    let d = s?.duration || s?.timeTaken || s?.timeSpentSeconds || 0;
+    if (!d && Array.isArray(s?.answers)) {
+      s.answers.forEach(ans => { if (ans && ans.timeSpent) d += Number(ans.timeSpent) || 0; });
+    }
+    if (!d && s?.startedAt && s?.submittedAt) {
+      const diff = Math.round((new Date(s.submittedAt).getTime() - new Date(s.startedAt).getTime()) / 1000);
+      if (diff > 0 && diff < 86400) d = diff;
+    }
+
+    let durStr = '';
+    if (d > 0 && d < 86400) {
+      const mins = Math.floor(d / 60);
+      const secs = d % 60;
+      durStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+
+    let finishTimeStr = '';
+    const ts = s?.submittedAt || s?.createdAt || s?.completedAt;
+    if (ts) {
+      try {
+        const dObj = new Date(ts);
+        if (!isNaN(dObj.getTime())) {
+          finishTimeStr = dObj.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+      } catch (e) {}
+    }
+
+    return {
+      durationSeconds: d,
+      durationStr: durStr,
+      finishTimeStr: finishTimeStr
+    };
+  };
+
+  // Helper for generating High-End Student Photo / Royal Golden Avatar (Square Portrait Studio Frame)
+  const getStudentAvatar = (s, rankNum, width = 96, height = 108) => {
     const sName = s?.student?.name || 'વિદ્યાર્થી';
     const photo = s?.photoUrl || s?.student?.photoUrl || s?.student?.photo || null;
     const initial = (sName.trim()[0] || '?').toUpperCase();
@@ -408,16 +448,19 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
           ? 'linear-gradient(135deg, #c2410c, #7c2d12)' 
           : 'linear-gradient(135deg, #1e3a8a, #0f172a)';
 
+    const borderRadius = isTopper1 ? '16px' : (isTopper2 || isTopper3 ? '14px' : '10px');
+    const imgRadius = isTopper1 ? '13px' : (isTopper2 || isTopper3 ? '11px' : '8px');
+
     if (photo && (photo.startsWith('http') || photo.startsWith('data:'))) {
       return `
         <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
           ${isTopper1 ? `
-            <div style="font-size: ${Math.round(size * 0.34)}px; line-height: 1; margin-bottom: 3px; filter: drop-shadow(0 2px 6px rgba(245,158,11,0.95)); z-index: 5;">
+            <div style="font-size: 32px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 3px 8px rgba(245,158,11,0.95)); z-index: 5;">
               👑
             </div>
           ` : ''}
-          <div style="width: ${size}px; height: ${size}px; border-radius: 50%; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 22px ${glow}, 0 4px 14px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-block;">
-            <img src="${photo}" alt="${sName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center top; display: block; background: #0f172a;" />
+          <div style="width: ${width}px; height: ${height}px; border-radius: ${borderRadius}; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 25px ${glow}, 0 6px 18px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-block;">
+            <img src="${photo}" alt="${sName}" style="width: 100%; height: 100%; border-radius: ${imgRadius}; object-fit: cover; object-position: center top; display: block; background: #0f172a; border: 2px solid #0f172a;" />
           </div>
         </div>
       `;
@@ -426,12 +469,12 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     return `
       <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
         ${isTopper1 ? `
-          <div style="font-size: ${Math.round(size * 0.34)}px; line-height: 1; margin-bottom: 3px; filter: drop-shadow(0 2px 6px rgba(245,158,11,0.95)); z-index: 5;">
+          <div style="font-size: 32px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 3px 8px rgba(245,158,11,0.95)); z-index: 5;">
             👑
           </div>
         ` : ''}
-        <div style="width: ${size}px; height: ${size}px; border-radius: 50%; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 22px ${glow}, 0 4px 14px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;">
-          <div style="width: 100%; height: 100%; border-radius: 50%; background: ${bg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${Math.round(size * 0.42)}px; text-transform: uppercase;">
+        <div style="width: ${width}px; height: ${height}px; border-radius: ${borderRadius}; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 25px ${glow}, 0 6px 18px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: 100%; border-radius: ${imgRadius}; background: ${bg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${Math.round(width * 0.42)}px; text-transform: uppercase;">
             ${initial}
           </div>
         </div>
@@ -445,9 +488,9 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const others = topList.slice(3, 10);
 
   // Helper for single podium card in Top 3
-  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 96) => {
+  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarW = 96, avatarH = 108) => {
     if (!s) {
-      return `<div style="flex: 1; min-height: 240px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 18px;"></div>`;
+      return `<div style="flex: 1; min-height: 250px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 18px;"></div>`;
     }
     const sName = s.student?.name || 'વિદ્યાર્થી';
     const sMobile = s.student?.mobile ? String(s.student.mobile).slice(0, 5) + '*****' : '';
@@ -455,39 +498,51 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
     const isFirst = rankNum === 1;
+    const timeInfo = getSubmissionTimeInfo(s);
 
     return `
-      <div style="flex: ${isFirst ? '1.25' : '1'}; background: ${isFirst ? 'radial-gradient(130% 120% at 50% 0%, rgba(245,158,11,0.25) 0%, rgba(15,23,42,0.98) 100%)' : 'radial-gradient(130% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.96) 100%)'}; border: ${isFirst ? '2.5px solid #f59e0b' : `2px solid ${color}`}; border-radius: 20px; padding: ${isFirst ? '18px 14px' : '16px 10px'}; text-align: center; box-shadow: 0 12px 36px ${borderGlow}, inset 0 0 20px rgba(0,0,0,0.5); position: relative; ${isFirst ? 'transform: translateY(-10px); z-index: 2;' : ''}">
+      <div style="flex: ${isFirst ? '1.25' : '1'}; background: ${isFirst ? 'radial-gradient(130% 120% at 50% 0%, rgba(245,158,11,0.25) 0%, rgba(15,23,42,0.98) 100%)' : 'radial-gradient(130% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.96) 100%)'}; border: ${isFirst ? '2.5px solid #f59e0b' : `2px solid ${color}`}; border-radius: 20px; padding: ${isFirst ? '16px 12px' : '14px 10px'}; text-align: center; box-shadow: 0 12px 36px ${borderGlow}, inset 0 0 20px rgba(0,0,0,0.5); position: relative; ${isFirst ? 'transform: translateY(-10px); z-index: 2;' : ''}">
         
         <!-- Medal Badge Pill -->
-        <div style="display: inline-block; background: ${isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: ${isFirst ? '4px 16px' : '3px 12px'}; border-radius: 20px; font-weight: 900; font-size: ${isFirst ? '12.5px' : '11px'}; margin-bottom: 10px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="display: inline-block; background: ${isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: ${isFirst ? '4px 16px' : '3px 12px'}; border-radius: 20px; font-weight: 900; font-size: ${isFirst ? '12.5px' : '11px'}; margin-bottom: 8px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
           ${medal} ${label}
         </div>
 
-        <!-- Student Photo / Avatar Hero Container (High Impact & Big) -->
-        <div style="margin: 4px 0 10px; display: flex; justify-content: center;">
-          ${getStudentAvatar(s, rankNum, avatarSize)}
+        <!-- Student Photo (Square Portrait Frame) -->
+        <div style="margin: 2px 0 8px; display: flex; justify-content: center;">
+          ${getStudentAvatar(s, rankNum, avatarW, avatarH)}
         </div>
 
         <!-- Student Name -->
-        <div style="font-weight: 900; font-size: ${isFirst ? '18px' : '15px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); letter-spacing: 0.3px;">
+        <div style="font-weight: 900; font-size: ${isFirst ? '17.5px' : '14.5px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); letter-spacing: 0.3px;">
           ${sName}
         </div>
 
-        ${sMobile ? `<div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+        ${sMobile ? `<div style="font-size: 10.5px; color: #94a3b8; font-family: monospace; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
             <line x1="12" y1="18" x2="12.01" y2="18"></line>
           </svg>
           <span style="color: #94a3b8; font-weight: 700;">${sMobile}</span>
         </div>` : ''}
 
+        <!-- ⏱️ Test Finish Time & Duration Badge -->
+        ${(timeInfo.durationStr || timeInfo.finishTimeStr) ? `
+          <div style="margin-top: 5px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); padding: 2px 8px; border-radius: 8px; font-size: 10.5px; color: #38bdf8; font-weight: 800;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>${timeInfo.durationStr ? `સમય: ${timeInfo.durationStr}` : ''}${timeInfo.durationStr && timeInfo.finishTimeStr ? ' • ' : ''}${timeInfo.finishTimeStr ? timeInfo.finishTimeStr : ''}</span>
+          </div>
+        ` : ''}
+
         <!-- Score & Percentage Badge -->
-        <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.65); padding: 5px 14px; border-radius: 12px; border: 1.5px solid ${isFirst ? 'rgba(245,158,11,0.55)' : 'rgba(255,255,255,0.15)'}; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
-          <span style="font-weight: 900; font-size: ${isFirst ? '18px' : '15px'}; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">
+        <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.65); padding: 4px 12px; border-radius: 12px; border: 1.5px solid ${isFirst ? 'rgba(245,158,11,0.55)' : 'rgba(255,255,255,0.15)'}; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+          <span style="font-weight: 900; font-size: ${isFirst ? '17px' : '14.5px'}; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">
             ${score} ${total > 0 ? `<span style="font-size: 11px; color: #94a3b8; font-weight: 700;">/ ${total}</span>` : ''}
           </span>
-          <span style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 12px; box-shadow: 0 2px 6px rgba(29,78,216,0.4);">
+          <span style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 11.5px; box-shadow: 0 2px 6px rgba(29,78,216,0.4);">
             ${pct}%
           </span>
         </div>
@@ -504,6 +559,7 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
+    const timeInfo = getSubmissionTimeInfo(s);
 
     return `
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,0.035); border-radius: 10px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.08);">
@@ -514,19 +570,30 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
             #${rankNum}
           </div>
 
-          <!-- Student DP / Avatar -->
-          ${getStudentAvatar(s, rankNum, 44)}
+          <!-- Student DP / Avatar (Square Portrait) -->
+          ${getStudentAvatar(s, rankNum, 42, 48)}
 
-          <!-- Name & Mobile -->
+          <!-- Name & Mobile & Time -->
           <div style="text-align: left;">
             <div style="font-weight: 800; font-size: 13.5px; color: #ffffff;">${sName}</div>
-            ${sMobile ? `<div style="font-size: 9.5px; color: #94a3b8; font-family: monospace; display: flex; align-items: center; gap: 3px;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-              </svg>
-              <span>${sMobile}</span>
-            </div>` : ''}
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 1px;">
+              ${sMobile ? `<span style="font-size: 9.5px; color: #94a3b8; font-family: monospace; display: flex; align-items: center; gap: 2px;">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+                ${sMobile}
+              </span>` : ''}
+              ${(timeInfo.durationStr || timeInfo.finishTimeStr) ? `
+                <span style="font-size: 9.5px; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 2px;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  ${timeInfo.durationStr || timeInfo.finishTimeStr}
+                </span>
+              ` : ''}
+            </div>
           </div>
         </div>
 
@@ -1215,21 +1282,21 @@ export default function Top10ScorecardExportModal({
                         {medal}
                       </div>
 
-                      {/* Photo / Avatar Preview (Larger & Attractive) */}
-                      <div style={{ position: 'relative', width: isRank1 ? 82 : 70, height: isRank1 ? 82 : 70, marginBottom: 10 }}>
+                      {/* Photo / Avatar Preview (Square Portrait Studio Frame) */}
+                      <div style={{ position: 'relative', width: isRank1 ? 84 : 72, height: isRank1 ? 96 : 82, marginBottom: 10 }}>
                         {photo ? (
                           <img
                             src={photo}
                             alt={sName}
                             style={{
-                              width: '100%', height: '100%', borderRadius: '50%',
+                              width: '100%', height: '100%', borderRadius: isRank1 ? 14 : 12,
                               objectFit: 'cover', objectPosition: 'center top', border: `3px solid ${borderColor}`,
                               boxShadow: `0 0 16px ${borderColor}88`
                             }}
                           />
                         ) : (
                           <div style={{
-                            width: '100%', height: '100%', borderRadius: '50%',
+                            width: '100%', height: '100%', borderRadius: isRank1 ? 14 : 12,
                             background: isRank1 ? 'linear-gradient(135deg, #d97706, #78350f)' : 'linear-gradient(135deg, #1e3a8a, #0f172a)',
                             border: `3px solid ${borderColor}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1240,7 +1307,7 @@ export default function Top10ScorecardExportModal({
                           </div>
                         )}
                         {photo && (
-                          <span style={{ position: 'absolute', bottom: 0, right: 0, background: '#059669', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, border: '2px solid #0f172a', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, background: '#059669', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, border: '2px solid #0f172a', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
                             ✓
                           </span>
                         )}
@@ -1249,9 +1316,20 @@ export default function Top10ScorecardExportModal({
                       <div style={{ color: 'white', fontWeight: 900, fontSize: '0.84rem', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {sName}
                       </div>
-                      <div style={{ color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800, marginBottom: 10 }}>
+                      <div style={{ color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800, marginBottom: 2 }}>
                         {score} ગુણ
                       </div>
+                      {(() => {
+                        const d = s.duration || s.timeTaken || s.timeSpentSeconds || 0;
+                        const mins = Math.floor(d / 60);
+                        const secs = d % 60;
+                        const timeStr = d > 0 ? (mins > 0 ? `${mins}m ${secs}s` : `${secs}s`) : '';
+                        return timeStr ? (
+                          <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            ⏱️ {timeStr}
+                          </div>
+                        ) : <div style={{ height: 6 }} />;
+                      })()}
 
                       {/* Upload & Remove buttons */}
                       <div style={{ display: 'flex', gap: 6, width: '100%', justifyContent: 'center' }}>
@@ -1344,17 +1422,17 @@ export default function Top10ScorecardExportModal({
                             #{rankNum}
                           </span>
 
-                          {/* Avatar Circle */}
-                          <div style={{ width: 34, height: 34, position: 'relative', flexShrink: 0 }}>
+                          {/* Avatar Square Portrait */}
+                          <div style={{ width: 34, height: 40, position: 'relative', flexShrink: 0 }}>
                             {photo ? (
                               <img
                                 src={photo}
                                 alt={sName}
-                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #38bdf8' }}
+                                style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover', objectPosition: 'center top', border: '1.5px solid #38bdf8' }}
                               />
                             ) : (
                               <div style={{
-                                width: '100%', height: '100%', borderRadius: '50%',
+                                width: '100%', height: '100%', borderRadius: 8,
                                 background: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
                                 border: '1.5px solid rgba(255,255,255,0.2)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1369,8 +1447,14 @@ export default function Top10ScorecardExportModal({
                             <div style={{ color: 'white', fontWeight: 800, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {sName}
                             </div>
-                            <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>
-                              {score} ગુણ
+                            <div style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>{score} ગુણ</span>
+                              {(() => {
+                                const d = s.duration || s.timeTaken || s.timeSpentSeconds || 0;
+                                const mins = Math.floor(d / 60);
+                                const secs = d % 60;
+                                return d > 0 ? <span style={{ color: '#38bdf8' }}>• ⏱️ {mins > 0 ? `${mins}m ${secs}s` : `${secs}s`}</span> : null;
+                              })()}
                             </div>
                           </div>
                         </div>
