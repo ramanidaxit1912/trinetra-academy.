@@ -5340,6 +5340,23 @@ html, body {
   transform: scale(0.94) !important;
 }
 
+/* ─── 2026 Executive Bento Grid ─── */
+.bento-wide {
+  grid-column: span 7;
+}
+.bento-narrow {
+  grid-column: span 5;
+}
+.bento-half {
+  grid-column: span 6;
+}
+@media (max-width: 1024px) {
+  .bento-wide, .bento-narrow, .bento-half {
+    grid-column: span 12 !important;
+  }
+}
+
+
 
 
 
