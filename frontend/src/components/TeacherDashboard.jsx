@@ -1515,79 +1515,188 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
             </div>
           </div>
 
-          {/* ── Quick Actions ── */}
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em', marginBottom: 10, textTransform: 'uppercase' }}>
-              ⚡ Quick Actions Hub
+          {/* ── ⚡ Quick Actions Hub (Executive Micro-Cards) ── */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Zap size={14} color="#38bdf8" />
+                </div>
+                <span style={{ color: '#94a3b8', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  ક્વિક એક્શન્સ હબ • QUICK ACTIONS
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                ૧-ક્લિક શોર્ટકટ્સ
+              </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))', gap: 8 }}>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: 10
+            }}>
               {[
-                { label: '➕ નવો પ્રશ્ન',     tab: 'generate', from: '#1e3a8a', to: '#3b82f6', icon: '📝' },
-                { label: '🔴 Live Test',        tab: 'live',     from: '#7f1d1d', to: '#ef4444', icon: '🔴' },
-                { label: '📁 PDF મટીરીયલ',      tab: 'materials',from: '#4c1d95', to: '#8b5cf6', icon: '📁' },
-                { label: '🎨 પોસ્ટર્સ & ઑફર્સ', tab: 'marketing',from: '#78350f', to: '#d97706', icon: '🎨' },
-                { label: '📸 Grade Answers',    tab: 'answers',  from: '#064e3b', to: '#10b981', icon: '📸' },
-                { label: '📊 View History',     tab: 'history',  from: '#0f172a', to: '#334155', icon: '📊' },
+                { label: 'નવો પ્રશ્ન', sub: 'પ્રશ્ન બનાવો', tab: 'generate', icon: <Plus size={18} color="white" strokeWidth={2.6} />, grad: 'linear-gradient(135deg, #1d4ed8, #0284c7)', border: 'rgba(56,189,248,0.35)', glow: 'rgba(2,132,199,0.3)' },
+                { label: 'Live Test', sub: 'મોનિટર રૂમ', tab: 'live', icon: <Activity size={18} color="white" strokeWidth={2.4} />, grad: 'linear-gradient(135deg, #059669, #10b981)', border: 'rgba(34,197,94,0.35)', glow: 'rgba(16,185,129,0.3)' },
+                { label: 'PDF મટીરીયલ', sub: 'નોટ્સ & બુક્સ', tab: 'materials', icon: <FolderOpen size={18} color="white" strokeWidth={2.4} />, grad: 'linear-gradient(135deg, #4338ca, #6366f1)', border: 'rgba(129,140,248,0.35)', glow: 'rgba(99,102,241,0.3)' },
+                { label: 'પોસ્ટર્સ & ઑફર્સ', sub: 'બ્રોશર હબ', tab: 'marketing', icon: <Sparkles size={18} color="#fef08a" strokeWidth={2.4} />, grad: 'linear-gradient(135deg, #d97706, #b45309)', border: 'rgba(245,158,11,0.35)', glow: 'rgba(217,119,6,0.3)' },
+                { label: 'Grade Answers', sub: 'મૂલ્યાંકન', tab: 'answers', icon: <Camera size={18} color="white" strokeWidth={2.4} />, grad: 'linear-gradient(135deg, #047857, #059669)', border: 'rgba(16,185,129,0.35)', glow: 'rgba(5,150,105,0.3)' },
+                { label: 'View History', sub: 'બધા પરિણામો', tab: 'history', icon: <BarChart2 size={18} color="white" strokeWidth={2.4} />, grad: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', border: 'rgba(59,130,246,0.35)', glow: 'rgba(37,99,235,0.3)' },
               ].map((a, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveTab(a.tab)}
+                  className="exec-cmd-card"
                   style={{
-                    background: `linear-gradient(135deg,${a.from},${a.to})`,
-                    color: 'white', border: 'none', borderRadius: 12,
-                    padding: '14px 10px', fontWeight: 800, fontSize: '0.84rem',
-                    cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif',
-                    transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4
+                    background: 'radial-gradient(120% 120% at 50% 0%, rgba(30,41,59,0.4) 0%, rgba(15,23,42,0.95) 100%)',
+                    border: `1px solid ${a.border}`,
+                    borderRadius: 14,
+                    padding: '12px 10px',
+                    cursor: 'pointer',
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    textAlign: 'center',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                  <span style={{ fontSize: '1.2rem' }}>{a.icon}</span>
-                  <span>{a.label}</span>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 11,
+                    background: a.grad,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 12px ${a.glow}`,
+                    border: '1px solid rgba(255,255,255,0.2)'
+                  }}>
+                    {a.icon}
+                  </div>
+                  <div>
+                    <div style={{ color: 'white', fontWeight: 900, fontSize: '0.82rem', lineHeight: 1.2 }}>
+                      {a.label}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 600, marginTop: 2 }}>
+                      {a.sub}
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* ── Bottom Grid ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 14 }}>
+          {/* ── 4 Overview Executive Cards Grid ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 14 }}>
 
-            {/* Recent Tests */}
-            <div className="glass-card" style={{ padding: 18 }}>
-              <SectionHeader title="🕐 Recent Tests" action="All →" onAction={() => setActiveTab('history')} />
-              {recentSubs.length === 0
-                ? <Empty msg="No tests yet" />
-                : recentSubs.map((s, i) => {
-                  const pct = s.totalMarks ? Math.round((s.score / s.totalMarks) * 100) : 0;
+            {/* 1. Recent Tests Card (Fixed Date & NaN Bug) */}
+            <div className="glass-card" style={{ padding: 18, borderRadius: 18, border: '1px solid rgba(59,130,246,0.25)', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Clock size={15} color="#60a5fa" />
+                  </div>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', margin: 0 }}>
+                    તાજેતરની કસોટીઓ
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveTab('history')}
+                  style={{
+                    color: '#93c5fd', background: 'rgba(37,99,235,0.15)',
+                    border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8,
+                    padding: '3px 8px', cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem'
+                  }}
+                >
+                  બધી જુઓ →
+                </button>
+              </div>
+
+              {recentSubs.length === 0 ? (
+                <Empty msg="હજુ સુધી કોઈ કસોટી સબમિટ થઈ નથી" />
+              ) : (
+                recentSubs.map((s, i) => {
+                  const total = Number(s.totalMarks) || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0);
+                  const score = Number(s.score) || 0;
+                  const pct = total > 0 ? Math.round((score / total) * 100) : null;
+                  
+                  // Safe Date Formatter (Prevents "Invalid Date")
+                  let timeLabel = 'આજે';
+                  if (s.createdAt || s.submittedAt) {
+                    const parsed = new Date(s.createdAt || s.submittedAt);
+                    if (!isNaN(parsed.getTime())) {
+                      timeLabel = parsed.toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' });
+                    }
+                  }
+
                   return (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: i < recentSubs.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                      <Avatar name={s.student?.name} size={34} />
+                    <div key={s.id || i} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
+                      borderBottom: i < recentSubs.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none'
+                    }}>
+                      <Avatar name={s.student?.name} size={36} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.student?.name}</div>
-                        <div style={{ color: '#64748b', fontSize: '0.7rem' }}>{new Date(s.createdAt).toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div style={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.student?.name || 'વિદ્યાર્થી'}
+                        </div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>⏱️ {timeLabel}</span>
+                          {s.test?.testName && (
+                            <>
+                              <span>•</span>
+                              <span style={{ color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.test.testName}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.88rem', color: pct >= 60 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444' }}>{s.score}/{s.totalMarks}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b' }}>{pct}%</div>
+                        <div style={{ fontWeight: 900, fontSize: '0.9rem', color: pct !== null ? (pct >= 60 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444') : '#38bdf8' }}>
+                          {total > 0 ? `${score}/${total}` : `${score} ગુણ`}
+                        </div>
+                        {pct !== null ? (
+                          <span style={{
+                            display: 'inline-block',
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            marginTop: 2,
+                            background: pct >= 60 ? 'rgba(34,197,94,0.15)' : pct >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: pct >= 60 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171',
+                            border: `1px solid ${pct >= 60 ? 'rgba(34,197,94,0.3)' : pct >= 40 ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'}`
+                          }}>
+                            {pct}% સ્કોર
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.64rem', color: '#64748b' }}>સબમિટ થયેલ</span>
+                        )}
                       </div>
                     </div>
                   );
                 })
-              }
+              )}
             </div>
 
-            {/* 👑 Ultra-Premium Top Performers Mini-Podium */}
+            {/* 2. 👑 Ultra-Premium Top Performers 3D Podium */}
             <div className="glass-card" style={{
-              padding: '18px',
-              background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              padding: 18,
+              borderRadius: 18,
+              background: 'radial-gradient(120% 120% at 50% 0%, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%)',
               border: '1.5px solid rgba(245, 158, 11, 0.35)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(245, 158, 11, 0.1)'
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.12)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '1.25rem' }}>👑</span>
-                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', margin: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Crown size={15} color="#fbbf24" />
+                  </div>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', margin: 0 }}>
                     ટોપ પર્ફોર્મર્સ લીડરબોર્ડ
                   </h3>
                 </div>
@@ -1596,11 +1705,11 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
                   style={{
                     color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)',
                     border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: 8,
-                    padding: '4px 10px', cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
+                    padding: '3px 8px', cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem',
                     display: 'inline-flex', alignItems: 'center', gap: 4
                   }}
                 >
-                  સંપૂર્ણ લીડરબોર્ડ →
+                  સંપૂર્ણ →
                 </button>
               </div>
 
@@ -1608,126 +1717,273 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
                 <Empty msg="કોઈ ડેટા ઉપલબ્ધ નથી" />
               ) : (
                 <>
-                  {/* Mini Top 3 Podium Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                  {/* 3D Elevated Podium */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12, alignItems: 'flex-end' }}>
                     {[
-                      { idx: 1, s: topStudents[1], medal: '🥈', bg: 'linear-gradient(180deg, rgba(148,163,184,0.2) 0%, rgba(51,65,85,0.4) 100%)', border: '#94a3b8', color: '#e2e8f0', rankText: '2nd' },
-                      { idx: 0, s: topStudents[0], medal: '👑 🥇', bg: 'linear-gradient(180deg, rgba(245,158,11,0.3) 0%, rgba(180,83,9,0.5) 100%)', border: '#f59e0b', color: '#fef08a', rankText: '1st Topper', glow: '0 0 15px rgba(245,158,11,0.3)' },
-                      { idx: 2, s: topStudents[2], medal: '🥉', bg: 'linear-gradient(180deg, rgba(234,88,12,0.2) 0%, rgba(120,53,15,0.4) 100%)', border: '#ea580c', color: '#fed7aa', rankText: '3rd' },
+                      { idx: 1, s: topStudents[1], rank: '2nd', medal: '🥈', bg: 'linear-gradient(180deg, rgba(148,163,184,0.15) 0%, rgba(30,41,59,0.7) 100%)', border: 'rgba(148,163,184,0.35)', color: '#cbd5e1', padTop: 10 },
+                      { idx: 0, s: topStudents[0], rank: '1st Topper', medal: '👑 🥇', bg: 'linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(30,41,59,0.85) 100%)', border: 'rgba(245,158,11,0.6)', color: '#fef08a', padTop: 16, glow: '0 0 16px rgba(245,158,11,0.3)' },
+                      { idx: 2, s: topStudents[2], rank: '3rd', medal: '🥉', bg: 'linear-gradient(180deg, rgba(217,119,6,0.15) 0%, rgba(30,41,59,0.7) 100%)', border: 'rgba(217,119,6,0.35)', color: '#fed7aa', padTop: 10 },
                     ].map((pod, i) => {
                       if (!pod.s) return null;
+                      const sScore = Number(pod.s.score ?? pod.s.marks ?? 0);
                       return (
                         <div key={i} style={{
                           background: pod.bg,
                           border: `1.5px solid ${pod.border}`,
-                          borderRadius: 12,
-                          padding: '10px 6px',
+                          borderRadius: 14,
+                          padding: `${pod.padTop}px 6px 12px`,
                           textAlign: 'center',
                           boxShadow: pod.glow || 'none',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
-                          gap: 4
+                          gap: 5,
+                          position: 'relative'
                         }}>
-                          <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{pod.medal}</span>
-                          <Avatar name={pod.s.student?.name} size={30} />
-                          <div style={{ color: 'white', fontWeight: 800, fontSize: '0.74rem', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {pod.s.student?.name}
+                          <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{pod.medal}</span>
+                          <Avatar name={pod.s.student?.name} size={32} />
+                          <div style={{ color: 'white', fontWeight: 900, fontSize: '0.74rem', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pod.s.student?.name || 'વિદ્યાર્થી'}
                           </div>
-                          <div style={{ color: '#22c55e', fontWeight: 900, fontSize: '0.86rem' }}>
-                            {pod.s.score} <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>ગુણ</span>
+                          <div style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            color: '#4ade80',
+                            fontWeight: 900,
+                            fontSize: '0.84rem'
+                          }}>
+                            {sScore} <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>ગુણ</span>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* List for 4th onwards (if any) */}
-                  {topStudents.slice(3, 5).map((s, i) => (
-                    <div key={s.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px',
-                      borderRadius: 8, background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)', marginBottom: 4
-                    }}>
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, width: 22, textAlign: 'center' }}>
-                        #{i + 4}
-                      </span>
-                      <Avatar name={s.student?.name} size={24} />
-                      <div style={{ flex: 1, minWidth: 0, color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.student?.name}
+                  {/* List for 4th and 5th Rank */}
+                  {topStudents.slice(3, 5).map((s, i) => {
+                    const itemScore = Number(s.score ?? s.marks ?? 0);
+                    return (
+                      <div key={s.id || i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px',
+                        borderRadius: 10, background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)', marginBottom: 5
+                      }}>
+                        <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 900, width: 22, textAlign: 'center' }}>
+                          #{i + 4}
+                        </span>
+                        <Avatar name={s.student?.name} size={26} />
+                        <div style={{ flex: 1, minWidth: 0, color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.student?.name || 'વિદ્યાર્થી'}
+                        </div>
+                        <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.82rem' }}>
+                          {itemScore} <span style={{ fontSize: '0.64rem', color: '#94a3b8' }}>ગુણ</span>
+                        </div>
                       </div>
-                      <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.82rem' }}>
-                        {s.score}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   <button
                     onClick={() => setActiveTab('history')}
                     style={{
                       width: '100%', marginTop: 8,
                       background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                      color: 'white', border: 'none', padding: '8px 12px',
-                      borderRadius: 8, fontWeight: 900, fontSize: '0.78rem',
+                      color: 'white', border: '1px solid rgba(245,158,11,0.5)', padding: '10px 14px',
+                      borderRadius: 10, fontWeight: 900, fontSize: '0.78rem',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
+                      boxShadow: '0 4px 14px rgba(217,119,6,0.3)',
                       fontFamily: 'Hind Vadodara, sans-serif'
                     }}
                   >
-                    👑 સંપૂર્ણ લીડરબોર્ડ અને WhatsApp શેરિંગ જુઓ →
+                    <Trophy size={14} /> સંપૂર્ણ લીડરબોર્ડ & WhatsApp શેરિંગ ➔
                   </button>
                 </>
               )}
             </div>
 
-            {/* Question Bank */}
-            <div className="glass-card" style={{ padding: 18 }}>
-              <SectionHeader title="📚 Question Bank" action="Add →" onAction={() => setActiveTab('generate')} />
-              {qs.length === 0
-                ? <Empty msg="No questions. Add now!" />
-                : (() => {
+            {/* 3. Question Bank Card */}
+            <div className="glass-card" style={{ padding: 18, borderRadius: 18, border: '1px solid rgba(99,102,241,0.25)', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={15} color="#818cf8" />
+                  </div>
+                  <div>
+                    <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', margin: 0 }}>
+                      પ્રશ્ન બેંક
+                    </h3>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', padding: '2px 7px', borderRadius: 6, border: '1px solid rgba(99,102,241,0.3)' }}>
+                    કુલ: {qs.length}
+                  </span>
+                  <button
+                    onClick={() => setActiveTab('generate')}
+                    style={{ color: '#818cf8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem' }}
+                  >
+                    + ઉમેરો →
+                  </button>
+                </div>
+              </div>
+
+              {qs.length === 0 ? (
+                <Empty msg="કોઈ પ્રશ્નો નથી. હમણાં ઉમેરો!" />
+              ) : (
+                (() => {
                   const subjects = {};
-                  qs.forEach(q => { subjects[q.subject || 'Other'] = (subjects[q.subject || 'Other'] || 0) + 1; });
-                  const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#0891b2'];
-                  return Object.entries(subjects).map(([subj, count], i) => (
-                    <div key={i} style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <span style={{ color: '#e2e8f0', fontSize: '0.85rem', fontWeight: 600 }}>{subj}</span>
-                        <span style={{ color: colors[i % colors.length], fontWeight: 800, fontSize: '0.85rem' }}>{count}</span>
+                  qs.forEach(q => { subjects[q.subject || 'અન્ય વિષય'] = (subjects[q.subject || 'અન્ય વિષય'] || 0) + 1; });
+                  const colors = ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f87171', '#06b6d4'];
+                  return Object.entries(subjects).map(([subj, count], i) => {
+                    const c = colors[i % colors.length];
+                    const percent = Math.min(100, Math.round((count / qs.length) * 100));
+                    return (
+                      <div key={i} style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                          <span style={{ color: '#e2e8f0', fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                            {subj}
+                          </span>
+                          <span style={{ color: c, fontWeight: 900, fontSize: '0.8rem', background: 'rgba(255,255,255,0.04)', padding: '1px 6px', borderRadius: 6 }}>
+                            {count} પ્રશ્નો ({percent}%)
+                          </span>
+                        </div>
+                        <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${percent}%`,
+                            borderRadius: 999,
+                            background: `linear-gradient(90deg, ${c}, ${c}aa)`,
+                            boxShadow: `0 0 8px ${c}55`,
+                            transition: 'width 0.8s ease'
+                          }} />
+                        </div>
                       </div>
-                      <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}>
-                        <div style={{ height: '100%', width: `${Math.min(100,(count/qs.length)*100)}%`, borderRadius: 4, background: `linear-gradient(90deg,${colors[i % colors.length]},${colors[i % colors.length]}88)`, transition: 'width 0.8s ease' }} />
-                      </div>
-                    </div>
-                  ));
+                    );
+                  });
                 })()
-              }
+              )}
             </div>
 
-            {/* Grade Alert */}
-            <div className="glass-card" style={{ padding: 18, border: stats.pending > 0 ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(34,197,94,0.2)' }}>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.9rem', marginBottom: 14 }}>
-                {stats.pending > 0 ? '🔔 Grade Pending' : '✅ All Graded!'}
-              </h3>
-              {stats.pending > 0 ? (
-                <>
-                  <div style={{ textAlign: 'center', marginBottom: 14 }}>
-                    <div style={{ fontSize: '3rem', marginBottom: 6 }}>⏳</div>
-                    <div style={{ color: '#fca5a5', fontWeight: 700, fontSize: '0.92rem' }} className="gu-text">
-                      {stats.pending} answers grade pending!
+            {/* 4. Executive Evaluation & Grading Center */}
+            <div className="glass-card" style={{
+              padding: 18,
+              borderRadius: 18,
+              border: stats.pending > 0 ? '1.5px solid rgba(239,68,68,0.4)' : '1px solid rgba(34,197,94,0.3)',
+              background: stats.pending > 0
+                ? 'radial-gradient(120% 120% at 50% 0%, rgba(220,38,38,0.15) 0%, rgba(15,23,42,0.95) 100%)'
+                : 'radial-gradient(120% 120% at 50% 0%, rgba(34,197,94,0.12) 0%, rgba(15,23,42,0.95) 100%)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: stats.pending > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.15)',
+                      border: stats.pending > 0 ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(34,197,94,0.3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {stats.pending > 0 ? <AlertCircle size={15} color="#f87171" /> : <ShieldCheck size={15} color="#4ade80" />}
+                    </div>
+                    <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', margin: 0 }}>
+                      મૂલ્યાંકન સેન્ટર
+                    </h3>
+                  </div>
+                  <span style={{
+                    fontSize: '0.66rem', fontWeight: 900,
+                    background: stats.pending > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)',
+                    color: stats.pending > 0 ? '#fca5a5' : '#86efac',
+                    padding: '2px 8px', borderRadius: 6,
+                    border: stats.pending > 0 ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(34,197,94,0.35)'
+                  }}>
+                    {stats.pending > 0 ? '● ACTION REQUIRED' : '✓ 100% COMPLETE'}
+                  </span>
+                </div>
+
+                {stats.pending > 0 ? (
+                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 16,
+                      background: 'rgba(239,68,68,0.15)',
+                      border: '1.5px solid rgba(239,68,68,0.4)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '0 auto 10px',
+                      boxShadow: '0 0 20px rgba(239,68,68,0.3)'
+                    }}>
+                      <Camera size={26} color="#f87171" />
+                    </div>
+                    <div style={{ color: '#fca5a5', fontWeight: 900, fontSize: '1rem', marginBottom: 4 }}>
+                      {stats.pending} ઉત્તરો ચકાસણી માટે પેન્ડિંગ!
+                    </div>
+                    <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '0 0 14px' }}>
+                      વિદ્યાર્થીઓ પરિણામ અને સ્કોરકાર્ડની રાહ જોઈ રહ્યા છે.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ padding: '4px 0' }}>
+                    <div style={{
+                      width: 54, height: 54, borderRadius: 16,
+                      background: 'linear-gradient(135deg, rgba(34,197,94,0.25), rgba(16,185,129,0.15))',
+                      border: '1.5px solid rgba(34,197,94,0.45)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '0 auto 10px',
+                      boxShadow: '0 0 20px rgba(34,197,94,0.25)'
+                    }}>
+                      <CheckCircle size={28} color="#4ade80" />
+                    </div>
+                    <div style={{ color: 'white', fontWeight: 900, fontSize: '0.98rem', textAlign: 'center', marginBottom: 2 }}>
+                      બધા પેપર્સ મૂલ્યાંકિત છે!
+                    </div>
+                    <div style={{ color: '#86efac', fontSize: '0.74rem', textAlign: 'center', fontWeight: 700, marginBottom: 12 }}>
+                      કોઈ પેન્ડિંગ ચકાસણી બાકી નથી
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '5px 8px', borderRadius: 8 }}>
+                        <span style={{ color: '#4ade80', fontWeight: 900 }}>✓</span>
+                        <span>ઝીરો પેન્ડિંગ કતાર (0 Pending)</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '5px 8px', borderRadius: 8 }}>
+                        <span style={{ color: '#4ade80', fontWeight: 900 }}>✓</span>
+                        <span>તમામ સ્કોરકાર્ડ લાઈવ અપડેટ</span>
+                      </div>
                     </div>
                   </div>
-                  <button onClick={() => setActiveTab('answers')} style={{ width: '100%', background: 'linear-gradient(135deg,#7f1d1d,#dc2626)', color: 'white', border: 'none', padding: '13px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: '0.92rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-                    📸 Grade Now →
-                  </button>
-                </>
-              ) : (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: 8 }}>🎉</div>
-                  <div style={{ color: '#4ade80', fontWeight: 700 }} className="gu-text">બધા graded!</div>
-                </div>
-              )}
+                )}
+              </div>
+
+              <button
+                onClick={() => setActiveTab('answers')}
+                style={{
+                  width: '100%',
+                  background: stats.pending > 0 ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' : 'rgba(34,197,94,0.14)',
+                  color: stats.pending > 0 ? 'white' : '#86efac',
+                  border: stats.pending > 0 ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(34,197,94,0.35)',
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: stats.pending > 0 ? '0 4px 14px rgba(220,38,38,0.4)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {stats.pending > 0 ? (
+                  <>📸 હમણાં જ મૂલ્યાંકન કરો ➔</>
+                ) : (
+                  <>🔍 ઉત્તરવહી ઇતિહાસ ચકાસો ➔</>
+                )}
+              </button>
             </div>
+
           </div>
         </>
       )}
