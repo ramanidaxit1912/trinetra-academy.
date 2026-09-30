@@ -763,163 +763,407 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
 
       {/* ── Mobile-Optimized Top Hero Header ── */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,58,138,0.85) 50%, rgba(67,56,202,0.7) 100%)',
-        borderRadius: 18,
-        padding: '16px',
-        marginBottom: 16,
-        border: '1.5px solid rgba(59,130,246,0.3)',
-        boxShadow: '0 14px 30px rgba(0,0,0,0.5)',
+        background: 'radial-gradient(120% 120% at 50% 0%, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.98) 70%, #090e1a 100%)',
+        borderRadius: 22,
+        padding: '20px',
+        marginBottom: 18,
+        border: '1px solid rgba(59, 130, 246, 0.28)',
+        boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Glow Spheres */}
-        <div style={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', top: -60, right: -30, filter: 'blur(40px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', width: 120, height: 120, borderRadius: '50%', background: 'rgba(245,158,11,0.12)', bottom: -30, left: 20, filter: 'blur(30px)', pointerEvents: 'none' }} />
+        {/* Ambient Glow Orbs */}
+        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, transparent 70%)', top: -80, right: -40, filter: 'blur(30px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', bottom: -50, left: 10, filter: 'blur(30px)', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
           
-          {/* Row 1: Teacher Profile & Live Clock in Mobile Wrap */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Row 1: Teacher Profile & Live Clock */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             
-            {/* Top row: Avatar + Name + Live Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-              <div style={{
-                width: 46, height: 46, borderRadius: 14,
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.4rem', fontWeight: 900, color: 'white',
-                boxShadow: '0 0 16px rgba(139,92,246,0.5)',
-                border: '2px solid rgba(255,255,255,0.25)',
-                flexShrink: 0
-              }}>
-                {teacherProfile.name?.[0]?.toUpperCase() || 'T'}
+            {/* Top row: Avatar + Name + Verified Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                {/* 3D Squircle Avatar with Metallic Border */}
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.5rem', fontWeight: 900, color: 'white',
+                  boxShadow: '0 8px 24px rgba(37,99,235,0.45), inset 0 2px 4px rgba(255,255,255,0.3)',
+                  border: '2px solid rgba(147, 197, 253, 0.5)',
+                  flexShrink: 0
+                }}>
+                  {teacherProfile.name?.[0]?.toUpperCase() || 'T'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38bdf8', padding: '2px 8px', borderRadius: 999,
+                      fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.03em'
+                    }}>
+                      <ShieldCheck size={12} /> વેરીફાઇડ ફેકલ્ટી
+                    </span>
+                    <span style={{ color: '#64748b', fontSize: '0.72rem' }}>•</span>
+                    <span style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700 }}>TRINETRA ACADEMY</span>
+                  </div>
+                  <h1 style={{ color: 'white', fontWeight: 900, fontSize: '1.25rem', margin: 0, lineHeight: 1.25, letterSpacing: '-0.01em' }}>
+                    નમસ્તે, {teacherProfile.name || 'Teacher'} સાહેબ! 👋
+                  </h1>
+                  <div style={{ color: '#cbd5e1', fontSize: '0.76rem', marginTop: 3, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#93c5fd' }}>🎓 {teacherProfile.subject || 'TET-2 સ્પેશ્યલ'}</span>
+                    <span style={{ color: '#475569' }}>|</span>
+                    <span>🏫 {teacherProfile.academy || 'Trinetra Online Academy'}</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <span className="live-dot" style={{ width: 7, height: 7 }} />
-                  <span style={{ color: '#93c5fd', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    શિક્ષક પોર્ટલ • TRINETRA
-                  </span>
-                </div>
-                <h1 style={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', margin: 0, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  નમસ્તે, {teacherProfile.name || 'Teacher'} સાહેબ! 👋
-                </h1>
-                <div style={{ color: '#cbd5e1', fontSize: '0.74rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                  🎓 {teacherProfile.subject || 'TET-2'} • 🏫 {teacherProfile.academy || 'Trinetra Online Academy'}
-                </div>
+
+              {/* Quick Status Pill */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: 'rgba(15, 23, 42, 0.7)',
+                padding: '6px 12px', borderRadius: 999,
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)'
+              }}>
+                <span className="live-dot" style={{ width: 8, height: 8, background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} />
+                <span style={{ color: '#e2e8f0', fontSize: '0.72rem', fontWeight: 800 }}>કમાન્ડ સેન્ટર સક્રિય</span>
               </div>
             </div>
 
-            {/* Live Clock & Gujarati Date Banner (Full width centered on mobile) */}
+            {/* Live Clock & Gujarati Date Banner (Cyber-Glass Capsule) */}
             <div style={{
-              background: 'linear-gradient(145deg, rgba(15,23,42,0.85), rgba(30,58,138,0.4))',
-              border: '1px solid rgba(245,158,11,0.35)',
-              borderRadius: 14,
-              padding: '8px 14px',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.6) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.28)',
+              borderRadius: 16,
+              padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 10,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.35)'
+              gap: 12,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(10px)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '1.25rem' }}>📅</span>
-                <span style={{ color: '#fbbf24', fontSize: '0.78rem', fontWeight: 800 }}>
-                  {dayName}, {dateNum} {monthName}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fbbf24'
+                }}>
+                  <Calendar size={16} />
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>આજની તારીખ</div>
+                  <div style={{ color: '#fbbf24', fontSize: '0.84rem', fontWeight: 900 }}>
+                    {dayName}, {dateNum} {monthName}
+                  </div>
+                </div>
               </div>
-              <div style={{ color: '#60a5fa', fontSize: '0.82rem', fontWeight: 800, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>⏰ {timeFormatted}</span>
-                <span style={{ fontSize: '0.65rem', background: 'rgba(37,99,235,0.4)', padding: '2px 6px', borderRadius: 6, color: '#93c5fd', fontWeight: 900, border: '1px solid rgba(56,189,248,0.3)' }}>લાઈવ</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>લાઈવ સમય</div>
+                  <div style={{ color: '#60a5fa', fontSize: '0.92rem', fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.02em' }}>
+                    {timeFormatted}
+                  </div>
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: 'rgba(37, 99, 235, 0.25)',
+                  padding: '4px 8px', borderRadius: 8,
+                  color: '#93c5fd', fontSize: '0.68rem', fontWeight: 900,
+                  border: '1px solid rgba(56, 189, 248, 0.3)'
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 6px #38bdf8' }} />
+                  IST
+                </div>
               </div>
             </div>
 
           </div>
 
-          {/* Row 2: Balanced 2-Column Shortcut Buttons Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Row 2: 4 Executive Command Cards (2026 SaaS Luxury Grid) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: 10,
+            paddingTop: 8
+          }}>
             
-            {/* 1. New Test Button */}
-            <button onClick={() => setActiveTab('generate')} style={{
-              background: 'linear-gradient(135deg, #2563eb, #0284c7)',
-              color: 'white', border: '1px solid rgba(56,189,248,0.4)',
-              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 4px 12px rgba(37,99,235,0.35)', minHeight: 44
-            }}>
-              ➕ નવી કસોટી
+            {/* 1. New Test Card */}
+            <button
+              onClick={() => setActiveTab('generate')}
+              className="exec-cmd-card"
+              style={{
+                background: 'linear-gradient(145deg, rgba(30, 58, 138, 0.55) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                borderRadius: 16,
+                padding: '14px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.6)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #2563eb, #0284c7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.45)',
+                flexShrink: 0,
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <Plus size={22} color="white" strokeWidth={2.6} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <div style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+                    નવી કસોટી
+                  </div>
+                  <span style={{
+                    fontSize: '0.64rem', fontWeight: 800,
+                    background: 'rgba(56, 189, 248, 0.18)',
+                    color: '#38bdf8', padding: '1px 6px', borderRadius: 6,
+                    border: '1px solid rgba(56, 189, 248, 0.3)'
+                  }}>
+                    + ક્રિએટ
+                  </span>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  AI & મેન્યુઅલ પેપર જનરેશન
+                </div>
+              </div>
             </button>
 
-            {/* 2. Live Monitor Button */}
-            <button onClick={() => setActiveTab('live')} style={{
-              background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(185,28,28,0.15))',
-              color: '#fca5a5', border: '1.5px solid rgba(239,68,68,0.45)',
-              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 4px 12px rgba(239,68,68,0.15)', minHeight: 44
-            }}>
-              🔴 Live Monitor
+            {/* 2. Live Monitor Card */}
+            <button
+              onClick={() => setActiveTab('live')}
+              className="exec-cmd-card"
+              style={{
+                background: 'linear-gradient(145deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1px solid rgba(34, 197, 94, 0.35)',
+                borderRadius: 16,
+                padding: '14px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.6)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                flexShrink: 0,
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <Activity size={22} color="white" strokeWidth={2.4} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <div style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+                    લાઈવ મોનિટર
+                  </div>
+                  <span style={{
+                    fontSize: '0.64rem', fontWeight: 900,
+                    background: 'rgba(34, 197, 94, 0.2)',
+                    color: '#4ade80', padding: '1px 6px', borderRadius: 6,
+                    border: '1px solid rgba(34, 197, 94, 0.35)',
+                    display: 'flex', alignItems: 'center', gap: 3
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
+                    LIVE
+                  </span>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  રીઅલ-ટાઇમ સ્કોર & કસોટી રૂમ
+                </div>
+              </div>
             </button>
 
-            {/* 3. Posters & Offers Button */}
-            <button onClick={() => setActiveTab('marketing')} style={{
-              background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(180,83,9,0.15))',
-              color: '#fde68a', border: '1.5px solid rgba(245,158,11,0.4)',
-              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.82rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 4px 12px rgba(245,158,11,0.15)', minHeight: 44
-            }}>
-              🎨 પોસ્ટર્સ & ઑફર્સ
+            {/* 3. Posters & Offers Card */}
+            <button
+              onClick={() => setActiveTab('marketing')}
+              className="exec-cmd-card"
+              style={{
+                background: 'linear-gradient(145deg, rgba(120, 53, 15, 0.35) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: 16,
+                padding: '14px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.6)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)',
+                flexShrink: 0,
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <Sparkles size={22} color="#fef08a" strokeWidth={2.4} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <div style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+                    પોસ્ટર્સ & ઑફર્સ
+                  </div>
+                  <span style={{
+                    fontSize: '0.64rem', fontWeight: 800,
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#fbbf24', padding: '1px 6px', borderRadius: 6,
+                    border: '1px solid rgba(245, 158, 11, 0.35)'
+                  }}>
+                    બ્રોશર હબ
+                  </span>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  PDF બ્રોશર & કૂપન મેનેજમેન્ટ
+                </div>
+              </div>
             </button>
 
-            {/* 4. Live Launch Data Clean Button */}
-            <button onClick={() => setShowCleanModal(true)} style={{
-              background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-              color: 'white', border: '1px solid rgba(248,113,113,0.4)',
-              padding: '11px 10px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 4px 12px rgba(220,38,38,0.4)', minHeight: 44
-            }}>
-              🧹 ડેટા સાફ કરો
-            </button>
-
-            {/* 5. Daily WhatsApp Summary Report Button */}
+            {/* 4. Daily WhatsApp Report Card */}
             <button
               onClick={handleSendDailyReport}
               disabled={reportLoading}
+              className="exec-cmd-card"
               style={{
-                gridColumn: 'span 2',
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                color: 'white',
-                border: '1px solid rgba(52,211,153,0.4)',
-                padding: '11px 14px',
-                borderRadius: 12,
-                fontWeight: 900,
+                background: 'linear-gradient(145deg, rgba(6, 95, 70, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: 16,
+                padding: '14px',
                 cursor: reportLoading ? 'not-allowed' : 'pointer',
-                fontSize: '0.85rem',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.6)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                opacity: reportLoading ? 0.7 : 1
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #10b981, #047857)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                flexShrink: 0,
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <Smartphone size={22} color="white" strokeWidth={2.4} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                  <div style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+                    WhatsApp રિપોર્ટ
+                  </div>
+                  <span style={{
+                    fontSize: '0.64rem', fontWeight: 800,
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#6ee7b7', padding: '1px 6px', borderRadius: 6,
+                    border: '1px solid rgba(16, 185, 129, 0.35)'
+                  }}>
+                    {reportLoading ? 'મોકલાય છે...' : '⚡ 1-Click'}
+                  </span>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {reportLoading ? 'WhatsApp પર સેન્ડિંગ...' : 'આજનો દૈનિક સ્કોરકાર્ડ મોકલો'}
+                </div>
+              </div>
+            </button>
+
+          </div>
+
+          {/* Row 3: Refined Executive Utility Quick Bar (Profile & Clean Data Safe Pill) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+            paddingTop: 10,
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            {/* Edit Profile Pill */}
+            <button
+              onClick={() => setEditProfile(!editProfile)}
+              style={{
+                flex: '1 1 200px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#cbd5e1',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                padding: '9px 14px',
+                borderRadius: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontSize: '0.8rem',
                 fontFamily: 'Hind Vadodara, sans-serif',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
-                minHeight: 44
+                transition: 'all 0.15s ease',
+                backdropFilter: 'blur(6px)'
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = '#ffffff'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.color = '#cbd5e1'; }}
             >
-              {reportLoading ? '⏳ અહેવાલ WhatsApp પર મોકલાઈ રહ્યો છે...' : '📊 આજનો દૈનિક WhatsApp અહેવાલ મેળવો (Send Now) ➔'}
+              <Edit3 size={15} color="#93c5fd" />
+              <span>શિક્ષક પ્રોફાઇલ વિગતો સુધારો</span>
             </button>
 
-            {/* 6. Profile Full Width Span 2 Button */}
-            <button onClick={() => setEditProfile(!editProfile)} style={{
-              gridColumn: 'span 2',
-              background: 'rgba(255,255,255,0.06)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)',
-              padding: '9px 12px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem',
-              fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-            }}>
-              ✏️ Profile વિગતો સુધારો
+            {/* Clean Testing Data - Discreet Safety Maintenance Pill */}
+            <button
+              onClick={() => setShowCleanModal(true)}
+              style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                color: '#fca5a5',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '9px 14px',
+                borderRadius: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontSize: '0.78rem',
+                fontFamily: 'Hind Vadodara, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)'; }}
+            >
+              <Trash2 size={14} color="#f87171" />
+              <span>ટેસ્ટિંગ ડેટા સાફ કરો</span>
             </button>
-
           </div>
 
         </div>
@@ -1043,81 +1287,103 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
       {/* ── Active Live Test Quick Widget ── */}
       <div style={{
         background: primaryActiveTest
-          ? 'linear-gradient(#0b1329, #0b1329) padding-box, linear-gradient(135deg, #22c55e 0%, #eab308 25%, #ef4444 50%, #a855f7 75%, #38bdf8 100%) border-box'
-          : 'linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.8) 100%)',
-        border: primaryActiveTest ? '2px solid transparent' : '1px solid rgba(255,255,255,0.1)',
-        boxShadow: primaryActiveTest ? '0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(239,68,68,0.25)' : 'none',
-        borderRadius: 18,
-        padding: '16px',
-        marginBottom: 20,
+          ? 'radial-gradient(120% 120% at 50% 0%, rgba(220,38,38,0.2) 0%, rgba(15,23,42,0.95) 100%)'
+          : 'linear-gradient(135deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.9) 100%)',
+        border: primaryActiveTest ? '1.5px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(59, 130, 246, 0.22)',
+        boxShadow: primaryActiveTest ? '0 12px 36px rgba(0,0,0,0.6), 0 0 25px rgba(239, 68, 68, 0.2)' : '0 10px 28px rgba(0,0,0,0.4)',
+        borderRadius: 20,
+        padding: '18px',
+        marginBottom: 22,
         display: 'flex',
         flexDirection: 'column',
         gap: 14,
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 14,
-            background: primaryActiveTest ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
-            border: primaryActiveTest ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.4rem',
-            flexShrink: 0
-          }}>
-            {primaryActiveTest ? '🔴' : '⚪'}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{
-                background: primaryActiveTest ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.08)',
-                color: primaryActiveTest ? '#fca5a5' : '#94a3b8',
-                fontWeight: 900, fontSize: '0.68rem', padding: '2px 8px', borderRadius: 6,
-                border: primaryActiveTest ? '1px solid rgba(239,68,68,0.4)' : 'none'
-              }}>
-                {primaryActiveTest ? '● LIVE TEST ACTIVE' : 'NO ACTIVE TEST'}
-              </span>
-              {primaryActiveTest && (
-                <span style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800 }}>
-                  👨‍🎓 {activeTestSubsCount} સબમિશન
-                </span>
+        {/* Radar ambient glow */}
+        <div style={{
+          position: 'absolute', width: 140, height: 140, borderRadius: '50%',
+          background: primaryActiveTest ? 'radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, transparent 70%)',
+          top: -40, right: -20, filter: 'blur(25px)', pointerEvents: 'none'
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: '1 1 300px' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: primaryActiveTest ? 'linear-gradient(135deg, rgba(239,68,68,0.3), rgba(185,28,28,0.2))' : 'linear-gradient(135deg, rgba(56,189,248,0.15), rgba(30,58,138,0.3))',
+              border: primaryActiveTest ? '1.5px solid rgba(239,68,68,0.6)' : '1.5px solid rgba(56,189,248,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: primaryActiveTest ? '0 0 16px rgba(239,68,68,0.35)' : '0 0 16px rgba(56,189,248,0.2)',
+              flexShrink: 0
+            }}>
+              {primaryActiveTest ? (
+                <Flame size={24} color="#f87171" />
+              ) : (
+                <Activity size={24} color="#38bdf8" />
               )}
             </div>
-            <div style={{ color: 'white', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {primaryActiveTest ? primaryActiveTest.testName : 'અત્યારે કોઈ કસોટી લાઈવ ચાલુ નથી'}
-            </div>
-            {primaryActiveTest && (
-              <div style={{ color: '#94a3b8', fontSize: '0.76rem', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 8px' }}>
-                <span>📚 {primaryActiveTest.subject}</span>
-                <span>⏱️ {primaryActiveTest.timeLimit} મિનિટ</span>
-                <span>📋 {primaryActiveTest.questionsCount} પ્રશ્નો</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{
+                  background: primaryActiveTest ? 'rgba(239,68,68,0.25)' : 'rgba(56,189,248,0.15)',
+                  color: primaryActiveTest ? '#fca5a5' : '#38bdf8',
+                  fontWeight: 900, fontSize: '0.68rem', padding: '2px 8px', borderRadius: 6,
+                  border: primaryActiveTest ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(56,189,248,0.3)',
+                  display: 'inline-flex', alignItems: 'center', gap: 5
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: primaryActiveTest ? '#ef4444' : '#38bdf8' }} />
+                  {primaryActiveTest ? 'LIVE TEST ACTIVE' : 'કસોટી સ્થિતિ: સ્ટેન્ડબાય મોડ (STANDBY)'}
+                </span>
+                {primaryActiveTest && (
+                  <span style={{ color: '#34d399', fontSize: '0.74rem', fontWeight: 800 }}>
+                    👨‍🎓 {activeTestSubsCount} સબમિશન
+                  </span>
+                )}
               </div>
-            )}
+              <div style={{ color: 'white', fontWeight: 900, fontSize: '1.12rem', lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {primaryActiveTest ? primaryActiveTest.testName : 'હાલમાં કોઈ કસોટી લાઈવ પ્રસારિત નથી'}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '0.76rem', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontWeight: 600 }}>
+                {primaryActiveTest ? (
+                  <>
+                    <span>📚 {primaryActiveTest.subject}</span>
+                    <span>⏱️ {primaryActiveTest.timeLimit} મિનિટ</span>
+                    <span>📋 {primaryActiveTest.questionsCount} પ્રશ્નો</span>
+                  </>
+                ) : (
+                  <span>વિદ્યાર્થીઓ માટે 1-ક્લિકમાં નવી મોક ટેસ્ટ શરૂ કરો અથવા શેડ્યૂલ કરો</span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => setActiveTab('live')}
-          style={{
-            background: primaryActiveTest ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(255,255,255,0.08)',
-            color: 'white',
-            border: primaryActiveTest ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.15)',
-            padding: '12px 16px',
-            borderRadius: 12,
-            fontWeight: 900,
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-            boxShadow: primaryActiveTest ? '0 4px 16px rgba(220,38,38,0.4)' : 'none',
-            fontFamily: 'Hind Vadodara, sans-serif',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            width: '100%'
-          }}
-        >
-          {primaryActiveTest ? '📊 લાઈવ મોનિટર ખોલો →' : '🚀 નવી ટેસ્ટ લાઈવ કરો →'}
-        </button>
+          <button
+            onClick={() => setActiveTab('live')}
+            style={{
+              background: primaryActiveTest
+                ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+                : 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+              color: 'white',
+              border: primaryActiveTest ? '1px solid rgba(248,113,113,0.5)' : '1px solid rgba(56,189,248,0.4)',
+              padding: '12px 20px',
+              borderRadius: 14,
+              fontWeight: 900,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              boxShadow: primaryActiveTest ? '0 6px 20px rgba(220,38,38,0.45)' : '0 6px 20px rgba(29,78,216,0.4)',
+              fontFamily: 'Hind Vadodara, sans-serif',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+          >
+            {primaryActiveTest ? '📊 લાઈવ મોનિટરિંગ રૂમમાં જાઓ ➔' : '🚀 નવી ટેસ્ટ લાઈવ શરૂ કરો ➔'}
+          </button>
+        </div>
       </div>
 
       {/* ── Stat Cards with Trend Badges ── */}
