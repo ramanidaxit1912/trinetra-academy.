@@ -621,6 +621,384 @@ export default function TeacherDashboard() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   ANIMATED OVERVIEW CALENDAR (Interactive Month Planner)
+═══════════════════════════════════════════════════════ */
+function AnimatedOverviewCalendar({ subs = [], setActiveTab }) {
+  const [viewDate, setViewDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [slideDirection, setSlideDirection] = useState('next');
+  const [animKey, setAnimKey] = useState(0);
+
+  const gujaratiMonths = [
+    'જાન્યુઆરી (Jan)', 'ફેબ્રુઆરી (Feb)', 'માર્ચ (Mar)', 'એપ્રિલ (Apr)',
+    'મે (May)', 'જૂન (Jun)', 'જુલાઈ (Jul)', 'ઓગસ્ટ (Aug)',
+    'સપ્ટેમ્બર (Sep)', 'ઓક્ટોબર (Oct)', 'નવેમ્બર (Nov)', 'ડિસેમ્બર (Dec)'
+  ];
+
+  const gujaratiDays = ['રવિ', 'સોમ', 'મંગળ', 'બુધ', 'ગુરુ', 'શુક્ર', 'શનિ'];
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const today = new Date();
+  const isCurrentMonthView = today.getFullYear() === year && today.getMonth() === month;
+
+  // Month navigation
+  const prevMonth = () => {
+    setSlideDirection('prev');
+    setAnimKey(prev => prev + 1);
+    setViewDate(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setSlideDirection('next');
+    setAnimKey(prev => prev + 1);
+    setViewDate(new Date(year, month + 1, 1));
+  };
+
+  const jumpToToday = () => {
+    setSlideDirection('next');
+    setAnimKey(prev => prev + 1);
+    setViewDate(new Date());
+    setSelectedDate(new Date());
+  };
+
+  // Activity counts by date key: YYYY-M-D
+  const activityMap = useMemo(() => {
+    const map = {};
+    subs.forEach(s => {
+      const ts = s.createdAt || s.submittedAt;
+      if (ts) {
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) {
+          const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+          map[k] = (map[k] || 0) + 1;
+        }
+      }
+    });
+    return map;
+  }, [subs]);
+
+  // Calendar days calculation
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const calendarDays = [];
+
+  // Previous month trailing days
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    calendarDays.push({
+      dayNum: daysInPrevMonth - i,
+      isCurrentMonth: false,
+      dateObj: new Date(year, month - 1, daysInPrevMonth - i)
+    });
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarDays.push({
+      dayNum: d,
+      isCurrentMonth: true,
+      dateObj: new Date(year, month, d)
+    });
+  }
+
+  // Next month leading days (fill to 35 or 42 grid cells)
+  const remainingDays = (7 - (calendarDays.length % 7)) % 7;
+  for (let i = 1; i <= remainingDays; i++) {
+    calendarDays.push({
+      dayNum: i,
+      isCurrentMonth: false,
+      dateObj: new Date(year, month + 1, i)
+    });
+  }
+
+  // Selected date info
+  const selectedKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
+  const selectedCount = activityMap[selectedKey] || 0;
+  const isSelectedToday = selectedDate.toDateString() === today.toDateString();
+
+  return (
+    <div className="glass-card" style={{
+      padding: '20px',
+      borderRadius: 18,
+      background: 'radial-gradient(120% 120% at 50% 0%, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%)',
+      border: '1px solid rgba(56, 189, 248, 0.28)',
+      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      position: 'relative',
+      overflow: 'hidden',
+      height: '100%',
+      boxSizing: 'border-box'
+    }}>
+      {/* Background ambient mesh */}
+      <div style={{
+        position: 'absolute', width: 140, height: 140, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%)',
+        top: -30, right: -30, filter: 'blur(30px)', pointerEvents: 'none'
+      }} />
+
+      <div>
+        {/* Calendar Header: Month/Year + Navigation Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.25), rgba(56,189,248,0.15))',
+              border: '1px solid rgba(56,189,248,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 12px rgba(56,189,248,0.2)'
+            }}>
+              <Calendar size={18} color="#38bdf8" />
+            </div>
+            <div>
+              <div style={{ color: 'white', fontWeight: 900, fontSize: '0.96rem', letterSpacing: '-0.01em' }}>
+                {gujaratiMonths[month]} {year}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 700 }}>
+                શિક્ષક કેલેન્ડર & દૈનિક પ્લાનર
+              </div>
+            </div>
+          </div>
+
+          {/* Controls: Prev, Today, Next */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={prevMonth}
+              title="પાછલો મહિનો"
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#cbd5e1', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.85rem', fontWeight: 900,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+            >
+              ◀
+            </button>
+
+            {!isCurrentMonthView && (
+              <button
+                onClick={jumpToToday}
+                style={{
+                  background: 'rgba(56,189,248,0.15)',
+                  border: '1px solid rgba(56,189,248,0.35)',
+                  color: '#38bdf8', padding: '4px 8px', borderRadius: 8,
+                  fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
+                }}
+              >
+                આજે
+              </button>
+            )}
+
+            <button
+              onClick={nextMonth}
+              title="આગામી મહિનો"
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#cbd5e1', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.85rem', fontWeight: 900,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+
+        {/* Days of week header */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: 4,
+          marginBottom: 8,
+          textAlign: 'center'
+        }}>
+          {gujaratiDays.map((d, idx) => (
+            <div
+              key={idx}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: idx === 0 ? '#f87171' : idx === 6 ? '#fbbf24' : '#94a3b8',
+                padding: '4px 0',
+                textTransform: 'uppercase'
+              }}
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Animated Days Grid */}
+        <div
+          key={animKey}
+          className="calendar-days-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: 5,
+            animation: slideDirection === 'next' ? 'calSlideNext 0.28s ease' : 'calSlidePrev 0.28s ease'
+          }}
+        >
+          {calendarDays.map((item, idx) => {
+            const dateStr = item.dateObj.toDateString();
+            const isToday = dateStr === today.toDateString();
+            const isSelected = dateStr === selectedDate.toDateString();
+            const itemKey = `${item.dateObj.getFullYear()}-${item.dateObj.getMonth()}-${item.dateObj.getDate()}`;
+            const count = activityMap[itemKey] || 0;
+
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDate(item.dateObj)}
+                className="cal-day-cell"
+                style={{
+                  height: 38,
+                  borderRadius: 10,
+                  border: isSelected
+                    ? '1.5px solid #38bdf8'
+                    : isToday
+                      ? '1.5px solid #22c55e'
+                      : '1px solid rgba(255,255,255,0.05)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, rgba(37,99,235,0.4), rgba(56,189,248,0.25))'
+                    : isToday
+                      ? 'rgba(34,197,94,0.15)'
+                      : item.isCurrentMonth
+                        ? 'rgba(255,255,255,0.03)'
+                        : 'rgba(255,255,255,0.01)',
+                  color: isSelected
+                    ? '#ffffff'
+                    : isToday
+                      ? '#4ade80'
+                      : item.isCurrentMonth
+                        ? '#e2e8f0'
+                        : '#475569',
+                  fontWeight: isToday || isSelected ? 900 : 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  boxShadow: isSelected
+                    ? '0 0 14px rgba(56,189,248,0.4)'
+                    : isToday
+                      ? '0 0 10px rgba(34,197,94,0.3)'
+                      : 'none'
+                }}
+              >
+                <span>{item.dayNum}</span>
+
+                {/* Activity Neon Dot */}
+                {count > 0 && (
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      background: isSelected ? '#ffffff' : '#38bdf8',
+                      boxShadow: '0 0 6px #38bdf8',
+                      marginTop: 2
+                    }}
+                  />
+                )}
+                {isToday && count === 0 && (
+                  <span
+                    style={{
+                      width: 4,
+                      height: 4,
+                      borderRadius: '50%',
+                      background: '#4ade80',
+                      boxShadow: '0 0 4px #4ade80',
+                      marginTop: 2
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Selected Date Bottom Interactive Bar */}
+      <div style={{
+        marginTop: 14,
+        paddingTop: 12,
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%',
+            background: isSelectedToday ? '#22c55e' : '#38bdf8',
+            boxShadow: `0 0 8px ${isSelectedToday ? '#22c55e' : '#38bdf8'}`
+          }} />
+          <div style={{ color: '#e2e8f0', fontSize: '0.78rem', fontWeight: 800 }}>
+            {selectedDate.getDate()} {gujaratiMonths[selectedDate.getMonth()]}
+            {isSelectedToday && <span style={{ color: '#4ade80', marginLeft: 6, fontSize: '0.7rem' }}>(આજે)</span>}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {selectedCount > 0 ? (
+            <span style={{
+              background: 'rgba(56,189,248,0.18)',
+              border: '1px solid rgba(56,189,248,0.35)',
+              color: '#38bdf8',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: '0.7rem',
+              fontWeight: 800
+            }}>
+              ✨ {selectedCount} કસોટી સબમિશન
+            </span>
+          ) : (
+            <span style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 600 }}>
+              કોઈ કસોટી શેડ્યૂલ નથી
+            </span>
+          )}
+
+          <button
+            onClick={() => setActiveTab('live')}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#93c5fd',
+              padding: '3px 8px',
+              borderRadius: 6,
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            કસોટી શરૂ ➔
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    OVERVIEW
 ═══════════════════════════════════════════════════════ */
 function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile, logoutTeacher }) {
@@ -1431,88 +1809,100 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
             ))}
           </div>
 
-          {/* ── 7-Day Weekly Test Activity Chart ── */}
-          <div className="glass-card" style={{ padding: '20px', marginBottom: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.98rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📊</span> સાપ્તાહિક કસોટી પ્રવૃત્તિ (Weekly Test Activity)
-                </h3>
-                <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '4px 0 0' }}>
-                  છેલ્લા ૭ દિવસમાં (સોમ થી રવિ) વિદ્યાર્થીઓએ આપેલ કસોટીઓનો ગ્રાફ
-                </p>
+          {/* ── 7-Day Weekly Test Activity Chart & Animated Interactive Calendar ── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+            gap: 16,
+            marginBottom: 24,
+            alignItems: 'stretch'
+          }}>
+            {/* Visual 7-Day Activity Chart */}
+            <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box', margin: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h3 style={{ color: 'white', fontWeight: 800, fontSize: '0.98rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>📊</span> સાપ્તાહિક કસોટી પ્રવૃત્તિ
+                  </h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '4px 0 0' }}>
+                    છેલ્લા ૭ દિવસમાં વિદ્યાર્થીઓએ આપેલ કસોટીઓ
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8 }}>
+                    📈 કુલ: <strong style={{ color: 'white' }}>{totalWeeklyCount}</strong>
+                  </span>
+                  <span style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8 }}>
+                    ⭐ સરેરાશ: <strong style={{ color: 'white' }}>{(totalWeeklyCount / 7).toFixed(1)}</strong>
+                  </span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', fontSize: '0.74rem', fontWeight: 800, padding: '4px 10px', borderRadius: 8 }}>
-                  📈 કુલ આ અઠવાડિયે: <strong style={{ color: 'white' }}>{totalWeeklyCount}</strong>
-                </span>
-                <span style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac', fontSize: '0.74rem', fontWeight: 800, padding: '4px 10px', borderRadius: 8 }}>
-                  ⭐ દૈનિક સરેરાશ: <strong style={{ color: 'white' }}>{(totalWeeklyCount / 7).toFixed(1)}</strong>
-                </span>
+              {/* Visual Bar Chart */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 'clamp(6px, 2vw, 16px)',
+                alignItems: 'flex-end',
+                height: 160,
+                padding: '16px 10px 0',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 12,
+                border: '1px solid rgba(255,255,255,0.05)'
+              }}>
+                {last7Days.map((day, idx) => {
+                  const heightPercent = maxDayCount > 0 ? Math.max((day.count / maxDayCount) * 100, 8) : 8;
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                      {/* Top Count Tooltip Pill */}
+                      <div style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        color: day.isToday ? '#fbbf24' : '#93c5fd',
+                        marginBottom: 6,
+                        background: day.isToday ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)',
+                        padding: '2px 6px',
+                        borderRadius: 6,
+                        border: day.isToday ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.08)'
+                      }}>
+                        {day.count}
+                      </div>
+
+                      {/* Gradient Bar */}
+                      <div
+                        style={{
+                          width: '100%',
+                          maxWidth: 42,
+                          height: `${heightPercent}%`,
+                          borderRadius: '6px 6px 2px 2px',
+                          background: day.isToday
+                            ? 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)'
+                            : day.count > 0
+                              ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)'
+                              : 'rgba(255,255,255,0.08)',
+                          boxShadow: day.isToday ? '0 0 12px rgba(245,158,11,0.4)' : day.count > 0 ? '0 0 10px rgba(37,99,235,0.3)' : 'none',
+                          transition: 'height 0.6s ease'
+                        }}
+                      />
+
+                      {/* Day & Date Labels */}
+                      <div style={{ marginTop: 8, textAlign: 'center' }}>
+                        <div style={{ color: day.isToday ? '#fbbf24' : 'white', fontSize: '0.74rem', fontWeight: 800 }}>
+                          {day.dayName}
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '0.65rem' }}>
+                          {day.dateStr}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Visual Bar Chart */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 'clamp(6px, 2vw, 16px)',
-              alignItems: 'flex-end',
-              height: 160,
-              padding: '16px 10px 0',
-              background: 'rgba(0,0,0,0.2)',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              {last7Days.map((day, idx) => {
-                const heightPercent = maxDayCount > 0 ? Math.max((day.count / maxDayCount) * 100, 8) : 8;
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                    {/* Top Count Tooltip Pill */}
-                    <div style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 900,
-                      color: day.isToday ? '#fbbf24' : '#93c5fd',
-                      marginBottom: 6,
-                      background: day.isToday ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)',
-                      padding: '2px 6px',
-                      borderRadius: 6,
-                      border: day.isToday ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.08)'
-                    }}>
-                      {day.count}
-                    </div>
-
-                    {/* Gradient Bar */}
-                    <div
-                      style={{
-                        width: '100%',
-                        maxWidth: 42,
-                        height: `${heightPercent}%`,
-                        borderRadius: '6px 6px 2px 2px',
-                        background: day.isToday
-                          ? 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)'
-                          : day.count > 0
-                            ? 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)'
-                            : 'rgba(255,255,255,0.08)',
-                        boxShadow: day.isToday ? '0 0 12px rgba(245,158,11,0.4)' : day.count > 0 ? '0 0 10px rgba(37,99,235,0.3)' : 'none',
-                        transition: 'height 0.6s ease'
-                      }}
-                    />
-
-                    {/* Day & Date Labels */}
-                    <div style={{ marginTop: 8, textAlign: 'center' }}>
-                      <div style={{ color: day.isToday ? '#fbbf24' : 'white', fontSize: '0.74rem', fontWeight: 800 }}>
-                        {day.dayName}
-                      </div>
-                      <div style={{ color: '#64748b', fontSize: '0.65rem' }}>
-                        {day.dateStr}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Right: Animated Overview Calendar Widget */}
+            <AnimatedOverviewCalendar subs={subs} setActiveTab={setActiveTab} />
           </div>
 
           {/* ── ⚡ Quick Actions Hub (Executive Micro-Cards) ── */}
