@@ -16082,21 +16082,36 @@ function MarketingManager({ showToast }) {
       {/* ── Mobile-Optimized Action Buttons Grid ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8, marginBottom: 16 }}>
         {[
-          { mode: 'HOME',    label: '➕ 🏠 Home Poster',    bg: 'linear-gradient(135deg,#1e40af,#2563eb)', note: '🌐 Carousel Banner' },
-          { mode: 'PDF',     label: '➕ 📑 PDF Poster',     bg: 'linear-gradient(135deg,#047857,#059669)', note: '📄 Answer Sheet' },
-          { mode: 'DHAMAKA', label: '➕ 🔥 Dhamaka Offer',  bg: 'linear-gradient(135deg,#b45309,#d97706)', note: '🎟️ Coupon & Price' },
+          { mode: 'HOME',    label: '➕ 🏠 Home Poster',    bg: 'linear-gradient(135deg,#1e40af,#2563eb)', glow: 'rgba(37,99,235,0.35)', note: '🌐 Carousel Banner' },
+          { mode: 'PDF',     label: '➕ 📑 PDF Poster',     bg: 'linear-gradient(135deg,#047857,#059669)', glow: 'rgba(5,150,105,0.35)', note: '📄 Answer Sheet' },
+          { mode: 'DHAMAKA', label: '➕ 🔥 Dhamaka Offer',  bg: 'linear-gradient(135deg,#b45309,#d97706)', glow: 'rgba(217,119,6,0.35)', note: '🎟️ Coupon & Price' },
         ].map(btn => (
-          <button key={btn.mode} onClick={() => openAdd(btn.mode)} style={{
-            background: btn.bg, color: 'white', border: 'none',
-            padding: '12px 14px', borderRadius: 12, fontWeight: 900,
-            cursor: 'pointer', fontSize: '0.88rem', display: 'flex',
-            flexDirection: 'column', alignItems: 'flex-start', gap: 2,
-            boxShadow: '0 4px 14px rgba(0,0,0,0.35)', width: '100%',
-            fontFamily: 'Hind Vadodara, sans-serif', lineHeight: 1.25,
-            boxSizing: 'border-box'
-          }}>
+          <button
+            key={btn.mode}
+            onClick={() => openAdd(btn.mode)}
+            className="sa-btn-pressable"
+            style={{
+              background: btn.bg,
+              color: 'white',
+              border: 'none',
+              padding: '12px 16px',
+              borderRadius: 14,
+              fontWeight: 900,
+              cursor: 'pointer',
+              fontSize: '0.88rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 3,
+              boxShadow: `0 6px 18px -2px ${btn.glow}`,
+              width: '100%',
+              fontFamily: 'Hind Vadodara, sans-serif',
+              lineHeight: 1.25,
+              boxSizing: 'border-box'
+            }}
+          >
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{btn.label}</span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.85 }}>{btn.note}</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.9 }}>{btn.note}</span>
           </button>
         ))}
       </div>
@@ -16119,7 +16134,7 @@ function MarketingManager({ showToast }) {
       {/* ── Mobile Horizontal Scrollable Filter Tabs ── */}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 14, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {FILTER_TABS.map(ft => (
-          <button key={ft.id} onClick={() => setFilterTab(ft.id)} style={{
+          <button key={ft.id} onClick={() => setFilterTab(ft.id)} className="sa-btn-pressable" style={{
             background: filterTab === ft.id ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'rgba(255,255,255,0.06)',
             border: `1.5px solid ${filterTab === ft.id ? '#60a5fa' : 'rgba(255,255,255,0.12)'}`,
             color: filterTab === ft.id ? '#ffffff' : '#94a3b8',
@@ -16135,96 +16150,312 @@ function MarketingManager({ showToast }) {
       ) : filteredItems.length === 0 ? (
         <Empty msg="કોઈ પોસ્ટર / ઑફર મળ્યા નથી. ઉપરના બટન પર ક્લિક કરીને નવું ઉમેરો." />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 290px), 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 16 }}>
           {filteredItems.map(item => {
             const isHome = item.showInHome !== false;
             const isPdf  = item.showInPdf  !== false;
             const isLive = item.isActive   !== false;
             const isBestSeller = Boolean(item.badge && item.badge.toUpperCase().includes('BEST'));
             return (
-              <div key={item.id} style={{
-                background: '#1e293b', borderRadius: 14,
-                border: isLive ? '1.5px solid rgba(59,130,246,0.3)' : '1px dashed rgba(255,255,255,0.1)',
-                overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                opacity: isLive ? 1 : 0.6, transition: 'all 0.2s'
-              }}>
-
-                {/* Card Top Bar */}
-                <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ background: item.category === 'CAROUSEL' ? 'rgba(37,99,235,0.2)' : 'rgba(217,119,6,0.2)', color: item.category === 'CAROUSEL' ? '#60a5fa' : '#fbbf24', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, border: `1px solid ${item.category === 'CAROUSEL' ? 'rgba(37,99,235,0.4)' : 'rgba(217,119,6,0.4)'}` }}>
+              <div
+                key={item.id}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                  borderRadius: 16,
+                  border: isLive ? '1.5px solid rgba(56, 189, 248, 0.35)' : '1px dashed rgba(255, 255, 255, 0.12)',
+                  boxShadow: isLive ? '0 10px 28px -4px rgba(0, 0, 0, 0.5), 0 0 16px -4px rgba(56, 189, 248, 0.2)' : '0 6px 20px rgba(0, 0, 0, 0.4)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  opacity: isLive ? 1 : 0.65,
+                  transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                {/* Card Top Header: Badges & Modern Switch Pills */}
+                <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Category & Custom Badges */}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{
+                      background: item.category === 'CAROUSEL' ? 'linear-gradient(135deg, rgba(37,99,235,0.25), rgba(59,130,246,0.35))' : 'linear-gradient(135deg, rgba(217,119,6,0.25), rgba(245,158,11,0.35))',
+                      color: item.category === 'CAROUSEL' ? '#38bdf8' : '#fbbf24',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '3px 9px',
+                      borderRadius: 8,
+                      border: `1px solid ${item.category === 'CAROUSEL' ? 'rgba(56,189,248,0.4)' : 'rgba(245,158,11,0.4)'}`
+                    }}>
                       {item.category === 'CAROUSEL' ? '🎠 Carousel' : '🔥 Dhamaka'}
                     </span>
-                    {item.badge && <span style={{ background: item.tagColor || '#f59e0b', color: 'white', fontSize: '0.65rem', fontWeight: 900, padding: '2px 7px', borderRadius: 10 }}>{item.badge}</span>}
-                    {item.couponCode && <span style={{ background: 'rgba(245,158,11,0.15)', border: '1px dashed rgba(245,158,11,0.5)', color: '#fbbf24', fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px', borderRadius: 5, fontFamily: 'monospace' }}>🎟️ {item.couponCode}</span>}
+
+                    {item.badge && (
+                      <span style={{
+                        background: 'linear-gradient(135deg, #d97706, #ea580c)',
+                        color: 'white',
+                        fontSize: '0.68rem',
+                        fontWeight: 900,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        boxShadow: '0 2px 8px rgba(234,88,12,0.35)'
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
+
+                    {item.couponCode && (
+                      <span style={{
+                        background: 'rgba(245,158,11,0.15)',
+                        border: '1px dashed rgba(245,158,11,0.6)',
+                        color: '#fbbf24',
+                        fontSize: '0.68rem',
+                        fontWeight: 900,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        fontFamily: 'monospace'
+                      }}>
+                        🎟️ {item.couponCode}
+                      </span>
+                    )}
                   </div>
 
-                  {/* 2 Independent Toggle Buttons */}
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    <button onClick={() => toggleField(item, 'showInHome')} style={{
-                      background: isHome ? 'rgba(37,99,235,0.2)' : 'rgba(148,163,184,0.1)',
-                      border: `1px solid ${isHome ? '#3b82f6' : '#475569'}`,
-                      color: isHome ? '#93c5fd' : '#64748b',
-                      padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
-                    }} title="Homepage Carousel ON/OFF">
-                      🏠 {isHome ? 'ON' : 'OFF'}
+                  {/* 3 Modern Micro-Switch Toggle Buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {/* Home Toggle */}
+                    <button
+                      onClick={() => toggleField(item, 'showInHome')}
+                      className="sa-btn-pressable"
+                      style={{
+                        background: isHome ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : 'rgba(15, 23, 42, 0.65)',
+                        border: isHome ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.1)',
+                        color: isHome ? '#ffffff' : '#64748b',
+                        padding: '5px 6px',
+                        borderRadius: 8,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        boxShadow: isHome ? '0 2px 8px rgba(37,99,235,0.45)' : 'none',
+                        fontFamily: 'Hind Vadodara, sans-serif'
+                      }}
+                      title="Homepage Carousel ON/OFF"
+                    >
+                      <span>🏠</span>
+                      <span>{isHome ? 'Home ON' : 'OFF'}</span>
                     </button>
-                    <button onClick={() => toggleField(item, 'showInPdf')} style={{
-                      background: isPdf ? 'rgba(5,150,105,0.2)' : 'rgba(148,163,184,0.1)',
-                      border: `1px solid ${isPdf ? '#10b981' : '#475569'}`,
-                      color: isPdf ? '#6ee7b7' : '#64748b',
-                      padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
-                    }} title="PDF Brochure ON/OFF">
-                      📑 {isPdf ? 'ON' : 'OFF'}
+
+                    {/* PDF Toggle */}
+                    <button
+                      onClick={() => toggleField(item, 'showInPdf')}
+                      className="sa-btn-pressable"
+                      style={{
+                        background: isPdf ? 'linear-gradient(135deg, #047857, #10b981)' : 'rgba(15, 23, 42, 0.65)',
+                        border: isPdf ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.1)',
+                        color: isPdf ? '#ffffff' : '#64748b',
+                        padding: '5px 6px',
+                        borderRadius: 8,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        boxShadow: isPdf ? '0 2px 8px rgba(16,185,129,0.45)' : 'none',
+                        fontFamily: 'Hind Vadodara, sans-serif'
+                      }}
+                      title="PDF Scorecard Brochure ON/OFF"
+                    >
+                      <span>📑</span>
+                      <span>{isPdf ? 'PDF ON' : 'OFF'}</span>
                     </button>
-                    <button onClick={() => toggleBestSeller(item)} style={{
-                      background: isBestSeller ? 'rgba(234,88,12,0.25)' : 'rgba(148,163,184,0.1)',
-                      border: `1px solid ${isBestSeller ? '#ea580c' : '#475569'}`,
-                      color: isBestSeller ? '#fdba74' : '#64748b',
-                      padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer'
-                    }} title="Best Seller Tag ON/OFF">
-                      🔥 {isBestSeller ? 'Best: ON' : 'Best: OFF'}
+
+                    {/* Best Seller Toggle */}
+                    <button
+                      onClick={() => toggleBestSeller(item)}
+                      className="sa-btn-pressable"
+                      style={{
+                        background: isBestSeller ? 'linear-gradient(135deg, #c2410c, #ea580c)' : 'rgba(15, 23, 42, 0.65)',
+                        border: isBestSeller ? '1px solid #fb923c' : '1px solid rgba(255, 255, 255, 0.1)',
+                        color: isBestSeller ? '#ffffff' : '#64748b',
+                        padding: '5px 6px',
+                        borderRadius: 8,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        boxShadow: isBestSeller ? '0 2px 8px rgba(234,88,12,0.45)' : 'none',
+                        fontFamily: 'Hind Vadodara, sans-serif'
+                      }}
+                      title="Best Seller Highlight Tag ON/OFF"
+                    >
+                      <span>🔥</span>
+                      <span>{isBestSeller ? 'Best: ON' : 'OFF'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Mobile Responsive Image Container */}
-                <div onClick={() => item.imageUrl && setZoomImg(item.imageUrl)} style={{ height: 170, background: '#0b1120', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: item.imageUrl ? 'zoom-in' : 'default', position: 'relative' }}>
+                <div
+                  onClick={() => item.imageUrl && setZoomImg(item.imageUrl)}
+                  style={{
+                    height: 175,
+                    background: 'linear-gradient(180deg, #0b1120 0%, #0f172a 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    cursor: item.imageUrl ? 'zoom-in' : 'default',
+                    position: 'relative'
+                  }}
+                >
                   {item.imageUrl ? (
-                    <img src={getImageSrc(item.imageUrl)} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0f172a' }} onError={e => { e.target.src = '/images/logo.jpg'; }} />
+                    <img
+                      src={getImageSrc(item.imageUrl)}
+                      alt={item.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#0f172a' }}
+                      onError={e => { e.target.src = '/images/logo.jpg'; }}
+                    />
                   ) : (
-                    <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}>🖼️ ઇમેજ નથી (Edit પર ક્લિક કરી ફોટો ઉમેરો)</div>
+                    <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}>
+                      🖼️ ઇમેજ નથી (Edit પર ક્લિક કરી ફોટો ઉમેરો)
+                    </div>
                   )}
+
                   {item.imageUrl && (
-                    <span style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.7)', color: '#93c5fd', fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6 }}>
-                      🔍 Zoom
+                    <span style={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      background: 'rgba(15, 23, 42, 0.88)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(56, 189, 248, 0.45)',
+                      color: '#38bdf8',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '3px 10px',
+                      borderRadius: 14,
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <Maximize2 size={11} /> Zoom
                     </span>
                   )}
                 </div>
 
-                {/* Body */}
-                <div style={{ padding: '12px 14px', flex: 1 }}>
-                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.92rem', margin: '0 0 4px', lineHeight: 1.3 }}>{item.title}</h3>
-                  {item.subtitle && <div style={{ color: '#fbbf24', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4 }}>{item.subtitle}</div>}
+                {/* Body Details */}
+                <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h3 style={{ color: 'white', fontWeight: 900, fontSize: '0.96rem', margin: '0 0 4px', lineHeight: 1.35 }}>
+                      {item.title}
+                    </h3>
+                    {item.subtitle && (
+                      <div style={{ color: '#fbbf24', fontSize: '0.78rem', fontWeight: 700, marginBottom: 6 }}>
+                        {item.subtitle}
+                      </div>
+                    )}
+                  </div>
+
                   {(item.price || item.oldPrice) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                      {item.oldPrice && <span style={{ textDecoration: 'line-through', color: '#64748b', fontSize: '0.82rem' }}>{item.oldPrice}</span>}
-                      {item.price && <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.05rem' }}>{item.price}</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                      {item.oldPrice && <span style={{ textDecoration: 'line-through', color: '#64748b', fontSize: '0.84rem' }}>{item.oldPrice}</span>}
+                      {item.price && <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.12rem' }}>{item.price}</span>}
                     </div>
                   )}
                 </div>
 
-                {/* Footer Buttons */}
-                <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-                  <button onClick={() => toggleField(item, 'isActive')} style={{ background: isLive ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.4)' : 'rgba(100,116,139,0.3)'}`, color: isLive ? '#4ade80' : '#94a3b8', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
-                    {isLive ? '🟢 Live' : '⚪ Hidden'}
+                {/* Bottom Action Buttons Hub */}
+                <div style={{
+                  padding: '10px 14px',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(15, 23, 42, 0.5)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  {/* Status Toggle Button */}
+                  <button
+                    onClick={() => toggleField(item, 'isActive')}
+                    className="sa-btn-pressable"
+                    style={{
+                      background: isLive ? 'linear-gradient(135deg, rgba(5,150,105,0.25), rgba(16,185,129,0.35))' : 'rgba(255, 255, 255, 0.06)',
+                      border: isLive ? '1.5px solid #10b981' : '1px solid rgba(255, 255, 255, 0.15)',
+                      color: isLive ? '#34d399' : '#94a3b8',
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      fontSize: '0.75rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: isLive ? '0 2px 10px rgba(16,185,129,0.25)' : 'none',
+                      fontFamily: 'Hind Vadodara, sans-serif'
+                    }}
+                  >
+                    {isLive ? (
+                      <>
+                        <span className="sa-radar-pulse" style={{ width: 7, height: 7 }} />
+                        <span>Live સક્રિય</span>
+                      </>
+                    ) : (
+                      <span>⚪ Hidden (બંધ)</span>
+                    )}
                   </button>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => openEdit(item)} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', color: '#93c5fd', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Edit3 size={11} /> Edit
+
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => openEdit(item)}
+                      className="sa-btn-pressable"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(30, 58, 138, 0.45))',
+                        border: '1.5px solid rgba(56, 189, 248, 0.5)',
+                        color: '#38bdf8',
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)',
+                        fontFamily: 'Hind Vadodara, sans-serif'
+                      }}
+                    >
+                      <Edit3 size={12} />
+                      <span>Edit</span>
                     </button>
-                    <button onClick={() => handleDelete(item.id)} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Trash2 size={11} />
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      title="પોસ્ટર કાઢી નાખો"
+                      className="sa-btn-pressable"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1.5px solid rgba(239, 68, 68, 0.4)',
+                        color: '#f87171',
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
