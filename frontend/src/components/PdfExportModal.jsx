@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Printer, Download, CheckCircle2, Image as ImageIcon, Tag, Phone, Sparkles, FileText, Check, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Printer, Download, CheckCircle2, Image as ImageIcon, Tag, Phone, Sparkles, FileText, Check, ShieldCheck, UploadCloud, Trash2, Plus } from 'lucide-react';
 import { getMarketingItems } from '../services/api';
 import { formatMathText } from '../utils/mathFormatter';
 
@@ -311,7 +311,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
         <div class="brochure-posters-grid">
           ${selectedPosters.map((p) => {
             const rawImg = p.imageUrl || p.image;
-            const fullImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `${window.location.origin}${rawImg}`) : null;
+            const fullImg = rawImg ? (rawImg.startsWith('http') || rawImg.startsWith('data:') || rawImg.startsWith('blob:') ? rawImg : `${window.location.origin}${rawImg}`) : null;
             const isSingle = selectedPosters.length === 1;
             const posterMaxHeight = isSingle ? '440px' : selectedPosters.length === 2 ? '330px' : '230px';
 
@@ -714,7 +714,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
         <div style="display: grid; grid-template-columns: ${selectedPosters.length === 1 ? '1fr' : 'repeat(2, 1fr)'}; gap: 14px; margin-bottom: 12px; justify-items: center; align-items: center;">
           ${selectedPosters.map((p) => {
             const rawImg = p.imageUrl || p.image;
-            const fullImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `${window.location.origin}${rawImg}`) : null;
+            const fullImg = rawImg ? (rawImg.startsWith('http') || rawImg.startsWith('data:') || rawImg.startsWith('blob:') ? rawImg : `${window.location.origin}${rawImg}`) : null;
             const isSingle = selectedPosters.length === 1;
             const posterMaxHeight = isSingle ? '440px' : selectedPosters.length === 2 ? '330px' : '230px';
 
@@ -1092,6 +1092,78 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
     setSelectedPosterIds(new Set());
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleLocalFileUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    let processedCount = 0;
+    const newItems = [];
+
+    files.forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        showToast?.(`⚠️ ફાઇલ '${file.name}' ઈમેજ નથી! કૃપા કરીને ફોટો અપલોડ કરો.`, 'error');
+        processedCount++;
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        showToast?.(`⚠️ ફાઇલ '${file.name}' ૨૦MB કરતાં મોટી છે!`, 'error');
+        processedCount++;
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        newItems.push({
+          id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          imageUrl: dataUrl,
+          badge: '💻 PC Upload',
+          price: 'કસ્ટમ બ્રોશર',
+          isLocal: true,
+          isActive: true
+        });
+
+        processedCount++;
+        if (processedCount === files.length && newItems.length > 0) {
+          setMarketingList(prev => [...newItems, ...prev]);
+          setSelectedPosterIds(prev => {
+            const next = new Set(prev);
+            for (const item of newItems) {
+              if (next.size < 4) {
+                next.add(item.id);
+              }
+            }
+            return next;
+          });
+          showToast?.(`✅ ${newItems.length} પોસ્ટર PC માંથી સફળતાપૂર્વક ઉમેરાયું!`, 'success');
+        }
+      };
+
+      reader.onerror = () => {
+        processedCount++;
+        showToast?.(`⚠️ '${file.name}' વાંચવામાં ક્ષતિ આવી.`, 'error');
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    // Reset so the same file can be selected again if needed
+    e.target.value = '';
+  };
+
+  const removeLocalPoster = (id) => {
+    setMarketingList(prev => prev.filter(m => m.id !== id));
+    setSelectedPosterIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    showToast?.('🗑️ પોસ્ટર દૂર કરવામાં આવ્યું.', 'info');
+  };
+
   const handleGenerate = () => {
     const chosenPosters = marketingList.filter(m => selectedPosterIds.has(m.id));
     exportTestPDF(testData, teacherProfile, {
@@ -1180,6 +1252,16 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
             </div>
           </div>
 
+          {/* Hidden File Input for PC Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleLocalFileUpload}
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+          />
+
           {/* Section: Select Marketing Posters */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
@@ -1188,30 +1270,102 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
                   🎯 કયા પોસ્ટર્સ PDF ના અંતે જોડવા છે? ({selectedPosterIds.size}/4 પસંદ કર્યા)
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={selectAll} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', padding: '4px 10px', borderRadius: 7, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                    border: '1px solid rgba(56, 189, 248, 0.5)',
+                    color: '#ffffff',
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(37, 99, 235, 0.35)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="તમારા કમ્પ્યુટર અથવા મોબાઈલમાંથી ફોટો/પોસ્ટર પસંદ કરો"
+                >
+                  <UploadCloud size={14} />
+                  <span>📁 PC માંથી અપલોડ</span>
+                </button>
+                <button type="button" onClick={selectAll} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', padding: '5px 10px', borderRadius: 8, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>
                   ✓ બધા પસંદ કરો
                 </button>
-                <button type="button" onClick={clearAll} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '4px 10px', borderRadius: 7, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>
-                  ✕ કોઈ નહીં (માત્ર પેપર)
+                <button type="button" onClick={clearAll} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '5px 10px', borderRadius: 8, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>
+                  ✕ કોઈ નહીં
                 </button>
               </div>
             </div>
 
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.85rem' }}>
+              <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontSize: '0.85rem' }}>
                 ⏳ પોસ્ટર્સ લોડ થઈ રહ્યા છે...
               </div>
             ) : marketingList.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, color: '#94a3b8', fontSize: '0.82rem' }}>
-                હજી સુધી કોઈ પોસ્ટર નથી. 'Posters & Offers' માંથી પોસ્ટર્સ ઉમેરો.
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  textAlign: 'center',
+                  padding: '24px 18px',
+                  background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.22), rgba(15, 23, 42, 0.5))',
+                  border: '2px dashed rgba(56, 189, 248, 0.45)',
+                  borderRadius: 14,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: 'rgba(14, 165, 233, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px auto'
+                }}>
+                  <UploadCloud size={24} color="#38bdf8" />
+                </div>
+                <div style={{ color: '#ffffff', fontWeight: 800, fontSize: '0.92rem', marginBottom: 4 }}>
+                  તમારા PC અથવા મોબાઈલમાંથી પોસ્ટર અપલોડ કરો
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginBottom: 12, maxWidth: 440, margin: '0 auto 12px auto', lineHeight: 1.4 }}>
+                  હાલ કોઈ પોસ્ટર્સ નથી. તમારા ડિવાઇસમાંથી સીધા ૧ થી ૪ પોસ્ટર ફોટો (JPG, PNG, WebP) પસંદ કરો — તે આપોઆપ ટેસ્ટ PDF ના અંતે જોડાઈ જશે.
+                </div>
+                <button
+                  type="button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '8px 18px',
+                    borderRadius: 8,
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.45)'
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>PC માંથી ફોટો પસંદ કરો (Choose from PC)</span>
+                </button>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
                 {marketingList.map((m) => {
                   const isChecked = selectedPosterIds.has(m.id);
                   const rawImg = m.imageUrl || m.image;
-                  const fullImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `${window.location.origin}${rawImg}`) : null;
+                  const fullImg = rawImg ? (rawImg.startsWith('http') || rawImg.startsWith('data:') || rawImg.startsWith('blob:') ? rawImg : `${window.location.origin}${rawImg}`) : null;
 
                   return (
                     <div
@@ -1261,10 +1415,15 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
                         <div style={{ color: 'white', fontWeight: 800, fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {m.title}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                           <span style={{ color: '#4ade80', fontSize: '0.76rem', fontWeight: 900 }}>
                             {m.price ? (m.price.startsWith('₹') ? m.price : `₹${m.price}`) : 'સ્પેશિયલ ઑફર'}
                           </span>
+                          {m.isLocal && (
+                            <span style={{ background: 'rgba(14,165,233,0.2)', border: '1px solid rgba(56,189,248,0.4)', color: '#38bdf8', fontSize: '0.66rem', fontWeight: 800, padding: '1px 6px', borderRadius: 4 }}>
+                              💻 PC ફાઇલ
+                            </span>
+                          )}
                           {m.couponCode && (
                             <span style={{ background: 'rgba(59,130,246,0.2)', color: '#93c5fd', fontSize: '0.68rem', fontWeight: 800, padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace' }}>
                               🎟️ {m.couponCode}
@@ -1272,9 +1431,62 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
                           )}
                         </div>
                       </div>
+
+                      {/* Quick Delete Button for Local Uploads */}
+                      {m.isLocal && (
+                        <button
+                          type="button"
+                          title="આ પોસ્ટર દૂર કરો"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeLocalPoster(m.id);
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                            color: '#f87171',
+                            width: 28,
+                            height: 28,
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            marginLeft: 4,
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
+
+                {/* Additional Quick Add Card at the end of the grid */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: '1.5px dashed rgba(56, 189, 248, 0.35)',
+                    background: 'rgba(15, 23, 42, 0.4)',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    color: '#38bdf8',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    minHeight: 68,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>+ PC માંથી નવું પોસ્ટર ઉમેરો</span>
+                </div>
               </div>
             )}
           </div>
