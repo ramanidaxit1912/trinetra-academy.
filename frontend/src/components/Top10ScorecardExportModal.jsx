@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import { X, Download, Printer, Trophy, FileText, CheckCircle, Award, Users, Smartphone, ShieldCheck, Crown, Filter } from 'lucide-react';
+import { getLeaderboardOverrides } from '../services/api';
 
 /* ═══════════════════════════════════════════════════════════════
    1. EXPORT TOP 10 COMBINED MULTI-PAGE BOOKLET PDF
@@ -28,8 +29,9 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
-    const medal = idx === 0 ? '👑 🥇 ૧' : idx === 1 ? '🥈 ૨' : idx === 2 ? '🥉 ૩' : `#${idx + 1}`;
-    const badgeColor = idx === 0 ? '#b45309' : idx === 1 ? '#475569' : idx === 2 ? '#c2410c' : '#1e3a8a';
+    const rankNum = s.assignedRank || (idx + 1);
+    const medal = rankNum === 1 ? '👑 🥇 ૧' : rankNum === 2 ? '🥈 ૨' : rankNum === 3 ? '🥉 ૩' : `#${rankNum}`;
+    const badgeColor = rankNum === 1 ? '#b45309' : rankNum === 2 ? '#475569' : rankNum === 3 ? '#c2410c' : '#1e3a8a';
     const grade = pct >= 80 ? 'A+ (ઉત્કૃષ્ટ)' : pct >= 60 ? 'A (પ્રથમ વર્ગ)' : pct >= 40 ? 'B (સફળ)' : 'પ્રયાસ';
 
     return `
@@ -64,9 +66,10 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
     const cardTestTitle = testTitle !== 'કસોટી પરિણામ' ? testTitle : (s.test?.testName || s.testName || 'સ્પેશ્યલ મોક ટેસ્ટ');
-    const rankTitle = idx === 0 ? '૧ લો ક્રમ (1st State Topper)' : idx === 1 ? '૨ જો ક્રમ (2nd State Rank)' : idx === 2 ? '૩ જો ક્રમ (3rd State Rank)' : `મેરિટ ક્રમ #${idx + 1}`;
+    const rankNum = s.assignedRank || (idx + 1);
+    const rankTitle = rankNum === 1 ? '૧ લો ક્રમ (1st State Topper)' : rankNum === 2 ? '૨ જો ક્રમ (2nd State Rank)' : rankNum === 3 ? '૩ જો ક્રમ (3rd State Rank)' : `મેરિટ ક્રમ #${rankNum}`;
     const grade = pct >= 80 ? 'A+ (Outstanding)' : pct >= 60 ? 'A (Excellent)' : pct >= 40 ? 'B (Qualified)' : 'Participated';
-    const medalIcon = idx === 0 ? '👑 🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🎖️';
+    const medalIcon = rankNum === 1 ? '👑 🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : '🎖️';
 
     return `
       <div class="page-break" style="padding-top: 10px;">
@@ -378,8 +381,9 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
-    const medal = idx === 0 ? '👑 🥇 ૧' : idx === 1 ? '🥈 ૨' : idx === 2 ? '🥉 ૩' : `#${idx + 1}`;
-    const badgeColor = idx === 0 ? '#d97706' : idx === 1 ? '#64748b' : idx === 2 ? '#ea580c' : '#2563eb';
+    const rankNum = s.assignedRank || (idx + 1);
+    const medal = rankNum === 1 ? '👑 🥇 ૧' : rankNum === 2 ? '🥈 ૨' : rankNum === 3 ? '🥉 ૩' : `#${rankNum}`;
+    const badgeColor = rankNum === 1 ? '#d97706' : rankNum === 2 ? '#64748b' : rankNum === 3 ? '#ea580c' : '#2563eb';
 
     return `
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: ${idx < 3 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)'}; border-radius: 10px; margin-bottom: 6px; border: 1px solid ${idx < 3 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'};">
@@ -489,7 +493,7 @@ export function exportTop10Excel(topList = [], teacherProfile = {}, testMeta = {
     const itemTestTitle = testTitle !== 'Mock Test' ? testTitle : (s.test?.testName || s.testName || 'Mock Test');
 
     return {
-      'મેરિટ ક્રમ (Rank)': idx + 1,
+      'મેરિટ ક્રમ (Rank)': s.assignedRank || (idx + 1),
       'વિદ્યાર્થીનું નામ (Student Name)': sName,
       'મોબાઈલ નંબર (Mobile)': sMobile,
       'કસોટીનું નામ (Test)': itemTestTitle,
@@ -523,6 +527,31 @@ export default function Top10ScorecardExportModal({
   teacherProfile = {}
 }) {
   const [downloading, setDownloading] = useState(false);
+  const [internalOverrides, setInternalOverrides] = useState(overrides || []);
+
+  // Sync internalOverrides with prop when prop changes
+  useEffect(() => {
+    if (Array.isArray(overrides) && overrides.length > 0) {
+      setInternalOverrides(overrides);
+    }
+  }, [overrides]);
+
+  // Whenever modal opens, fetch latest overrides from server to guarantee 100% real-time data
+  useEffect(() => {
+    if (isOpen) {
+      getLeaderboardOverrides()
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            setInternalOverrides(res.data);
+          }
+        })
+        .catch(err => {
+          console.warn('Top 10 export modal overrides fetch note:', err);
+        });
+    }
+  }, [isOpen]);
+
+  const effectiveOverrides = (internalOverrides && internalOverrides.length > 0) ? internalOverrides : (overrides || []);
 
   // Group submissions by test to populate the dropdown
   const testOptions = useMemo(() => {
@@ -583,19 +612,26 @@ export default function Top10ScorecardExportModal({
     }
   }, [initialTestKey, isOpen]);
 
-  // Compute Top 10 for the currently selected test (applying teacher overrides)
+  // Compute Top 10 for the currently selected test (applying teacher overrides & custom ranks strictly)
   const { currentTop10, currentTestMeta } = useMemo(() => {
     const selectedGroup = testOptions.find(o => o.key === selectedKey) || testOptions[0];
     const rawSubs = selectedGroup?.submissions || [];
 
-    // Deduplicate by student mobile/id (keep highest score)
+    // Deduplicate by student mobile/id (keep submission with customRank or highest score)
     const studentBestMap = new Map();
     rawSubs.forEach(sub => {
-      const studentId = sub.student?.mobile || sub.student?.id || sub.student?.name || Math.random();
+      const cleanMob = sub.student?.mobile ? String(sub.student.mobile).replace(/\D/g, '').slice(-10) : '';
+      const studentKey = cleanMob || sub.student?.id || sub.student?.name || `sub_${sub.id}`;
       const currentScore = Number(sub.mcqScore ?? sub.score ?? sub.marks ?? 0);
-      const existing = studentBestMap.get(studentId);
-      if (!existing || currentScore > Number(existing.mcqScore ?? existing.score ?? existing.marks ?? 0)) {
-        studentBestMap.set(studentId, sub);
+      const existing = studentBestMap.get(studentKey);
+      const existingScore = existing ? Number(existing.mcqScore ?? existing.score ?? existing.marks ?? 0) : -1;
+
+      if (!existing) {
+        studentBestMap.set(studentKey, sub);
+      } else if (sub.customRank && !existing.customRank) {
+        studentBestMap.set(studentKey, sub);
+      } else if (currentScore > existingScore && !existing.customRank) {
+        studentBestMap.set(studentKey, sub);
       }
     });
 
@@ -603,39 +639,105 @@ export default function Top10ScorecardExportModal({
       .map(s => ({
         ...s,
         score: Number(s.mcqScore ?? s.score ?? s.marks ?? 0)
-      }))
-      .sort((a, b) => b.score - a.score);
+      }));
 
-    // Apply active overrides for this test (or ALL)
-    const activeOvs = (overrides || [])
-      .filter(o => o.isActive && (o.testCode === selectedKey || o.testCode === 'ALL' || o.testCode === selectedGroup?.testCode || (selectedGroup?.testName && o.testCode === `NAME_${selectedGroup.testName}`)))
-      .sort((a, b) => (b.rank || 1) - (a.rank || 1));
+    // Active overrides for this test (or ALL)
+    const activeOvs = (effectiveOverrides || [])
+      .filter(o => o.isActive && (
+        o.testCode === selectedKey ||
+        o.testCode === 'ALL' ||
+        (selectedGroup?.testCode && o.testCode === selectedGroup.testCode) ||
+        (selectedGroup?.testName && (o.testCode === `NAME_${selectedGroup.testName}` || o.testCode === selectedGroup.testName))
+      ));
 
+    // Helper to find override for a student (Mobile number match takes absolute highest priority!)
+    const findOvForStudent = (s) => {
+      const cleanSubMob = s.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : '';
+      return activeOvs.find(ov => {
+        const cleanOvMob = ov.mobile ? String(ov.mobile).replace(/\D/g, '').slice(-10) : '';
+        if (ov.submissionId && s.id === ov.submissionId) return true;
+        if (cleanSubMob && cleanOvMob && cleanSubMob === cleanOvMob) return true;
+        if (!cleanOvMob && s.student?.name && ov.studentName && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase()) return true;
+        return false;
+      });
+    };
+
+    // Include any overrides that might not be in the raw submissions list
     activeOvs.forEach(ov => {
-      const matchIdx = enriched.findIndex(s => 
-        (ov.submissionId && s.id === ov.submissionId) ||
-        (s.student?.name && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
-      );
-      if (matchIdx >= 0) {
-        const item = { ...enriched[matchIdx], isTeacherOverride: true, score: ov.score ?? enriched[matchIdx].score, overrideRank: ov.rank };
-        enriched.splice(matchIdx, 1);
-        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
-        enriched.splice(targetPos, 0, item);
-      } else {
-        const item = {
+      const cleanOvMob = ov.mobile ? String(ov.mobile).replace(/\D/g, '').slice(-10) : '';
+      const exists = enriched.some(s => {
+        const cleanSubMob = s.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : '';
+        if (ov.submissionId && s.id === ov.submissionId) return true;
+        if (cleanSubMob && cleanOvMob && cleanSubMob === cleanOvMob) return true;
+        if (!cleanOvMob && s.student?.name && ov.studentName && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase()) return true;
+        return false;
+      });
+      if (!exists) {
+        enriched.push({
           id: ov.submissionId || Math.floor(Math.random() * 100000),
           student: { name: ov.studentName, mobile: ov.mobile },
-          score: ov.score,
+          score: Number(ov.score ?? 0),
           totalMarks: ov.totalMarks || selectedGroup?.totalMarks || 100,
           isTeacherOverride: true,
-          overrideRank: ov.rank
-        };
-        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
-        enriched.splice(targetPos, 0, item);
+          customRank: ov.rank
+        });
       }
     });
 
-    const sorted = enriched.slice(0, 10);
+    // Map each student with their target assigned rank (from override or customRank on submission)
+    const withRankInfo = enriched.map(s => {
+      const ov = findOvForStudent(s);
+      const assignedRank = ov?.rank ? Number(ov.rank) : (s.customRank ? Number(s.customRank) : null);
+      return {
+        ...s,
+        score: ov?.score !== undefined ? Number(ov.score) : s.score,
+        isTeacherOverride: Boolean(ov || s.customRank),
+        assignedRank: (assignedRank && assignedRank > 0) ? assignedRank : null
+      };
+    });
+
+    // Separate students with assigned ranks and unassigned students
+    const assigned = withRankInfo.filter(s => s.assignedRank !== null)
+      .sort((a, b) => a.assignedRank - b.assignedRank);
+
+    const unassigned = withRankInfo.filter(s => s.assignedRank === null)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+        return timeA - timeB;
+      });
+
+    // Place assigned rank students into their exact 0-indexed slots (Slot 0 for Rank 1, Slot 1 for Rank 2...)
+    const finalTop = [];
+    const assignedBySlot = new Map();
+    assigned.forEach(s => {
+      const slotIdx = s.assignedRank - 1;
+      if (!assignedBySlot.has(slotIdx)) {
+        assignedBySlot.set(slotIdx, s);
+      } else {
+        unassigned.unshift(s);
+      }
+    });
+
+    let unassignedIdx = 0;
+    for (let i = 0; finalTop.length < 10 && (assignedBySlot.size > 0 || unassignedIdx < unassigned.length); i++) {
+      if (assignedBySlot.has(i)) {
+        finalTop.push(assignedBySlot.get(i));
+        assignedBySlot.delete(i);
+      } else if (unassignedIdx < unassigned.length) {
+        finalTop.push(unassigned[unassignedIdx++]);
+      } else {
+        break;
+      }
+    }
+    if (assignedBySlot.size > 0) {
+      assignedBySlot.forEach(s => {
+        if (finalTop.length < 10) finalTop.push(s);
+      });
+    }
+
+    const sorted = finalTop.slice(0, 10);
 
     let metaTotal = selectedGroup?.totalMarks;
     if (!metaTotal || metaTotal <= 0) {
@@ -652,7 +754,7 @@ export default function Top10ScorecardExportModal({
         totalMarks: metaTotal
       }
     };
-  }, [testOptions, selectedKey, overrides]);
+  }, [testOptions, selectedKey, effectiveOverrides]);
 
   if (!isOpen) return null;
 

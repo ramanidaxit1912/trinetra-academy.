@@ -14352,10 +14352,14 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       .sort((a, b) => (b.rank || 1) - (a.rank || 1)); // reverse order so higher rank numbers inserted first, lower ranks (1, 2) on top
 
     testOverrides.forEach(ov => {
-      const matchIdx = enriched.findIndex(s => 
-        (ov.submissionId && s.id === ov.submissionId) ||
-        (s.student?.name && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
-      );
+      const cleanOvMob = ov.mobile ? String(ov.mobile).replace(/\D/g, '').slice(-10) : '';
+      const matchIdx = enriched.findIndex(s => {
+        const cleanSubMob = s.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : '';
+        if (ov.submissionId && s.id === ov.submissionId) return true;
+        if (cleanOvMob && cleanSubMob && cleanOvMob === cleanSubMob) return true;
+        if (!cleanOvMob && s.student?.name && ov.studentName && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase()) return true;
+        return false;
+      });
       if (matchIdx >= 0) {
         const item = { ...enriched[matchIdx], isTeacherOverride: true, overrideRank: ov.rank, score: ov.score ?? enriched[matchIdx].score };
         enriched.splice(matchIdx, 1);
@@ -15422,6 +15426,7 @@ ${topperList}
 
 function TestHistory({ showToast, teacherProfile }) {
   const [subs, setSubs]               = useState([]);
+  const [overrides, setOverrides]     = useState([]);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('leaderboard'); // 'leaderboard' | 'testWise' | 'all'
   const [filterDate, setFilterDate]   = useState('all');      // 'all' | 'today'
@@ -15437,8 +15442,12 @@ function TestHistory({ showToast, teacherProfile }) {
 
   const fetchSubs = async () => {
     try {
-      const r = await getSubmissions();
-      setSubs(r.data || []);
+      const [r, ovRes] = await Promise.allSettled([
+        getSubmissions(),
+        getLeaderboardOverrides()
+      ]);
+      if (r.status === 'fulfilled') setSubs(r.value.data || []);
+      if (ovRes.status === 'fulfilled') setOverrides(ovRes.value.data || []);
     } catch {
       showToast('સબમિશન લોડ કરવામાં ભૂલ.', 'error');
     }
@@ -15481,10 +15490,24 @@ function TestHistory({ showToast, teacherProfile }) {
     });
 
     return Object.values(map).map(group => {
-      // Sort submissions by customRank first if teacher assigned one, then score descending
+      // Sort submissions by customRank / override first if teacher assigned one, then score descending
       group.submissions.sort((a, b) => {
-        const rankA = a.customRank ? Number(a.customRank) : 999999;
-        const rankB = b.customRank ? Number(b.customRank) : 999999;
+        const cleanMobA = a.student?.mobile ? String(a.student.mobile).replace(/\D/g, '').slice(-10) : '';
+        const cleanMobB = b.student?.mobile ? String(b.student.mobile).replace(/\D/g, '').slice(-10) : '';
+        
+        const ovA = overrides.find(o => o.isActive && (o.testCode === group.key || o.testCode === group.testCode || o.testCode === 'ALL') && (
+          (o.submissionId && o.submissionId === a.id) ||
+          (cleanMobA && o.mobile && String(o.mobile).replace(/\D/g, '').slice(-10) === cleanMobA) ||
+          (!o.mobile && a.student?.name && o.studentName && a.student.name.trim().toLowerCase() === o.studentName.trim().toLowerCase())
+        ));
+        const ovB = overrides.find(o => o.isActive && (o.testCode === group.key || o.testCode === group.testCode || o.testCode === 'ALL') && (
+          (o.submissionId && o.submissionId === b.id) ||
+          (cleanMobB && o.mobile && String(o.mobile).replace(/\D/g, '').slice(-10) === cleanMobB) ||
+          (!o.mobile && b.student?.name && o.studentName && b.student.name.trim().toLowerCase() === o.studentName.trim().toLowerCase())
+        ));
+
+        const rankA = ovA?.rank ? Number(ovA.rank) : (a.customRank ? Number(a.customRank) : 999999);
+        const rankB = ovB?.rank ? Number(ovB.rank) : (b.customRank ? Number(b.customRank) : 999999);
         if (rankA !== rankB) return rankA - rankB;
         return (b.mcqScore ?? b.score ?? 0) - (a.mcqScore ?? a.score ?? 0);
       });
@@ -15498,7 +15521,7 @@ function TestHistory({ showToast, teacherProfile }) {
         avgScore
       };
     }).sort((a, b) => b.latestDate - a.latestDate);
-  }, [displayedSubs]);
+  }, [displayedSubs, overrides]);
 
   // Filter test groups by search term
   const filteredGroups = useMemo(() => {
@@ -16489,6 +16512,7 @@ ${statusText}
         isOpen={top10ModalOpen}
         onClose={() => setTop10ModalOpen(false)}
         submissions={displayedSubs}
+        overrides={overrides}
         initialTestKey={top10ModalTestKey}
         teacherProfile={teacherProfile}
       />

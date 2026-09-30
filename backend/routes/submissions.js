@@ -1738,13 +1738,14 @@ router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, re
     const targetRank = rank ? parseInt(rank) : 1;
 
     // Deactivate previous active override for this student OR this rank in this testCode
+    const cleanMob = mobile ? String(mobile).replace(/\D/g, '').slice(-10) : '';
     await prisma.leaderboardOverride.updateMany({
       where: {
         testCode,
         OR: [
           { rank: targetRank },
           ...(submissionId ? [{ submissionId: parseInt(submissionId) }] : []),
-          { studentName: studentName.trim() }
+          ...(cleanMob ? [{ mobile: { contains: cleanMob } }] : (!submissionId ? [{ studentName: studentName.trim() }] : []))
         ]
       },
       data: { isActive: false }
