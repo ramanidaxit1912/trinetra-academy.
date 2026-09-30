@@ -354,7 +354,10 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
   <!-- Questions Body -->
   <div class="questions-body">
     ${(test.questions || []).map((q, idx) => {
-      const correctOpt = (q.correctOpt || q.correctOption || '').toUpperCase();
+      let correctOpt = (q.correctOpt || q.correctOption || q.answer || q.rightAnswer || q.correct_option || '').toString().trim().toUpperCase();
+      if (correctOpt.startsWith('OPTION')) correctOpt = correctOpt.replace('OPTION', '').trim();
+      if (correctOpt.startsWith('(') && correctOpt.endsWith(')')) correctOpt = correctOpt.slice(1, -1).trim();
+
       return `
         <div class="q-card">
           <div class="q-head">
@@ -372,18 +375,24 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
               ${['A', 'B', 'C', 'D'].map(opt => {
                 const optVal = q[`option${opt}`];
                 if (!optVal) return '';
-                const isCorrect = includeSolutions && correctOpt === opt;
+                const isCorrect = includeSolutions && (correctOpt === opt);
                 return `
                   <div class="mcq-opt ${isCorrect ? 'correct-opt' : ''}">
-                    <span class="opt-circle" style="${isCorrect ? 'border-color: #16a34a; background: #16a34a;' : ''}"></span>
-                    <strong>(${opt})</strong> ${formatMathText(optVal)} ${isCorrect ? '✓' : ''}
+                    <span class="opt-circle" style="${isCorrect ? 'border-color: #15803d; background: #15803d;' : ''}"></span>
+                    <strong>(${opt})</strong> ${formatMathText(optVal)}
+                    ${isCorrect ? '<span style="color: #15803d; font-weight: 900; margin-left: 6px;">✓ (સાચો ઉત્તર)</span>' : ''}
                   </div>
                 `;
               }).join('')}
             </div>
+            ${(includeSolutions && correctOpt) ? `
+              <div style="margin-top: 6px; padding: 3px 8px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #166534; font-weight: 800;">
+                <span>✅ સાચો ઉત્તર વિકલ્પ: <strong>(${correctOpt})</strong></span>
+              </div>
+            ` : ''}
             ${(includeSolutions && q.explanation) ? `
               <div class="solution-box">
-                💡 <strong>સમજૂતી:</strong> ${q.explanation}
+                💡 <strong>સમજૂતી:</strong> ${formatMathText(q.explanation)}
               </div>
             ` : ''}
           ` : `
@@ -392,9 +401,9 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
               <div class="desc-line"></div>
               <div class="desc-line"></div>
             </div>
-            ${(includeSolutions && (q.sampleAnswer || q.solution)) ? `
+            ${(includeSolutions && (q.sampleAnswer || q.solution || q.answer)) ? `
               <div class="solution-box">
-                💡 <strong>મોડેલ ઉત્તર:</strong> ${q.sampleAnswer || q.solution}
+                💡 <strong>મોડેલ ઉત્તર / સમજૂતી:</strong> ${formatMathText(q.sampleAnswer || q.solution || q.answer)}
               </div>
             ` : ''}
           `}
@@ -402,6 +411,44 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       `;
     }).join('')}
   </div>
+
+  ${includeSolutions ? `
+    <!-- ══════════════════════════════════════════════════════════
+         OFFICIAL ANSWER KEY SHEET / ઉત્તરવહી
+    ══════════════════════════════════════════════════════════ -->
+    <div style="margin-top: 22px; page-break-inside: avoid; border: 2.5px solid #1e3a8a; border-radius: 12px; padding: 14px 18px; background: #ffffff; box-shadow: 0 4px 12px rgba(30,58,138,0.08);">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📝</span>
+          <div>
+            <div style="font-size: 14px; font-weight: 900; color: #1e3a8a; letter-spacing: 0.2px;">
+              અધિકૃત ઉત્તરવહી (Official Answer Key)
+            </div>
+            <div style="font-size: 9.5px; color: #64748b;">
+              ${test.testName || 'કસોટી'} • કુલ પ્રશ્નો: ${(test.questions || []).length}
+            </div>
+          </div>
+        </div>
+        <div style="background: #15803d; color: #ffffff; font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 6px;">
+          ✓ ALL CORRECT KEYS
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px;">
+        ${(test.questions || []).map((q, idx) => {
+          let aKey = (q.correctOpt || q.correctOption || q.answer || q.rightAnswer || q.correct_option || '-').toString().trim().toUpperCase();
+          if (aKey.startsWith('OPTION')) aKey = aKey.replace('OPTION', '').trim();
+          if (aKey.startsWith('(') && aKey.endsWith(')')) aKey = aKey.slice(1, -1).trim();
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 11px;">
+              <span style="color: #475569; font-weight: 800;">Q${idx + 1}</span>
+              <span style="color: #15803d; font-weight: 900; background: #dcfce7; border: 1px solid #86efac; padding: 1px 6px; border-radius: 4px; min-width: 18px; text-align: center;">${aKey}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : ''}
 
   <!-- Intermediate Footer -->
   <div style="margin-top: 20px; border-top: 1.5px solid #cbd5e1; padding-top: 10px; text-align: center; font-size: 11px; color: #64748b; page-break-inside: avoid;">
@@ -773,7 +820,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
 export default function PdfExportModal({ isOpen, onClose, testData, teacherProfile = {}, showToast }) {
   const [marketingList, setMarketingList] = useState([]);
   const [selectedPosterIds, setSelectedPosterIds] = useState(new Set());
-  const [includeSolutions, setIncludeSolutions] = useState(false);
+  const [includeSolutions, setIncludeSolutions] = useState(true);
   const [customHelpline, setCustomHelpline] = useState(teacherProfile.phone || '8200405300');
   const [customAcademy, setCustomAcademy] = useState(teacherProfile.academyName || 'ત્રિનેત્ર ઓનલાઇન એકેડેમી (Trinetra Online Academy)');
   const [loading, setLoading] = useState(false);
@@ -1235,19 +1282,29 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
             gap: 14
           }}>
             {/* Toggle Solutions */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              cursor: 'pointer',
+              background: includeSolutions ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              border: includeSolutions ? '1.5px solid rgba(34, 197, 94, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 10,
+              padding: '10px 14px',
+              transition: 'all 0.15s ease'
+            }}>
               <input
                 type="checkbox"
                 checked={includeSolutions}
                 onChange={e => setIncludeSolutions(e.target.checked)}
-                style={{ width: 18, height: 18, accentColor: '#2563eb', cursor: 'pointer' }}
+                style={{ width: 18, height: 18, accentColor: '#16a34a', cursor: 'pointer' }}
               />
               <div>
-                <div style={{ color: 'white', fontWeight: 700, fontSize: '0.84rem' }}>
-                  ✅ સાચા જવાબો (Answer Key) સાથે પ્રિન્ટ કરો
+                <div style={{ color: includeSolutions ? '#4ade80' : 'white', fontWeight: 800, fontSize: '0.86rem' }}>
+                  ✅ સાચા જવાબો & ઉત્તરવહી (Answer Key) સાથે પ્રિન્ટ કરો
                 </div>
-                <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>
-                  સાચો જવાબ અને સમજૂતી પેપરમાં હાઇલાઇટ થશે
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: 2 }}>
+                  દરેક પ્રશ્નનો સાચો ઉત્તર, સમજૂતી અને અંતે Official Answer Key Grid પેપરમાં સામેલ થશે
                 </div>
               </div>
             </label>
