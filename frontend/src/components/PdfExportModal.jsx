@@ -1043,6 +1043,7 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
   const [customHelpline, setCustomHelpline] = useState(teacherProfile.phone || '8200405300');
   const [customAcademy, setCustomAcademy] = useState(teacherProfile.academyName || 'ત્રિનેત્ર ઓનલાઇન એકેડેમી (Trinetra Online Academy)');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1091,8 +1092,6 @@ export default function PdfExportModal({ isOpen, onClose, testData, teacherProfi
   const clearAll = () => {
     setSelectedPosterIds(new Set());
   };
-
-  const fileInputRef = useRef(null);
 
   const handleLocalFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
