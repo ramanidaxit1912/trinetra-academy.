@@ -22,7 +22,8 @@ import {
   LogOut, Plus, Trash2, Eye, CheckCircle, Users, Clock, BarChart2, Edit3, Play, Square,
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
-  Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle
+  Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle,
+  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall
 } from 'lucide-react';
 
 const darkLbl = { display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8', marginBottom: 6 };
@@ -11544,6 +11545,8 @@ function StudentLogins({ showToast }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
+  const [filterMode, setFilterMode] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'MASTER' | 'TESTS_DONE' | 'NO_TESTS'
+  const [copiedId, setCopiedId] = useState(null);
   const [liveOtps, setLiveOtps] = useState([]);
   const [showLiveOtps, setShowLiveOtps] = useState(false);
   const [resettingId, setResettingId] = useState(null);
@@ -11553,6 +11556,16 @@ function StudentLogins({ showToast }) {
   const [quickName, setQuickName] = useState('');
   const [grantingQuick, setGrantingQuick] = useState(false);
   const [resettingQuickOtp, setResettingQuickOtp] = useState(false);
+
+  const handleCopyMobile = (mobile, id) => {
+    if (!mobile) return;
+    try {
+      navigator.clipboard?.writeText(String(mobile));
+      setCopiedId(id);
+      showToast?.(`📋 નંબર ${mobile} કૉપી થયો!`, 'success');
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {}
+  };
 
   const handleResetOtp = async (student) => {
     if (!window.confirm(`શું તમે ${student.name} (${student.mobile}) ની OTP મર્યાદા રીસેટ કરવા માંગો છો?\nઆનાથી વિદ્યાર્થી તરત જ નવો OTP મંગાવી શકશે.`)) return;
@@ -11605,7 +11618,7 @@ function StudentLogins({ showToast }) {
     try {
       const res = await getLiveOTPs();
       setLiveOtps(res.data || []);
-      setShowLiveOtps(true);
+      setShowLiveOtps(prev => !prev);
     } catch {
       showToast('Live OTPs લોડ કરવામાં ભૂલ.', 'error');
     }
@@ -11682,7 +11695,34 @@ function StudentLogins({ showToast }) {
     })();
   }, []);
 
-  const filtered = students.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()) || s.mobile?.includes(search));
+  // Metrics & Stats
+  const totalStudents = students.length;
+  const activeTodayCount = useMemo(() => students.filter(s => new Date(s.updatedAt || s.lastLoginAt) > new Date(Date.now() - 86400000)).length, [students]);
+  const masterActiveCount = useMemo(() => students.filter(s => s.masterAccessAllowed || (s.masterAccessExpiresAt && new Date(s.masterAccessExpiresAt) > new Date())).length, [students]);
+  const totalSubmissionsCount = useMemo(() => students.reduce((acc, s) => acc + (s._count?.submissions || 0), 0), [students]);
+  const withTestsCount = useMemo(() => students.filter(s => (s._count?.submissions || 0) > 0).length, [students]);
+  const noTestsCount = totalStudents - withTestsCount;
+
+  // Filtered students list
+  const filtered = useMemo(() => {
+    return students.filter(s => {
+      const matchesSearch = !search ||
+        s.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.mobile?.includes(search) ||
+        (s.city && s.city.toLowerCase().includes(search.toLowerCase()));
+      if (!matchesSearch) return false;
+
+      const hasMasterAccess = s.masterAccessAllowed || (s.masterAccessExpiresAt && new Date(s.masterAccessExpiresAt) > new Date());
+      const isActiveToday = new Date(s.updatedAt || s.lastLoginAt) > new Date(Date.now() - 86400000);
+      const testCount = s._count?.submissions || 0;
+
+      if (filterMode === 'ACTIVE') return isActiveToday;
+      if (filterMode === 'MASTER') return hasMasterAccess;
+      if (filterMode === 'TESTS_DONE') return testCount > 0;
+      if (filterMode === 'NO_TESTS') return testCount === 0;
+      return true;
+    });
+  }, [students, search, filterMode]);
   
   // ─── Professional Styled Excel (.xlsx) Export with Colors & Formatting ───
   const exportExcel = async () => {
@@ -11745,7 +11785,7 @@ function StudentLogins({ showToast }) {
         ]);
         row.height = 22;
 
-        const rowBgColor = isEven ? 'FFFFFFFF' : 'FFF1F5F9'; // White vs Light Gray
+        const rowBgColor = isEven ? 'FFFFFFFF' : 'FFF1F5F9';
 
         row.eachCell((cell, colNum) => {
           cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF0F172A' } };
@@ -11757,12 +11797,11 @@ function StudentLogins({ showToast }) {
             right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
           };
 
-          // Alignment
           if (colNum === 1 || colNum === 4) {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
           } else if (colNum === 3) {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            cell.numFmt = '@'; // Force text format for phone numbers
+            cell.numFmt = '@';
           } else if (colNum === 5 || colNum === 6) {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
           } else {
@@ -11771,7 +11810,7 @@ function StudentLogins({ showToast }) {
         });
       });
 
-      // Total / Summary Footer Row (Yellow / Amber Highlights like the sample image)
+      // Summary Footer Row
       const totalTests = filtered.reduce((sum, s) => sum + (s._count?.submissions || 0), 0);
       const summaryRow = worksheet.addRow([
         'કુલ (Total)',
@@ -11785,7 +11824,7 @@ function StudentLogins({ showToast }) {
 
       summaryRow.eachCell((cell, colNum) => {
         cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF92400E' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } }; // Light Yellow / Gold
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } };
         cell.border = {
           top: { style: 'medium', color: { argb: 'FFD97706' } },
           bottom: { style: 'double', color: { argb: 'FF92400E' } },
@@ -11795,17 +11834,15 @@ function StudentLogins({ showToast }) {
         cell.alignment = { vertical: 'middle', horizontal: colNum === 2 ? 'left' : 'center' };
       });
 
-      // Set Precise Column Widths
       worksheet.columns = [
-        { width: 14 }, // No.
-        { width: 30 }, // Name
-        { width: 22 }, // Mobile
-        { width: 22 }, // Tests
-        { width: 22 }, // Joined Date
-        { width: 26 }, // Last Login
+        { width: 14 },
+        { width: 30 },
+        { width: 22 },
+        { width: 22 },
+        { width: 22 },
+        { width: 26 },
       ];
 
-      // Export file buffer & download
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const a = document.createElement('a');
@@ -11842,77 +11879,42 @@ function StudentLogins({ showToast }) {
   };
 
   return (
-    <div className="animate-fade-in">
-      {/* ── Sub-tab Switcher: Enrolled Admission Students vs Registered Student Logins ── */}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        marginBottom: 16,
-        padding: '5px',
-        background: 'rgba(15, 23, 42, 0.65)',
-        borderRadius: 12,
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        width: 'fit-content',
-        flexWrap: 'wrap'
-      }}>
+    <div className="animate-fade-in" style={{ paddingBottom: 32 }}>
+
+      {/* ── Sub-tab Switcher: Executive Segmented Bar ── */}
+      <div className="sl-subtab-bar">
         <button
           onClick={() => setActiveSubTab('admission')}
-          style={{
-            height: 38,
-            padding: '0 18px',
-            borderRadius: 8,
-            border: activeSubTab === 'admission' ? '1.5px solid #f59e0b' : 'none',
-            background: activeSubTab === 'admission' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35))' : 'transparent',
-            color: activeSubTab === 'admission' ? '#fbbf24' : '#94a3b8',
-            fontWeight: 800,
-            fontSize: '0.84rem',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: 'Hind Vadodara, sans-serif'
-          }}>
-          <ShieldCheck size={16} /> 🎓 ત્રિનેત્ર એડમિશન (Excel Bulk Whitelist)
+          className={`sl-subtab-btn sa-btn-pressable ${activeSubTab === 'admission' ? 'active-admission' : 'inactive'}`}
+        >
+          <ShieldCheck size={17} />
+          <span>🎓 એડમિશન વ્હાઇટલિસ્ટ (Bulk Whitelist)</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('admission_otps')}
-          style={{
-            height: 38,
-            padding: '0 18px',
-            borderRadius: 8,
-            border: activeSubTab === 'admission_otps' ? '1.5px solid #10b981' : 'none',
-            background: activeSubTab === 'admission_otps' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35))' : 'transparent',
-            color: activeSubTab === 'admission_otps' ? '#34d399' : '#94a3b8',
-            fontWeight: 800,
-            fontSize: '0.84rem',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: 'Hind Vadodara, sans-serif'
-          }}>
-          <KeyRound size={16} /> 🔐 🎓 એડમિશન OTP ડેટા (Admission Students OTP)
+          className={`sl-subtab-btn sa-btn-pressable ${activeSubTab === 'admission_otps' ? 'active-otps' : 'inactive'}`}
+        >
+          <KeyRound size={17} />
+          <span>🔐 એડમિશન OTP મેનેજર</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('logins')}
-          style={{
-            height: 38,
-            padding: '0 18px',
-            borderRadius: 8,
-            border: activeSubTab === 'logins' ? '1.5px solid #38bdf8' : 'none',
-            background: activeSubTab === 'logins' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.35))' : 'transparent',
-            color: activeSubTab === 'logins' ? '#38bdf8' : '#94a3b8',
-            fontWeight: 800,
-            fontSize: '0.84rem',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: 'Hind Vadodara, sans-serif'
+          className={`sl-subtab-btn sa-btn-pressable ${activeSubTab === 'logins' ? 'active-logins' : 'inactive'}`}
+        >
+          <Users size={17} />
+          <span>👥 તમામ લૉગિન & સેશન્સ</span>
+          <span style={{
+            background: activeSubTab === 'logins' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.12)',
+            color: activeSubTab === 'logins' ? '#38bdf8' : '#cbd5e1',
+            padding: '2px 8px',
+            borderRadius: 12,
+            fontSize: '0.72rem',
+            fontWeight: 900
           }}>
-          <Users size={16} /> 👥 📱 તમામ લૉગિન & OTP કંટ્રોલ (Logins & Sessions)
+            {students.length}
+          </span>
         </button>
       </div>
 
@@ -11922,282 +11924,765 @@ function StudentLogins({ showToast }) {
         <EnrolledStudentsOtpManager showToast={showToast} />
       ) : (
         <>
-          {/* ── Top Summary & Master Access Banner ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
-        {[{ l: 'Total Students', v: students.length, g: 'stat-grad-blue' }, { l: 'Active Today', v: students.filter(s => new Date(s.updatedAt || s.lastLoginAt) > new Date(Date.now() - 86400000)).length, g: 'stat-grad-green' }].map((s, i) => (
-          <div key={i} className={`stat-grad-card ${s.g}`}><div style={{ fontSize: '1.8rem', fontWeight: 900 }}><CountUp target={s.v} /></div><div style={{ fontSize: '0.75rem', opacity: 0.85 }}>{s.l}</div></div>
-        ))}
+          {/* ── 4-Card Luxury KPI / Metric Grid ── */}
+          <div className="sl-kpi-grid">
+            {/* Total Registered Students */}
+            <div className="sl-kpi-card cyan">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    કુલ રજીસ્ટર્ડ વિદ્યાર્થીઓ
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f8fafc', marginTop: 2 }}>
+                    <CountUp target={totalStudents} />
+                  </div>
+                </div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+                  <Users size={22} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#38bdf8' }}>
+                <TrendingUp size={13} />
+                <span>સંપૂર્ણ ડેટાબેઝ સક્રિય</span>
+              </div>
+            </div>
 
-        {/* 🟢 Free WhatsApp Cloud Bridge Connection Card */}
-        <div className="stat-grad-card" style={{ background: waBridge.status === 'CONNECTED' ? 'linear-gradient(135deg,#064e3b,#047857)' : 'linear-gradient(135deg,#1e293b,#0f172a)', border: waBridge.status === 'CONNECTED' ? '1.5px solid #10b981' : '1.5px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '12px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: '0.78rem', color: '#6ee7b7', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-              💬 WhatsApp Auto-OTP:
-            </span>
-            <span style={{
-              background: waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
-              color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.72rem'
+            {/* Active Today */}
+            <div className="sl-kpi-card emerald">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    આજે સક્રિય વિદ્યાર્થીઓ
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f8fafc', marginTop: 2 }}>
+                    <CountUp target={activeTodayCount} />
+                  </div>
+                </div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399' }}>
+                  <Activity size={22} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#34d399' }}>
+                <span className="sa-radar-pulse" />
+                <span>છેલ્લા ૨૪ કલાકમાં લૉગિન</span>
+              </div>
+            </div>
+
+            {/* Total Test Submissions */}
+            <div className="sl-kpi-card indigo">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    કુલ કસોટી પ્રયાસો (Attempts)
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f8fafc', marginTop: 2 }}>
+                    <CountUp target={totalSubmissionsCount} />
+                  </div>
+                </div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc' }}>
+                  <Award size={22} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#a5b4fc' }}>
+                <span>🎯 સરેરાશ {(totalStudents > 0 ? (totalSubmissionsCount / totalStudents).toFixed(1) : 0)} ટેસ્ટ પ્રતિ વિદ્યાર્થી</span>
+              </div>
+            </div>
+
+            {/* WhatsApp Auto-OTP Cloud Bridge */}
+            <div className="sl-kpi-card" style={{
+              background: waBridge.status === 'CONNECTED'
+                ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)'
+                : 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+              borderColor: waBridge.status === 'CONNECTED' ? 'rgba(16, 185, 129, 0.45)' : 'rgba(234, 179, 8, 0.35)'
             }}>
-              {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.phone || 'Active'})` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR CODE' : '⚠️ DISCONNECTED'}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: 1.3 }}>
-            {waBridge.status === 'CONNECTED' ? '🚀 ૧૦૦% સક્રિય: વિદ્યાર્થીઓને આપમેળે WhatsApp OTP જઈ રહ્યા છે!' : 'તમારો WhatsApp નંબર લિંક કરીને ફ્રી ઓટોમેટિક OTP ચાલુ કરો.'}
-          </div>
-          {waBridge.status !== 'CONNECTED' ? (
-            <button onClick={() => setShowWaModal(true)}
-              style={{ marginTop: 8, background: 'linear-gradient(135deg,#25d366,#128c7e)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
-              📱 QR Code સ્કેન કરો (Link WhatsApp)
-            </button>
-          ) : (
-            <button
-              onClick={async () => {
-                if (window.confirm('શું તમે હાલનો WhatsApp નંબર ડિસ્કનેક્ટ કરીને બીજો નવો નંબર જોડવા માંગો છો?')) {
-                  try {
-                    await disconnectWhatsAppBridge();
-                    showToast('WhatsApp ડિસ્કનેક્ટ થયું. નવો નંબર લિંક કરો.', 'info');
-                    checkWaStatus();
-                    setShowWaModal(true);
-                  } catch {
-                    showToast('ડિસ્કનેક્ટ કરવામાં ભૂલ આવી.', 'error');
-                  }
-                }
-              }}
-              style={{ marginTop: 8, background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '5px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'Hind Vadodara, sans-serif' }}>
-              🔄 બીજો WhatsApp નંબર બદલો (Switch Number)
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Grant Master PIN Access Form (For New or Any Number) */}
-      <form onSubmit={handleGrantQuickMobile} className="glass-card" style={{ padding: '12px 16px', marginBottom: 16, background: 'rgba(30,41,59,0.5)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.8rem', color: '#facc15', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Key size={14} /> Quick Master PIN Access:
-        </span>
-        <input className="input-dark" placeholder="૧૦ આંકડાનો મોબાઈલ દાખલ કરો..." value={quickMobile} onChange={e => setQuickMobile(e.target.value)} style={{ flex: 1, minWidth: 160, padding: '7px 10px', fontSize: '0.8rem' }} />
-        <input className="input-dark" placeholder="વિદ્યાર્થીનું નામ (ઓપ્શનલ)" value={quickName} onChange={e => setQuickName(e.target.value)} style={{ flex: 1, minWidth: 140, padding: '7px 10px', fontSize: '0.8rem' }} />
-        <button type="submit" disabled={grantingQuick}
-          style={{ background: 'linear-gradient(135deg,#eab308,#ca8a04)', color: '#0f172a', border: 'none', padding: '7px 14px', borderRadius: 8, fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif' }}>
-          {grantingQuick ? 'મંજૂર થાય છે...' : '⚡ Master Access આપો (1 કલાક)'}
-        </button>
-        <button type="button" onClick={handleResetQuickOtpMobile} disabled={resettingQuickOtp}
-          style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.4)', padding: '7px 14px', borderRadius: 8, fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <RefreshCw size={13} className={resettingQuickOtp ? 'animate-spin' : ''} />
-          {resettingQuickOtp ? 'રીસેટ થાય છે...' : '🔄 Reset OTP (અનબ્લોક)'}
-        </button>
-      </form>
-
-      {/* 📱 Free WhatsApp Link QR Code Modal */}
-      {showWaModal && typeof document !== 'undefined' && createPortal(
-        <div className="upload-modal-overlay" onClick={() => setShowWaModal(false)}>
-          <div className="glass-card animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, width: '100%', padding: 24, textAlign: 'center', background: '#0f172a', border: '2px solid #25d366', borderRadius: 20, boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                💬 WhatsApp Auto-Bridge
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: '0.78rem', color: '#6ee7b7', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  💬 WhatsApp Auto-OTP
+                </span>
+                <span style={{
+                  background: waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
+                  color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.7rem'
+                }}>
+                  {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.phone || 'Active'})` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
+                </span>
               </div>
-              <button onClick={() => setShowWaModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 900 }}>✕</button>
-            </div>
-
-            <p style={{ color: '#cbd5e1', fontSize: '0.84rem', margin: '0 0 16px', lineHeight: 1.45 }}>
-              તમારા મોબાઈલમાં <strong>WhatsApp ➔ Linked Devices (લિંક કરેલ ડિવાઈસ)</strong> ખોલો અને નીચેનો QR Code સ્કેન કરો:
-            </p>
-
-            {waBridge.qrCode ? (
-              <div style={{ background: 'white', padding: 12, borderRadius: 14, display: 'inline-block', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', marginBottom: 14 }}>
-                <img src={waBridge.qrCode} alt="WhatsApp QR" style={{ width: 220, height: 220, display: 'block' }} />
+              <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.4, margin: '4px 0' }}>
+                {waBridge.status === 'CONNECTED' ? '🚀 ૧૦૦% સક્રિય: વિદ્યાર્થીઓને WhatsApp OTP ઓટોમેટિક જઈ રહ્યા છે.' : 'તમારો WhatsApp નંબર લિંક કરીને ફ્રી ઓટોમેટિક OTP ચાલુ કરો.'}
               </div>
-            ) : waBridge.status === 'CONNECTED' ? (
-              <div style={{ background: 'rgba(34,197,94,0.15)', border: '1.5px solid #22c55e', borderRadius: 12, padding: 18, color: '#4ade80', fontWeight: 800, margin: '14px 0' }}>
-                🎉 WhatsApp સફળતાપૂર્વક કનેક્ટ થઈ ગયું છે! (+{waBridge.phone})
-              </div>
-            ) : (
-              <div style={{ padding: 30, color: '#94a3b8', fontSize: '0.88rem' }}>
-                ⏳ QR Code લોડ થઈ રહ્યો છે... કૃપા કરીને 2 સેકન્ડ રાહ જુઓ.
-              </div>
-            )}
-
-            <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 10 }}>
-              🔒 ૧૦૦% સુરક્ષિત અને ફ્રી: સ્કેન થતાં જ વિદ્યાર્થીઓને તમારા એકેડેમી નંબર પરથી આપમેળે WhatsApp OTP જવા લાગશે!
+              {waBridge.status !== 'CONNECTED' ? (
+                <button
+                  onClick={() => setShowWaModal(true)}
+                  className="sa-btn-pressable"
+                  style={{
+                    marginTop: 6,
+                    background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '7px 12px',
+                    borderRadius: 8,
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    fontFamily: 'Hind Vadodara, sans-serif'
+                  }}
+                >
+                  <Smartphone size={14} /> 📱 QR Code સ્કેન કરો
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if (window.confirm('શું તમે હાલનો WhatsApp નંબર ડિસ્કનેક્ટ કરીને બીજો નવો નંબર જોડવા માંગો છો?')) {
+                      try {
+                        await disconnectWhatsAppBridge();
+                        showToast('WhatsApp ડિસ્કનેક્ટ થયું. નવો નંબર લિંક કરો.', 'info');
+                        checkWaStatus();
+                        setShowWaModal(true);
+                      } catch {
+                        showToast('ડિસ્કનેક્ટ કરવામાં ભૂલ આવી.', 'error');
+                      }
+                    }
+                  }}
+                  className="sa-btn-pressable"
+                  style={{
+                    marginTop: 6,
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    color: '#ffffff',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    fontFamily: 'Hind Vadodara, sans-serif'
+                  }}
+                >
+                  <RefreshCw size={12} /> 🔄 નંબર બદલો (Switch Number)
+                </button>
+              )}
             </div>
           </div>
-        </div>,
-        document.body
-      )}
 
-      {/* Live OTPs Drawer Modal / Box */}
-      {showLiveOtps && (
-        <div className="glass-card animate-fade-in" style={{ padding: 14, marginBottom: 16, border: '1.5px solid #6366f1', background: 'rgba(30,27,75,0.7)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontWeight: 800, color: '#c7d2fe', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-              🔑 તાજેતરમાં મોકલાયેલા Live OTPs (છેલ્લી 15 મિનિટ):
-            </div>
-            <button onClick={() => setShowLiveOtps(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem', fontWeight: 900 }}>✕</button>
-          </div>
-          {liveOtps.length === 0 ? (
-            <div style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>છેલ્લી 15 મિનિટમાં કોઈ નવો OTP મોકલાયો નથી.</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
-              {liveOtps.map(o => (
-                <div key={o.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ color: 'white', fontWeight: 800, fontSize: '0.82rem' }}>📞 {o.mobile}</div>
-                    <div style={{ color: '#64748b', fontSize: '0.68rem' }}>{new Date(o.createdAt).toLocaleTimeString('gu-IN')}</div>
-                  </div>
-                  <div style={{ background: '#10b981', color: 'white', padding: '3px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.9rem', letterSpacing: 1 }}>
-                    {o.otp}
-                  </div>
+          {/* ── Executive Quick Action Command Panel ── */}
+          <div className="sl-quick-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Zap size={16} /> ⚡ ત્વરિત સહાયતા & અનબ્લોક પેનલ (Quick Master Access & Unblock)
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Search & Export Buttons */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <input className="input-dark" placeholder="🔍 Search name / mobile..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 200 }} />
-        <button onClick={exportExcel}
-          style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}>
-          📊 Excel (.xlsx) ડાઉનલોડ
-        </button>
-        <button onClick={exportCSV}
-          style={{ background: 'linear-gradient(135deg,#b45309,#f59e0b)', color: 'white', border: 'none', padding: '10px 14px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Hind Vadodara, sans-serif', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-          📥 CSV
-        </button>
-      </div>
-
-      {loading ? <Loader /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.length === 0 && <Empty msg="No students yet" />}
-          {filtered.map((s, i) => {
-            const hasMasterAccess = s.masterAccessAllowed || (s.masterAccessExpiresAt && new Date(s.masterAccessExpiresAt) > new Date());
-            return (
-              <div key={s.id} className="glass-card animate-fade-in" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: hasMasterAccess ? '1.5px solid #eab308' : '1px solid rgba(255,255,255,0.06)' }}>
-                <Avatar name={s.name} size={42} />
-                <div style={{ flex: 1, minWidth: 140 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ color: 'white', fontWeight: 800 }}>{s.name}</span>
-                    {hasMasterAccess && (
-                      <span style={{ background: 'rgba(234,179,8,0.2)', color: '#fde047', border: '1px solid #eab308', padding: '2px 8px', borderRadius: 12, fontSize: '0.68rem', fontWeight: 800 }}>
-                        🔑 Master PIN સક્રિય (191219)
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ color: '#64748b', fontSize: '0.78rem' }}>📞 {s.mobile} {s.city && `| 📍 ${s.city}`}</div>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 2 }}>
-                    <div style={{ color: '#475569', fontSize: '0.7rem' }}>Joined: {new Date(s.createdAt).toLocaleDateString('gu-IN')}</div>
-                    {s.lastLoginAt && (
-                      <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 700 }}>
-                        🕒 Last Login: {new Date(s.lastLoginAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                      </div>
-                    )}
-                  </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.76rem', marginTop: 2 }}>
+                  જો કોઈ વિદ્યાર્થીને OTP ન આવતો હોય કે લૉગિન બ્લોક થયું હોય તો અહીંથી ૧ સેકન્ડમાં મદદ કરો.
                 </div>
+              </div>
 
-                {/* Action Buttons: Master PIN Access Grant, Reset Session, Submissions & WhatsApp */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {/* Master PIN Access Toggle */}
-                  <button
-                    onClick={() => handleToggleMasterAccess(s)}
-                    disabled={grantingId === s.id}
-                    title="આ વિદ્યાર્થી માટે Master PIN (191219) Access સક્રિય અથવા રદ કરો"
-                    style={{
-                      background: hasMasterAccess ? 'linear-gradient(135deg,#ca8a04,#eab308)' : 'rgba(234,179,8,0.12)',
-                      border: hasMasterAccess ? 'none' : '1px solid rgba(234,179,8,0.35)',
-                      color: hasMasterAccess ? '#0f172a' : '#fef08a',
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      fontSize: '0.76rem',
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontFamily: 'Hind Vadodara, sans-serif'
-                    }}>
-                    <Key size={13} /> {grantingId === s.id ? 'અપડેટ થાય છે...' : hasMasterAccess ? '✓ PIN સક્રિય છે' : '🔑 Master PIN આપો'}
-                  </button>
-
-                  {/* Reset Session Button */}
-                  <button
-                    onClick={() => handleResetSession(s)}
-                    disabled={resettingId === s.id}
-                    title="જો વિદ્યાર્થીને લોગિનમાં Single Device Error આવતી હોય તો અહીંથી સેશન અનલોક કરો"
-                    style={{
-                      background: 'rgba(239,68,68,0.15)',
-                      border: '1px solid rgba(239,68,68,0.35)',
-                      color: '#fca5a5',
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontFamily: 'Hind Vadodara, sans-serif'
-                    }}>
-                    <Unlock size={13} /> {resettingId === s.id ? 'અનલોક થાય છે...' : '🔓 સેશન અનલોક'}
-                  </button>
-
-                  {/* Reset OTP Limit Button */}
-                  <button
-                    onClick={() => handleResetOtp(s)}
-                    disabled={resettingOtpId === s.id}
-                    title="જો વિદ્યાર્થી ૬ વાર OTP નાખીને બ્લોક થયો હોય તો અહીંથી OTP મર્યાદા રીસેટ કરો"
-                    style={{
-                      background: 'rgba(56,189,248,0.15)',
-                      border: '1px solid rgba(56,189,248,0.35)',
-                      color: '#7dd3fc',
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontFamily: 'Hind Vadodara, sans-serif'
-                    }}>
-                    <RefreshCw size={13} className={resettingOtpId === s.id ? 'animate-spin' : ''} />
-                    {resettingOtpId === s.id ? 'રીસેટ થાય છે...' : '🔄 Reset OTP'}
-                  </button>
-
-                  <span style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', fontWeight: 800, padding: '5px 12px', borderRadius: 20, fontSize: '0.8rem', border: '1px solid rgba(59,130,246,0.2)' }}>
-                    📝 {s._count?.submissions || 0}
+              {/* Live OTPs Shortcut Toggle */}
+              <button
+                type="button"
+                onClick={fetchLiveOtps}
+                className="sa-btn-pressable"
+                style={{
+                  background: showLiveOtps ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(79, 70, 229, 0.45))' : 'rgba(99, 102, 241, 0.15)',
+                  border: '1px solid rgba(99, 102, 241, 0.45)',
+                  color: '#c7d2fe',
+                  padding: '6px 14px',
+                  borderRadius: 10,
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontFamily: 'Hind Vadodara, sans-serif'
+                }}
+              >
+                <KeyRound size={14} />
+                <span>🔑 લાઇવ OTP મોનિટર</span>
+                {liveOtps.length > 0 && (
+                  <span style={{ background: '#10b981', color: 'white', padding: '1px 6px', borderRadius: 10, fontSize: '0.68rem', fontWeight: 900 }}>
+                    {liveOtps.length}
                   </span>
+                )}
+              </button>
+            </div>
 
-                  <a href={`https://wa.me/91${s.mobile}?text=${encodeURIComponent(`નમસ્તે ${s.name}, ત્રિનેત્ર એકેડેમી પોર્ટલમાં તમારો Master Login PIN 191219 છે.`)}`} target="_blank" rel="noreferrer" title="WhatsApp પર OTP / PIN મોકલો" style={{ background: '#25d366', color: 'white', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    💬 WhatsApp
-                  </a>
+            <form onSubmit={handleGrantQuickMobile} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  📞
+                </span>
+                <input
+                  className="input-dark"
+                  placeholder="૧૦ આંકડાનો મોબાઈલ નંબર..."
+                  value={quickMobile}
+                  onChange={e => setQuickMobile(e.target.value)}
+                  style={{ width: '100%', paddingLeft: 34, height: 40, fontSize: '0.82rem', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}
+                />
+              </div>
 
-                  {/* Delete Student Button */}
-                  <button
-                    onClick={() => handleDeleteStudent(s)}
-                    title="આ વિદ્યાર્થીને કાયમ માટે ડિલીટ કરો"
-                    style={{
-                      background: 'rgba(239,68,68,0.2)',
-                      border: '1px solid rgba(239,68,68,0.4)',
-                      color: '#f87171',
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontFamily: 'Hind Vadodara, sans-serif'
-                    }}>
-                    <Trash2 size={13} /> 🗑️ ડિલીટ
-                  </button>
+              <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  👤
+                </span>
+                <input
+                  className="input-dark"
+                  placeholder="વિદ્યાર્થીનું નામ (ઓપ્શનલ)"
+                  value={quickName}
+                  onChange={e => setQuickName(e.target.value)}
+                  style={{ width: '100%', paddingLeft: 34, height: 40, fontSize: '0.82rem', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={grantingQuick}
+                className="sa-btn-pressable"
+                style={{
+                  height: 40,
+                  background: 'linear-gradient(135deg, #d97706, #f59e0b)',
+                  color: '#0f172a',
+                  border: 'none',
+                  padding: '0 16px',
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Key size={14} />
+                <span>{grantingQuick ? 'મંજૂર થાય છે...' : '⚡ Master Access આપો (1 કલાક - 191219)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetQuickOtpMobile}
+                disabled={resettingQuickOtp}
+                className="sa-btn-pressable"
+                style={{
+                  height: 40,
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  color: '#38bdf8',
+                  border: '1.5px solid rgba(56, 189, 248, 0.45)',
+                  padding: '0 14px',
+                  borderRadius: 10,
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <RefreshCw size={13} className={resettingQuickOtp ? 'animate-spin' : ''} />
+                <span>{resettingQuickOtp ? 'રીસેટ થાય છે...' : '🔄 OTP રીસેટ (અનબ્લોક)'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* 📱 Free WhatsApp Link QR Code Modal */}
+          {showWaModal && typeof document !== 'undefined' && createPortal(
+            <div className="upload-modal-overlay" onClick={() => setShowWaModal(false)}>
+              <div className="glass-card animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, width: '100%', padding: 26, textAlign: 'center', background: '#0f172a', border: '2px solid #25d366', borderRadius: 22, boxShadow: '0 25px 70px rgba(0,0,0,0.85)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    💬 WhatsApp Auto-Bridge
+                  </div>
+                  <button onClick={() => setShowWaModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 900 }}>✕</button>
+                </div>
+
+                <p style={{ color: '#cbd5e1', fontSize: '0.84rem', margin: '0 0 16px', lineHeight: 1.45 }}>
+                  તમારા મોબાઈલમાં <strong>WhatsApp ➔ Linked Devices (લિંક કરેલ ડિવાઈસ)</strong> ખોલો અને નીચેનો QR Code સ્કેન કરો:
+                </p>
+
+                {waBridge.qrCode ? (
+                  <div style={{ background: 'white', padding: 12, borderRadius: 16, display: 'inline-block', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', marginBottom: 14 }}>
+                    <img src={waBridge.qrCode} alt="WhatsApp QR" style={{ width: 220, height: 220, display: 'block' }} />
+                  </div>
+                ) : waBridge.status === 'CONNECTED' ? (
+                  <div style={{ background: 'rgba(34,197,94,0.15)', border: '1.5px solid #22c55e', borderRadius: 14, padding: 18, color: '#4ade80', fontWeight: 800, margin: '14px 0' }}>
+                    🎉 WhatsApp સફળતાપૂર્વક કનેક્ટ થઈ ગયું છે! (+{waBridge.phone})
+                  </div>
+                ) : (
+                  <div style={{ padding: 30, color: '#94a3b8', fontSize: '0.88rem' }}>
+                    ⏳ QR Code લોડ થઈ રહ્યો છે... કૃપા કરીને 2 સેકન્ડ રાહ જુઓ.
+                  </div>
+                )}
+
+                <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 10 }}>
+                  🔒 ૧૦૦% સુરક્ષિત અને ફ્રી: સ્કેન થતાં જ વિદ્યાર્થીઓને તમારા એકેડેમી નંબર પરથી આપમેળે WhatsApp OTP જવા લાગશે!
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>,
+            document.body
+          )}
+
+          {/* Live OTPs Real-Time Monitor Box */}
+          {showLiveOtps && (
+            <div className="glass-card animate-fade-in" style={{ padding: 16, marginBottom: 20, border: '1.5px solid rgba(99, 102, 241, 0.6)', background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)', borderRadius: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontWeight: 900, color: '#c7d2fe', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="sa-radar-pulse" style={{ background: '#818cf8' }} />
+                  🔑 તાજેતરમાં મોકલાયેલા Live OTPs (છેલ્લી 15 મિનિટ):
+                </div>
+                <button onClick={() => setShowLiveOtps(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 900 }}>✕</button>
+              </div>
+              {liveOtps.length === 0 ? (
+                <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic', padding: '10px 0' }}>
+                  છેલ્લી 15 મિનિટમાં કોઈ નવો OTP મોકલાયો નથી.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                  {liveOtps.map(o => (
+                    <div key={o.id} style={{ background: 'rgba(255,255,255,0.06)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ color: 'white', fontWeight: 800, fontSize: '0.84rem' }}>📞 {o.mobile}</div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: 2 }}>{new Date(o.createdAt).toLocaleTimeString('gu-IN')}</div>
+                      </div>
+                      <div
+                        onClick={() => {
+                          navigator.clipboard?.writeText(String(o.otp));
+                          showToast?.(`📋 OTP ${o.otp} કૉપી થયો!`, 'success');
+                        }}
+                        title="ક્લિક કરીને OTP કૉપી કરો"
+                        style={{
+                          background: 'linear-gradient(135deg, #059669, #10b981)',
+                          color: 'white',
+                          padding: '4px 10px',
+                          borderRadius: 8,
+                          fontWeight: 900,
+                          fontSize: '0.95rem',
+                          letterSpacing: 1.5,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)'
+                        }}
+                      >
+                        {o.otp}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Search Bar & Filter Chips Suite ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Search input with clear button */}
+              <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.95rem' }}>
+                  <Search size={16} />
+                </span>
+                <input
+                  className="input-dark"
+                  placeholder="વિદ્યાર્થીનું નામ, ૧૦ આંકડાનો મોબાઈલ કે શહેર શોધો..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    paddingLeft: 40,
+                    paddingRight: search ? 36 : 14,
+                    height: 42,
+                    fontSize: '0.84rem',
+                    borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.12)'
+                  }}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: 12,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 900
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Export Suite */}
+              <button
+                onClick={exportExcel}
+                className="sa-btn-pressable"
+                style={{
+                  height: 42,
+                  background: 'linear-gradient(135deg, #047857, #10b981)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0 18px',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <Download size={16} />
+                <span>📊 Excel (.xlsx) ડાઉનલોડ</span>
+              </button>
+
+              <button
+                onClick={exportCSV}
+                className="sa-btn-pressable"
+                style={{
+                  height: 42,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#cbd5e1',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  padding: '0 14px',
+                  borderRadius: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'Hind Vadodara, sans-serif',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <FileText size={15} />
+                <span>📥 CSV</span>
+              </button>
+            </div>
+
+            {/* Quick Filter Chips */}
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+              <button
+                onClick={() => setFilterMode('ALL')}
+                className={`sl-filter-chip sa-btn-pressable ${filterMode === 'ALL' ? 'active' : ''}`}
+              >
+                <span>🌟 તમામ વિદ્યાર્થીઓ</span>
+                <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({totalStudents})</span>
+              </button>
+
+              <button
+                onClick={() => setFilterMode('ACTIVE')}
+                className={`sl-filter-chip sa-btn-pressable ${filterMode === 'ACTIVE' ? 'active' : ''}`}
+              >
+                <span className="sa-radar-pulse" style={{ width: 6, height: 6 }} />
+                <span>આજે સક્રિય</span>
+                <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({activeTodayCount})</span>
+              </button>
+
+              <button
+                onClick={() => setFilterMode('MASTER')}
+                className={`sl-filter-chip sa-btn-pressable ${filterMode === 'MASTER' ? 'active' : ''}`}
+              >
+                <span>🔑 Master PIN સક્રિય</span>
+                <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({masterActiveCount})</span>
+              </button>
+
+              <button
+                onClick={() => setFilterMode('TESTS_DONE')}
+                className={`sl-filter-chip sa-btn-pressable ${filterMode === 'TESTS_DONE' ? 'active' : ''}`}
+              >
+                <span>📝 કસોટી આપેલ</span>
+                <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({withTestsCount})</span>
+              </button>
+
+              <button
+                onClick={() => setFilterMode('NO_TESTS')}
+                className={`sl-filter-chip sa-btn-pressable ${filterMode === 'NO_TESTS' ? 'active' : ''}`}
+              >
+                <span>⏳ હજુ કસોટી બાકી</span>
+                <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({noTestsCount})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Student Cards Roster ── */}
+          {loading ? (
+            <Loader />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filtered.length === 0 && (
+                <div className="glass-card" style={{ padding: 40, textAlign: 'center', background: 'rgba(15, 23, 42, 0.65)', borderRadius: 16 }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🔍</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1rem', marginBottom: 4 }}>
+                    કોઈ વિદ્યાર્થી મળ્યો નથી
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.82rem', marginBottom: 16 }}>
+                    {search ? `"${search}" માટે કોઈ પરિણામ નથી. કૃપા કરીને સ્પેલિંગ તપાસો.` : 'આ ફિલ્ટર હેઠળ હાલ કોઈ વિદ્યાર્થી નોંધાયેલ નથી.'}
+                  </div>
+                  {(search || filterMode !== 'ALL') && (
+                    <button
+                      onClick={() => { setSearch(''); setFilterMode('ALL'); }}
+                      className="sa-btn-pressable"
+                      style={{
+                        background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 18px',
+                        borderRadius: 10,
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        fontFamily: 'Hind Vadodara, sans-serif'
+                      }}
+                    >
+                      શોધ & ફિલ્ટર રીસેટ કરો
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {filtered.map((s, i) => {
+                const hasMasterAccess = s.masterAccessAllowed || (s.masterAccessExpiresAt && new Date(s.masterAccessExpiresAt) > new Date());
+                const isActiveToday = new Date(s.updatedAt || s.lastLoginAt) > new Date(Date.now() - 86400000);
+                const isCopied = copiedId === s.id;
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`sl-student-card ${hasMasterAccess ? 'master-active' : ''}`}
+                    style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
+                  >
+                    {/* Top Row: Avatar, Identity, Performance & Status Badges */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        {/* 3D Avatar with Active Beacon */}
+                        <div style={{ position: 'relative' }}>
+                          <Avatar name={s.name} size={46} />
+                          {isActiveToday && (
+                            <span
+                              title="આજે સક્રિય"
+                              style={{
+                                position: 'absolute',
+                                bottom: -1,
+                                right: -1,
+                                width: 13,
+                                height: 13,
+                                borderRadius: '50%',
+                                background: '#10b981',
+                                border: '2.5px solid #0f172a',
+                                boxShadow: '0 0 8px #10b981'
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Student Name & Contact */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ color: '#ffffff', fontWeight: 800, fontSize: '1.02rem', letterSpacing: 0.2 }}>
+                              {s.name || 'વિદ્યાર્થી'}
+                            </span>
+                            {s.city && (
+                              <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#94a3b8', padding: '1px 8px', borderRadius: 8, fontSize: '0.68rem', fontWeight: 700 }}>
+                                📍 {s.city}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                            {/* Click to Copy Mobile */}
+                            <button
+                              type="button"
+                              onClick={() => handleCopyMobile(s.mobile, s.id)}
+                              title="ક્લિક કરીને મોબાઈલ નંબર કૉપી કરો"
+                              className="sa-btn-pressable"
+                              style={{
+                                background: isCopied ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                                border: isCopied ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+                                color: isCopied ? '#34d399' : '#cbd5e1',
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                fontSize: '0.76rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                fontFamily: 'monospace'
+                              }}
+                            >
+                              {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                              <span>{s.mobile}</span>
+                              {isCopied && <span style={{ fontSize: '0.68rem', fontWeight: 900 }}>(કૉપી થયું!)</span>}
+                            </button>
+
+                            <span style={{ color: '#475569', fontSize: '0.72rem' }}>•</span>
+                            <span style={{ color: '#64748b', fontSize: '0.72rem' }}>
+                              જોડાયા: {s.createdAt ? new Date(s.createdAt).toLocaleDateString('gu-IN') : '—'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Metadata Chips */}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {hasMasterAccess && (
+                          <span style={{
+                            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(202, 138, 4, 0.35))',
+                            border: '1px solid #eab308',
+                            color: '#fef08a',
+                            padding: '4px 10px',
+                            borderRadius: 14,
+                            fontSize: '0.72rem',
+                            fontWeight: 900,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            boxShadow: '0 2px 10px rgba(234, 179, 8, 0.25)'
+                          }}>
+                            <Key size={12} /> Master PIN સક્રિય (191219)
+                          </span>
+                        )}
+
+                        <span style={{
+                          background: (s._count?.submissions || 0) > 0 ? 'rgba(37, 99, 235, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                          color: (s._count?.submissions || 0) > 0 ? '#60a5fa' : '#94a3b8',
+                          border: (s._count?.submissions || 0) > 0 ? '1px solid rgba(37, 99, 235, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                          fontWeight: 800,
+                          padding: '4px 10px',
+                          borderRadius: 14,
+                          fontSize: '0.74rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          <FileCheck size={13} /> {s._count?.submissions || 0} કસોટીઓ
+                        </span>
+
+                        {s.lastLoginAt && (
+                          <span style={{
+                            background: 'rgba(56, 189, 248, 0.12)',
+                            color: '#7dd3fc',
+                            border: '1px solid rgba(56, 189, 248, 0.25)',
+                            padding: '4px 10px',
+                            borderRadius: 14,
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            <Clock size={12} /> {new Date(s.lastLoginAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.06)', margin: '2px 0' }} />
+
+                    {/* Bottom Action Bar */}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* WhatsApp Direct Chat */}
+                        <a
+                          href={`https://wa.me/91${s.mobile}?text=${encodeURIComponent(`નમસ્તે ${s.name}, ત્રિનેત્ર એકેડેમી પોર્ટલમાં તમારો Master Login PIN 191219 છે.`)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="WhatsApp પર OTP / PIN મેસેજ મોકલો"
+                          className="sl-btn-action sa-btn-pressable"
+                          style={{
+                            background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                            color: 'white',
+                            textDecoration: 'none',
+                            boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)'
+                          }}
+                        >
+                          <PhoneCall size={12} />
+                          <span>💬 WhatsApp</span>
+                        </a>
+
+                        {/* Master PIN Access Toggle */}
+                        <button
+                          onClick={() => handleToggleMasterAccess(s)}
+                          disabled={grantingId === s.id}
+                          title="આ વિદ્યાર્થી માટે Master PIN (191219) Access સક્રિય અથવા રદ કરો"
+                          className="sl-btn-action sa-btn-pressable"
+                          style={{
+                            background: hasMasterAccess ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(234, 179, 8, 0.12)',
+                            border: hasMasterAccess ? 'none' : '1px solid rgba(234, 179, 8, 0.35)',
+                            color: hasMasterAccess ? '#0f172a' : '#fef08a'
+                          }}
+                        >
+                          <Key size={13} />
+                          <span>{grantingId === s.id ? 'અપડેટ થાય છે...' : hasMasterAccess ? '✓ PIN સક્રિય છે (રદ કરો)' : '🔑 Master PIN આપો'}</span>
+                        </button>
+
+                        {/* Reset Session Button */}
+                        <button
+                          onClick={() => handleResetSession(s)}
+                          disabled={resettingId === s.id}
+                          title="જો વિદ્યાર્થીને લોગિનમાં Single Device Error આવતી હોય તો અહીંથી સેશન અનલોક કરો"
+                          className="sl-btn-action sa-btn-pressable"
+                          style={{
+                            background: 'rgba(37, 99, 235, 0.18)',
+                            border: '1px solid rgba(37, 99, 235, 0.4)',
+                            color: '#93c5fd'
+                          }}
+                        >
+                          <Unlock size={13} />
+                          <span>{resettingId === s.id ? 'અનલોક થાય છે...' : '🔓 સેશન અનલોક'}</span>
+                        </button>
+
+                        {/* Reset OTP Limit Button */}
+                        <button
+                          onClick={() => handleResetOtp(s)}
+                          disabled={resettingOtpId === s.id}
+                          title="જો વિદ્યાર્થી ૬ વાર OTP નાખીને બ્લોક થયો હોય તો અહીંથી OTP મર્યાદા રીસેટ કરો"
+                          className="sl-btn-action sa-btn-pressable"
+                          style={{
+                            background: 'rgba(2, 132, 199, 0.18)',
+                            border: '1px solid rgba(2, 132, 199, 0.4)',
+                            color: '#38bdf8'
+                          }}
+                        >
+                          <RefreshCw size={12} className={resettingOtpId === s.id ? 'animate-spin' : ''} />
+                          <span>{resettingOtpId === s.id ? 'રીસેટ થાય છે...' : '🔄 Reset OTP'}</span>
+                        </button>
+                      </div>
+
+                      {/* Delete Student Button (Guarded Right Alignment) */}
+                      <button
+                        onClick={() => handleDeleteStudent(s)}
+                        title="આ વિદ્યાર્થીને કાયમ માટે ડિલીટ કરો"
+                        className="sl-btn-action sa-btn-pressable"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          color: '#f87171'
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>ડિલીટ</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>

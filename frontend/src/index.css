@@ -2862,13 +2862,235 @@ textarea.input-dark {
   animation: shimmerSwipe 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes shimmerSwipe {
-  0% {
-    transform: translateX(-150%) skewX(-20deg);
-  }
-  100% {
-    transform: translateX(250%) skewX(-20deg);
-  }
+/* ═══════════════════════════════════════════════════════════════════
+   👥 TEACHER DASHBOARD - STUDENT MANAGEMENT & LOGINS (sl-*)
+   Ultra-Luxury Executive UI with Obsidian Navy, Gold & Cyan
+═══════════════════════════════════════════════════════════════════ */
+.sl-subtab-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: fit-content;
+  flex-wrap: wrap;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+.sl-subtab-btn {
+  height: 42px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Hind Vadodara', sans-serif;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+}
+
+.sl-subtab-btn:hover {
+  transform: translateY(-1px);
+}
+
+.sl-subtab-btn.active-admission {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.28), rgba(245, 158, 11, 0.38));
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+  box-shadow: 0 4px 16px -2px rgba(245, 158, 11, 0.35);
+}
+
+.sl-subtab-btn.active-otps {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.28), rgba(16, 185, 129, 0.38));
+  border-color: rgba(16, 185, 129, 0.6);
+  color: #34d399;
+  box-shadow: 0 4px 16px -2px rgba(16, 185, 129, 0.35);
+}
+
+.sl-subtab-btn.active-logins {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.28), rgba(56, 189, 248, 0.38));
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #38bdf8;
+  box-shadow: 0 4px 16px -2px rgba(56, 189, 248, 0.35);
+}
+
+.sl-subtab-btn.inactive {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.sl-subtab-btn.inactive:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
+
+/* 4-Card Luxury KPI Cards */
+.sl-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.sl-kpi-card {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sl-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.65);
+}
+
+.sl-kpi-card.cyan {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+.sl-kpi-card.cyan:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 14px 34px -4px rgba(56, 189, 248, 0.25);
+}
+
+.sl-kpi-card.emerald {
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.sl-kpi-card.emerald:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 14px 34px -4px rgba(16, 185, 129, 0.25);
+}
+
+.sl-kpi-card.indigo {
+  border-color: rgba(99, 102, 241, 0.25);
+}
+.sl-kpi-card.indigo:hover {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 14px 34px -4px rgba(99, 102, 241, 0.25);
+}
+
+/* Quick Action Command Panel */
+.sl-quick-panel {
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1.5px solid rgba(234, 179, 8, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), 0 0 20px -6px rgba(234, 179, 8, 0.15);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
+}
+
+.sl-quick-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ca8a04, #facc15, #38bdf8);
+}
+
+/* Filter Chips Bar */
+.sl-filter-chip {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Hind Vadodara', sans-serif;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.5);
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.sl-filter-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sl-filter-chip.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(37, 99, 235, 0.32));
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #38bdf8;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+}
+
+/* 3D Student Card */
+.sl-student-card {
+  position: relative;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sl-student-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 0 18px -4px rgba(56, 189, 248, 0.2);
+}
+
+.sl-student-card.master-active {
+  border-color: rgba(234, 179, 8, 0.45);
+  box-shadow: 0 8px 24px -3px rgba(0, 0, 0, 0.5), 0 0 18px -3px rgba(234, 179, 8, 0.22);
+}
+
+.sl-student-card.master-active:hover {
+  border-color: rgba(234, 179, 8, 0.7);
+  box-shadow: 0 14px 32px -4px rgba(0, 0, 0, 0.65), 0 0 24px -2px rgba(234, 179, 8, 0.35);
+}
+
+/* Student Action Button */
+.sl-btn-action {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Hind Vadodara', sans-serif;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.sl-btn-action:active {
+  transform: scale(0.96) translateY(1px);
 }
 
 /* Staggered entry animation for student cards when accordion opens */
