@@ -376,25 +376,131 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const testTitle = testMeta.testName || 'કસોટી પરિણામ';
   const metaTotal = Number(testMeta.totalMarks || 0);
 
-  const rowsHtml = topList.slice(0, 10).map((s, idx) => {
+  // Helper for generating High-End Student Photo / Royal Golden Avatar
+  const getStudentAvatar = (s, rankNum, size = 44) => {
+    const sName = s?.student?.name || 'વિદ્યાર્થી';
+    const photo = s?.photoUrl || s?.student?.photoUrl || s?.student?.photo || null;
+    const initial = (sName.trim()[0] || '?').toUpperCase();
+    const isTopper1 = rankNum === 1;
+    const isTopper2 = rankNum === 2;
+    const isTopper3 = rankNum === 3;
+
+    const ringBorder = isTopper1 ? '#f59e0b' : isTopper2 ? '#94a3b8' : isTopper3 ? '#ea580c' : '#38bdf8';
+    const glow = isTopper1 ? 'rgba(245,158,11,0.65)' : isTopper2 ? 'rgba(148,163,184,0.45)' : isTopper3 ? 'rgba(234,88,12,0.45)' : 'rgba(56,189,248,0.3)';
+    const bg = isTopper1 
+      ? 'linear-gradient(135deg, #d97706, #78350f)' 
+      : isTopper2 
+        ? 'linear-gradient(135deg, #64748b, #334155)' 
+        : isTopper3 
+          ? 'linear-gradient(135deg, #c2410c, #7c2d12)' 
+          : 'linear-gradient(135deg, #1e3a8a, #0f172a)';
+
+    if (photo && (photo.startsWith('http') || photo.startsWith('data:'))) {
+      return `
+        <div style="position: relative; width: ${size}px; height: ${size}px; flex-shrink: 0; display: inline-block;">
+          <img src="${photo}" alt="${sName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid ${ringBorder}; box-shadow: 0 0 14px ${glow}; background: #0f172a;" />
+          ${isTopper1 ? `<span style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: ${Math.round(size * 0.42)}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));">👑</span>` : ''}
+        </div>
+      `;
+    }
+
+    return `
+      <div style="position: relative; width: ${size}px; height: ${size}px; border-radius: 50%; background: ${bg}; border: 2.5px solid ${ringBorder}; box-shadow: 0 0 14px ${glow}; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${Math.round(size * 0.42)}px; flex-shrink: 0; text-transform: uppercase;">
+        ${initial}
+        ${isTopper1 ? `<span style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: ${Math.round(size * 0.42)}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));">👑</span>` : ''}
+      </div>
+    `;
+  };
+
+  const top1 = topList[0];
+  const top2 = topList[1];
+  const top3 = topList[2];
+  const others = topList.slice(3, 10);
+
+  // Helper for single podium card in Top 3
+  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 48) => {
+    if (!s) {
+      return `<div style="flex: 1; min-height: 140px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 14px;"></div>`;
+    }
     const sName = s.student?.name || 'વિદ્યાર્થી';
+    const sMobile = s.student?.mobile ? String(s.student.mobile).slice(0, 5) + '*****' : '';
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
-    const rankNum = s.assignedRank || (idx + 1);
-    const medal = rankNum === 1 ? '👑 🥇 ૧' : rankNum === 2 ? '🥈 ૨' : rankNum === 3 ? '🥉 ૩' : `#${rankNum}`;
-    const badgeColor = rankNum === 1 ? '#d97706' : rankNum === 2 ? '#64748b' : rankNum === 3 ? '#ea580c' : '#2563eb';
+    const isFirst = rankNum === 1;
 
     return `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: ${idx < 3 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)'}; border-radius: 10px; margin-bottom: 6px; border: 1px solid ${idx < 3 ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.06)'};">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-weight: 900; font-size: 15px; color: ${badgeColor}; width: 44px;">${medal}</span>
-          <span style="font-weight: 800; font-size: 15px; color: #ffffff;">${sName}</span>
+      <div style="flex: ${isFirst ? '1.15' : '1'}; background: ${isFirst ? 'linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(15,23,42,0.95) 100%)' : 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(15,23,42,0.9) 100%)'}; border: 2px solid ${color}; border-radius: 16px; padding: ${isFirst ? '16px 12px' : '12px 10px'}; text-align: center; box-shadow: 0 8px 24px ${borderGlow}; position: relative; ${isFirst ? 'transform: translateY(-6px); z-index: 2;' : ''}">
+        
+        <!-- Medal Badge Pill -->
+        <div style="display: inline-block; background: ${color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: 3px 12px; border-radius: 20px; font-weight: 900; font-size: 11px; margin-bottom: 10px; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+          ${medal} ${label}
         </div>
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <span style="font-weight: 900; font-size: 16px; color: #4ade80;">${score} ${total > 0 ? `<span style="font-size: 12px; color: #94a3b8;">/ ${total}</span>` : 'ગુણ'}</span>
-          <span style="font-size: 13px; color: #93c5fd; background: rgba(37,99,235,0.25); padding: 2px 8px; border-radius: 6px; font-weight: 800;">${pct}%</span>
+
+        <!-- Student DP / Avatar -->
+        <div style="margin: 4px 0 8px;">
+          ${getStudentAvatar(s, rankNum, avatarSize)}
         </div>
+
+        <!-- Student Name -->
+        <div style="font-weight: 900; font-size: ${isFirst ? '15px' : '13px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;">
+          ${sName}
+        </div>
+
+        ${sMobile ? `<div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 2px;">📞 ${sMobile}</div>` : ''}
+
+        <!-- Score & Percentage -->
+        <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+          <span style="font-weight: 900; font-size: ${isFirst ? '16px' : '14px'}; color: #4ade80;">
+            ${score} ${total > 0 ? `<span style="font-size: 11px; color: #94a3b8;">/ ${total}</span>` : ''}
+          </span>
+          <span style="background: rgba(37,99,235,0.3); color: #93c5fd; padding: 1px 6px; border-radius: 6px; font-weight: 800; font-size: 11px;">
+            ${pct}%
+          </span>
+        </div>
+
+      </div>
+    `;
+  };
+
+  // Rank 4 to 10 Rows with Student Photos & Avatars
+  const otherRowsHtml = others.map((s, idx) => {
+    const rankNum = s.assignedRank || (idx + 4);
+    const sName = s.student?.name || 'વિદ્યાર્થી';
+    const sMobile = s.student?.mobile ? String(s.student.mobile).slice(0, 5) + '*****' : '';
+    const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
+    const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
+    const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
+
+    return `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.07);">
+        
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <!-- Rank Pill -->
+          <div style="font-weight: 900; font-size: 12px; color: #38bdf8; width: 32px; height: 32px; background: rgba(56,189,248,0.12); border: 1.5px solid rgba(56,189,248,0.35); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            #${rankNum}
+          </div>
+
+          <!-- Student DP / Avatar -->
+          ${getStudentAvatar(s, rankNum, 34)}
+
+          <!-- Name & Mobile -->
+          <div style="text-align: left;">
+            <div style="font-weight: 800; font-size: 13px; color: #ffffff;">${sName}</div>
+            ${sMobile ? `<div style="font-size: 9.5px; color: #64748b; font-family: monospace;">${sMobile}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- Score & Percentage -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-weight: 900; font-size: 14px; color: #4ade80;">
+            ${score} ${total > 0 ? `<span style="font-size: 10px; color: #94a3b8;">/ ${total}</span>` : ''}
+          </span>
+          <span style="font-size: 11px; color: #93c5fd; background: rgba(37,99,235,0.25); padding: 2px 7px; border-radius: 6px; font-weight: 800;">
+            ${pct}%
+          </span>
+        </div>
+
       </div>
     `;
   }).join('');
@@ -406,13 +512,13 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   <title>Top 10 Poster - ${testTitle} - ${academy}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Hind+Vadodara:wght@400;500;600;700;800;900&display=swap');
-    @page { size: A4; margin: 8mm; }
+    @page { size: A4; margin: 6mm; }
     * { box-sizing: border-box; }
     body {
       font-family: 'Hind Vadodara', -apple-system, sans-serif;
       margin: 0;
-      padding: 10px;
-      background: #090e1a;
+      padding: 6px;
+      background: #060913;
       color: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -423,47 +529,79 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   </style>
 </head>
 <body>
-  <div class="no-print" style="position: fixed; top: 10px; right: 14px; z-index: 9999; display: flex; gap: 10px; background: #0f172a; padding: 8px 16px; border-radius: 10px; border: 1px solid #38bdf8;">
-    <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer;">
-      🖨️ પ્રિન્ટ / સેવ (Save Poster PDF)
+  <div class="no-print" style="position: fixed; top: 10px; right: 14px; z-index: 9999; display: flex; gap: 10px; background: #0f172a; padding: 8px 16px; border-radius: 10px; border: 1px solid #38bdf8; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+    <button onclick="window.print()" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 900; font-size: 13px; cursor: pointer;">
+      🖨️ પ્રિન્ટ / સેવ (Save High-Res Poster)
     </button>
   </div>
 
-  <div style="border: 2px solid rgba(245,158,11,0.5); border-radius: 20px; padding: 24px; background: radial-gradient(120% 120% at 50% 0%, #1e3a8a 0%, #0f172a 60%, #090e1a 100%); box-shadow: 0 10px 40px rgba(0,0,0,0.8); min-height: 96vh; display: flex; flex-direction: column; justify-content: space-between;">
+  <div style="border: 2.5px solid #f59e0b; border-radius: 20px; padding: 20px; background: radial-gradient(130% 120% at 50% 0%, #1e3a8a 0%, #0f172a 55%, #050811 100%); box-shadow: 0 0 40px rgba(245,158,11,0.25), inset 0 0 20px rgba(245,158,11,0.1); min-height: 97vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <!-- Top Header -->
-    <div style="text-align: center; border-bottom: 1.5px solid rgba(255,255,255,0.1); padding-bottom: 16px;">
-      <div style="color: #60a5fa; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">
-        ★ TRINETRA ACADEMY OFFICIAL MERIT ★
+    <div style="text-align: center; border-bottom: 1.5px solid rgba(245,158,11,0.3); padding-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <span style="color: #fbbf24; font-size: 12px; font-weight: 800;">⚜️ ત્રિનેત્ર સ્પેશિયલ મેરિટ ⚜️</span>
+        <span style="color: #60a5fa; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;">OFFICIAL MERIT POSTER</span>
+        <span style="color: #fbbf24; font-size: 12px; font-weight: 800;">⚜️ TET-2 સ્પેશિયલ ⚜️</span>
       </div>
-      <h1 style="color: #ffffff; margin: 4px 0 0; font-size: 28px; font-weight: 900;">
+
+      <h1 style="color: #ffffff; margin: 2px 0 0; font-size: 26px; font-weight: 900; letter-spacing: 0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
         ${academy}
       </h1>
-      <div style="font-size: 17px; font-weight: 900; color: #38bdf8; margin-top: 6px;">
+
+      <div style="font-size: 15px; font-weight: 900; color: #38bdf8; margin-top: 4px;">
         📝 કસોટી: ${testTitle} ${metaTotal > 0 ? `(કુલ ગુણ: ${metaTotal})` : ''}
       </div>
-      <div style="display: inline-block; background: linear-gradient(135deg,#d97706,#b45309); color: white; padding: 4px 18px; border-radius: 20px; font-weight: 900; font-size: 14px; margin-top: 8px; box-shadow: 0 4px 16px rgba(217,119,6,0.4);">
-        👑 ટોપ ૧૦ વિજેતાઓ (TOP 10 RANKERS)
+
+      <div style="display: inline-block; background: linear-gradient(135deg,#f59e0b,#b45309); color: #0f172a; padding: 3px 18px; border-radius: 20px; font-weight: 900; font-size: 13px; margin-top: 6px; box-shadow: 0 4px 14px rgba(245,158,11,0.4);">
+        👑 ટોચના ૧૦ વિજેતાઓ (TOP 10 RANKERS)
       </div>
-      <div style="color: #94a3b8; font-size: 12px; margin-top: 6px;">
-        કસોટી તારીખ: ${dateStr} • માર્ગદર્શક: ${teacher}
+
+      <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+        📅 કસોટી તારીખ: ${dateStr} • 👨‍🏫 માર્ગદર્શક: ${teacher}
       </div>
     </div>
 
-    <!-- Middle Top 10 List -->
-    <div style="margin: 18px 0;">
-      ${rowsHtml}
+    <!-- 🏆 3D WINNERS PODIUM (TOP 3 SPOTLIGHT STAGE) -->
+    <div style="margin: 14px 0 10px;">
+      <div style="display: flex; gap: 10px; align-items: flex-end; justify-content: center; max-width: 650px; margin: 0 auto;">
+        ${renderPodiumCard(top2, 2, '🥈', '૨જો રેન્ક', '#94a3b8', 'rgba(148,163,184,0.3)', 46)}
+        ${renderPodiumCard(top1, 1, '🥇', '૧મો રેન્ક (Topper)', '#f59e0b', 'rgba(245,158,11,0.5)', 56)}
+        ${renderPodiumCard(top3, 3, '🥉', '૩જો રેન્ક', '#ea580c', 'rgba(234,88,12,0.3)', 46)}
+      </div>
     </div>
 
-    <!-- Bottom Motivational Strip -->
-    <div style="border-top: 1.5px solid rgba(255,255,255,0.1); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+    <!-- 📜 RANK 4 TO 10 LIST -->
+    <div style="margin-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px;">
+        <span style="font-size: 11.5px; font-weight: 900; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px;">
+          🎖️ મેરિટ ક્રમ ૪ થી ૧૦ (Rank 4 to 10 Achievers)
+        </span>
+        <span style="font-size: 10.5px; color: #94a3b8;">
+          ફોટો / ડીજિટલ બેજ સાથે
+        </span>
+      </div>
+      ${otherRowsHtml}
+    </div>
+
+    <!-- Bottom Motivational Strip & Verified Seal -->
+    <div style="border-top: 1.5px solid rgba(245,158,11,0.3); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div>
-        <div style="color: #fbbf24; font-weight: 900; font-size: 13px;">"મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી!"</div>
-        <div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">વિદ્યાર્થીઓને ખૂબ ખૂબ અભિનંદન 💐</div>
+        <div style="color: #fbbf24; font-weight: 900; font-size: 12px;">"મહેનત તમારી, માર્ગદર્શન અમારું — સફળતા તમારી!"</div>
+        <div style="color: #94a3b8; font-size: 10.5px; margin-top: 1px;">સફળતા પ્રાપ્ત કરનાર તમામ વિદ્યાર્થીઓને ખૂબ ખૂબ અભિનંદન 💐</div>
       </div>
+
+      <!-- Verified Seal -->
+      <div style="background: rgba(245,158,11,0.12); border: 1.5px solid #f59e0b; padding: 4px 12px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 10.5px; font-weight: 900; color: #fbbf24; letter-spacing: 1px;">
+          ★ VERIFIED MERIT ★
+        </div>
+        <div style="font-size: 9px; color: #cbd5e1;">ત્રિનેત્ર સત્તાવાર પરિણામ</div>
+      </div>
+
       <div style="text-align: right;">
-        <div style="color: #38bdf8; font-weight: 800; font-size: 13px;">📞 હેલ્પલાઇન: ${helpline}</div>
-        <div style="color: #64748b; font-size: 11px;">Trinetra Online Testing Portal</div>
+        <div style="color: #38bdf8; font-weight: 900; font-size: 12px;">📞 હેલ્પલાઇન: ${helpline}</div>
+        <div style="color: #64748b; font-size: 10px; font-family: monospace;">www.trinetraonline.in</div>
       </div>
     </div>
 
