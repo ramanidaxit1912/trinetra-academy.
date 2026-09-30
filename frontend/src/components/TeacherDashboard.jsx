@@ -595,7 +595,7 @@ export default function TeacherDashboard() {
           {activeTab === 'marketing' && <MarketingManager showToast={showToast} />}
           {activeTab === 'answers'   && <StudentAnswers showToast={showToast} />}
           {activeTab === 'students'  && <StudentLogins showToast={showToast} />}
-          {activeTab === 'history'   && <TestHistory showToast={showToast} />}
+          {activeTab === 'history'   && <TestHistory showToast={showToast} teacherProfile={teacherProfile} />}
         </div>
       </main>
 
@@ -2654,6 +2654,7 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
         isOpen={showTop10Modal}
         onClose={() => setShowTop10Modal(false)}
         topStudents={topStudents}
+        submissions={subs}
         teacherProfile={teacherProfile}
       />
     </div>
@@ -15243,13 +15244,20 @@ ${topperList}
   );
 }
 
-function TestHistory({ showToast }) {
+function TestHistory({ showToast, teacherProfile }) {
   const [subs, setSubs]               = useState([]);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('leaderboard'); // 'leaderboard' | 'testWise' | 'all'
   const [filterDate, setFilterDate]   = useState('all');      // 'all' | 'today'
   const [searchTerm, setSearchTerm]   = useState('');
   const [expandedTest, setExpandedTest] = useState(null);
+  const [top10ModalOpen, setTop10ModalOpen] = useState(false);
+  const [top10ModalTestKey, setTop10ModalTestKey] = useState('ALL');
+
+  const openTop10ForTest = (testKey = 'ALL') => {
+    setTop10ModalTestKey(testKey);
+    setTop10ModalOpen(true);
+  };
 
   useEffect(() => {
     (async () => {
@@ -16082,6 +16090,28 @@ ${statusText}
                   </button>
 
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => openTop10ForTest(group.key)}
+                      style={{
+                        background: 'linear-gradient(135deg,#0284c7,#2563eb)',
+                        color: 'white',
+                        border: '1px solid rgba(56,189,248,0.5)',
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontFamily: 'Hind Vadodara, sans-serif',
+                        boxShadow: '0 3px 12px rgba(2,132,199,0.3)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <Download size={13} /> 📥 Top 10 સ્કોરકાર્ડ
+                    </button>
                     <button onClick={() => exportTestExcel(group)}
                       style={{
                         background: 'linear-gradient(135deg,#047857,#10b981)',
@@ -16268,6 +16298,15 @@ ${statusText}
           })}
         </div>
       )}
+
+      {/* ── Top 10 Scorecard Batch Export Modal for TestHistory ── */}
+      <Top10ScorecardExportModal
+        isOpen={top10ModalOpen}
+        onClose={() => setTop10ModalOpen(false)}
+        submissions={displayedSubs}
+        initialTestKey={top10ModalTestKey}
+        teacherProfile={teacherProfile}
+      />
     </div>
   );
 }
