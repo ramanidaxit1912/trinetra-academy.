@@ -445,9 +445,9 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const others = topList.slice(3, 10);
 
   // Helper for single podium card in Top 3
-  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 76) => {
+  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 96) => {
     if (!s) {
-      return `<div style="flex: 1; min-height: 200px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 16px;"></div>`;
+      return `<div style="flex: 1; min-height: 240px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 18px;"></div>`;
     }
     const sName = s.student?.name || 'વિદ્યાર્થી';
     const sMobile = s.student?.mobile ? String(s.student.mobile).slice(0, 5) + '*****' : '';
@@ -457,25 +457,25 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const isFirst = rankNum === 1;
 
     return `
-      <div style="flex: ${isFirst ? '1.25' : '1'}; background: ${isFirst ? 'radial-gradient(130% 120% at 50% 0%, rgba(245,158,11,0.22) 0%, rgba(15,23,42,0.96) 100%)' : 'radial-gradient(130% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.94) 100%)'}; border: ${isFirst ? '2.5px solid #f59e0b' : `2px solid ${color}`}; border-radius: 18px; padding: ${isFirst ? '16px 12px' : '14px 10px'}; text-align: center; box-shadow: 0 10px 30px ${borderGlow}, inset 0 0 15px rgba(0,0,0,0.4); position: relative; ${isFirst ? 'transform: translateY(-8px); z-index: 2;' : ''}">
+      <div style="flex: ${isFirst ? '1.25' : '1'}; background: ${isFirst ? 'radial-gradient(130% 120% at 50% 0%, rgba(245,158,11,0.25) 0%, rgba(15,23,42,0.98) 100%)' : 'radial-gradient(130% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.96) 100%)'}; border: ${isFirst ? '2.5px solid #f59e0b' : `2px solid ${color}`}; border-radius: 20px; padding: ${isFirst ? '18px 14px' : '16px 10px'}; text-align: center; box-shadow: 0 12px 36px ${borderGlow}, inset 0 0 20px rgba(0,0,0,0.5); position: relative; ${isFirst ? 'transform: translateY(-10px); z-index: 2;' : ''}">
         
         <!-- Medal Badge Pill -->
-        <div style="display: inline-block; background: ${isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: ${isFirst ? '4px 14px' : '3px 12px'}; border-radius: 20px; font-weight: 900; font-size: ${isFirst ? '12px' : '11px'}; margin-bottom: 8px; letter-spacing: 0.5px; box-shadow: 0 3px 10px rgba(0,0,0,0.5);">
+        <div style="display: inline-block; background: ${isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: ${isFirst ? '4px 16px' : '3px 12px'}; border-radius: 20px; font-weight: 900; font-size: ${isFirst ? '12.5px' : '11px'}; margin-bottom: 10px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
           ${medal} ${label}
         </div>
 
-        <!-- Student DP / Avatar (Big & Beautiful with Crown above, NOT overlapping face) -->
-        <div style="margin: 2px 0 8px; display: flex; justify-content: center;">
+        <!-- Student Photo / Avatar Hero Container (High Impact & Big) -->
+        <div style="margin: 4px 0 10px; display: flex; justify-content: center;">
           ${getStudentAvatar(s, rankNum, avatarSize)}
         </div>
 
         <!-- Student Name -->
-        <div style="font-weight: 900; font-size: ${isFirst ? '17px' : '14px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-shadow: 0 2px 6px rgba(0,0,0,0.7); letter-spacing: 0.3px;">
+        <div style="font-weight: 900; font-size: ${isFirst ? '18px' : '15px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); letter-spacing: 0.3px;">
           ${sName}
         </div>
 
-        ${sMobile ? `<div style="font-size: 10.5px; color: #94a3b8; font-family: monospace; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+        ${sMobile ? `<div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
             <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
             <line x1="12" y1="18" x2="12.01" y2="18"></line>
           </svg>
@@ -483,11 +483,11 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
         </div>` : ''}
 
         <!-- Score & Percentage Badge -->
-        <div style="margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.55); padding: 4px 12px; border-radius: 12px; border: 1.5px solid ${isFirst ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.14)'}; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
-          <span style="font-weight: 900; font-size: ${isFirst ? '17px' : '14.5px'}; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">
+        <div style="margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.65); padding: 5px 14px; border-radius: 12px; border: 1.5px solid ${isFirst ? 'rgba(245,158,11,0.55)' : 'rgba(255,255,255,0.15)'}; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
+          <span style="font-weight: 900; font-size: ${isFirst ? '18px' : '15px'}; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">
             ${score} ${total > 0 ? `<span style="font-size: 11px; color: #94a3b8; font-weight: 700;">/ ${total}</span>` : ''}
           </span>
-          <span style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 11.5px; box-shadow: 0 2px 6px rgba(29,78,216,0.4);">
+          <span style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 12px; box-shadow: 0 2px 6px rgba(29,78,216,0.4);">
             ${pct}%
           </span>
         </div>
@@ -515,7 +515,7 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
           </div>
 
           <!-- Student DP / Avatar -->
-          ${getStudentAvatar(s, rankNum, 40)}
+          ${getStudentAvatar(s, rankNum, 44)}
 
           <!-- Name & Mobile -->
           <div style="text-align: left;">
@@ -603,10 +603,10 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
 
     <!-- 🏆 3D WINNERS PODIUM (TOP 3 SPOTLIGHT STAGE) -->
     <div style="margin: 12px 0 12px;">
-      <div style="display: flex; gap: 12px; align-items: flex-end; justify-content: center; max-width: 680px; margin: 0 auto;">
-        ${renderPodiumCard(top2, 2, '🥈', '૨જો રેન્ક', '#cbd5e1', 'rgba(148,163,184,0.35)', 76)}
-        ${renderPodiumCard(top1, 1, '🥇', '૧મો રેન્ક (Topper)', '#f59e0b', 'rgba(245,158,11,0.55)', 92)}
-        ${renderPodiumCard(top3, 3, '🥉', '૩જો રેન્ક', '#ea580c', 'rgba(234,88,12,0.35)', 76)}
+      <div style="display: flex; gap: 14px; align-items: flex-end; justify-content: center; max-width: 700px; margin: 0 auto;">
+        ${renderPodiumCard(top2, 2, '🥈', '૨જો રેન્ક', '#cbd5e1', 'rgba(148,163,184,0.35)', 96)}
+        ${renderPodiumCard(top1, 1, '🥇', '૧મો રેન્ક (Topper)', '#f59e0b', 'rgba(245,158,11,0.55)', 114)}
+        ${renderPodiumCard(top3, 3, '🥉', '૩જો રેન્ક', '#ea580c', 'rgba(234,88,12,0.35)', 96)}
       </div>
     </div>
 
@@ -639,7 +639,12 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
       </div>
 
       <div style="text-align: right;">
-        <div style="color: #38bdf8; font-weight: 900; font-size: 12px;">📞 હેલ્પલાઇન: ${helpline}</div>
+        <div style="color: #38bdf8; font-weight: 900; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span>હેલ્પલાઇન: ${helpline}</span>
+        </div>
         <div style="color: #64748b; font-size: 10px; font-family: monospace;">www.trinetraonline.in</div>
       </div>
     </div>
