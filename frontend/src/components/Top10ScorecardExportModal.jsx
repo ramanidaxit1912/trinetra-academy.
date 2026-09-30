@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
-import { X, Download, Printer, Trophy, FileText, CheckCircle, Award, Users, Smartphone, ShieldCheck, Crown, Filter } from 'lucide-react';
+import { X, Download, Printer, Trophy, FileText, CheckCircle, Award, Users, Smartphone, ShieldCheck, Crown, Filter, Camera, ArrowLeft, Trash2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { getLeaderboardOverrides } from '../services/api';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -62,6 +62,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
   const individualCardsHtml = topList.slice(0, 10).map((s, idx) => {
     const sName = s.student?.name || 'વિદ્યાર્થી';
     const sRoll = s.student?.mobile || s.student?.rollNo || `TR-${1000 + idx + 1}`;
+    const sPhoto = s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
@@ -111,8 +112,13 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
             </div>
 
             <!-- Student Bio Details Box -->
-            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 24px;">
-              <table style="width: 100%; border-collapse: collapse;">
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px;">
+              ${sPhoto ? `
+                <div style="width: 82px; height: 82px; border-radius: 12px; border: 2.5px solid #1e3a8a; overflow: hidden; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); background: #ffffff;">
+                  <img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              ` : ''}
+              <table style="width: 100%; border-collapse: collapse; flex: 1;">
                 <tr>
                   <td style="padding: 6px 0; color: #64748b; font-weight: 700; width: 35%;">વિદ્યાર્થીનું નામ:</td>
                   <td style="padding: 6px 0; color: #0f172a; font-weight: 900; font-size: 16px;">${sName}</td>
@@ -666,6 +672,85 @@ export default function Top10ScorecardExportModal({
 }) {
   const [downloading, setDownloading] = useState(false);
   const [internalOverrides, setInternalOverrides] = useState(overrides || []);
+  const [showPhotoStep, setShowPhotoStep] = useState(false);
+
+  // Student photos state persisted across sessions
+  const [studentPhotos, setStudentPhotos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('trinetra_poster_student_photos');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowPhotoStep(false);
+    }
+  }, [isOpen]);
+
+  const getStudentKey = (s) => {
+    const cleanMob = s?.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : '';
+    return cleanMob || s?.student?.id || s?.student?.name || `sub_${s?.id || Math.random()}`;
+  };
+
+  const handlePhotoSelect = (studentKey, file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('કૃપા કરીને માન્ય ફોટો ફાઇલ (JPG, PNG) પસંદ કરો.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 360;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          }
+        } else {
+          if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+        setStudentPhotos(prev => {
+          const next = { ...prev, [studentKey]: dataUrl };
+          try {
+            localStorage.setItem('trinetra_poster_student_photos', JSON.stringify(next));
+          } catch (err) {
+            console.warn('Storage quota note:', err);
+          }
+          return next;
+        });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = (studentKey) => {
+    setStudentPhotos(prev => {
+      const next = { ...prev };
+      delete next[studentKey];
+      try {
+        localStorage.setItem('trinetra_poster_student_photos', JSON.stringify(next));
+      } catch (err) {}
+      return next;
+    });
+  };
 
   // Sync internalOverrides with prop when prop changes
   useEffect(() => {
@@ -913,16 +998,32 @@ export default function Top10ScorecardExportModal({
   const handleDownloadBooklet = () => {
     setDownloading(true);
     try {
-      exportTop10BookletPDF(currentTop10, teacherProfile, currentTestMeta);
+      const enriched = currentTop10.map(s => {
+        const key = getStudentKey(s);
+        return {
+          ...s,
+          photoUrl: studentPhotos[key] || s.photoUrl || s.student?.photoUrl || s.student?.photo || null
+        };
+      });
+      exportTop10BookletPDF(enriched, teacherProfile, currentTestMeta);
     } finally {
       setDownloading(false);
     }
   };
 
-  const handleDownloadPoster = () => {
+  const handleDownloadPoster = (includeCustomPhotos = true) => {
     setDownloading(true);
     try {
-      exportTop10PosterPDF(currentTop10, teacherProfile, currentTestMeta);
+      const enriched = currentTop10.map(s => {
+        const key = getStudentKey(s);
+        return {
+          ...s,
+          photoUrl: (includeCustomPhotos && studentPhotos[key]) 
+            ? studentPhotos[key] 
+            : (s.photoUrl || s.student?.photoUrl || s.student?.photo || null)
+        };
+      });
+      exportTop10PosterPDF(enriched, teacherProfile, currentTestMeta);
     } finally {
       setDownloading(false);
     }
@@ -950,282 +1051,693 @@ export default function Top10ScorecardExportModal({
         borderRadius: 22,
         padding: '24px',
         width: '100%',
-        maxWidth: 620,
+        maxWidth: showPhotoStep ? 720 : 620,
         boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(245,158,11,0.15)',
         position: 'relative',
         maxHeight: '90vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        transition: 'max-width 0.25s ease'
       }}>
         
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* ═══════════════════════════════════════════════════════════
+            VIEW A: PHOTO UPLOAD STEP (FOR WHATSAPP POSTER)
+        ═══════════════════════════════════════════════════════════ */}
+        {showPhotoStep ? (
+          <div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  onClick={() => setShowPhotoStep(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#cbd5e1',
+                    borderRadius: 10,
+                    padding: '6px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                >
+                  <ArrowLeft size={16} /> પાછા જાઓ
+                </button>
+                <div>
+                  <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    📸 વિદ્યાર્થીઓના ફોટા અપલોડ કરો
+                  </h2>
+                  <p style={{ color: '#fbbf24', fontSize: '0.72rem', margin: '2px 0 0', fontWeight: 700 }}>
+                    {currentTestMeta.testName} • WhatsApp & નોટિસ બોર્ડ પોસ્ટર સેટઅપ
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={onClose}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: 'none', color: '#cbd5e1',
+                  width: 32, height: 32, borderRadius: 10,
+                  fontSize: '1.1rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Instruction Banner */}
             <div style={{
-              width: 44, height: 44, borderRadius: 14,
-              background: 'linear-gradient(135deg, #d97706, #b45309)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 16px rgba(245,158,11,0.4)',
-              border: '1px solid rgba(255,255,255,0.2)'
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              borderRadius: 12,
+              padding: '10px 14px',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10
             }}>
-              <Trophy size={22} color="#fef08a" />
+              <Sparkles size={20} color="#fbbf24" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.75rem', color: '#fef3c7', lineHeight: 1.4 }}>
+                <strong>પોસ્ટર સુવિધા:</strong> અહીંથી વિદ્યાર્થીઓનો ફોટો અપલોડ કરી શકો છો. તે WhatsApp પોસ્ટરમાં રિયલ ફોટો તરીકે 3D પોડિયમ પર દેખાશે. જો કોઈ વિદ્યાર્થીનો ફોટો ન હોય તો આપમેળે રોયલ ગોલ્ડન બેજ ડિસ્પ્લે થશે.
+              </div>
             </div>
-            <div>
-              <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', margin: 0 }}>
-                Top 10 સ્કોરકાર્ડ & મેરિટ એક્સપોર્ટ
-              </h2>
-              <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '3px 0 0', fontWeight: 600 }}>
-                ટેસ્ટ વાઇઝ અથવા ઓવરઓલ ૧૦ વિદ્યાર્થીઓના રિપોર્ટ ડાઉનલોડ કરો
-              </p>
+
+            {/* Top 3 Podium Winners Cards */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.5px' }}>
+                🏆 ટોપ ૩ વિજેતાઓ (3D Podium Rankers):
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                {[0, 1, 2].map((idx) => {
+                  const s = currentTop10[idx];
+                  if (!s) return null;
+                  const rankNum = idx + 1;
+                  const key = getStudentKey(s);
+                  const photo = studentPhotos[key] || s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
+                  const sName = s.student?.name || 'વિદ્યાર્થી';
+                  const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
+                  const isRank1 = rankNum === 1;
+                  const isRank2 = rankNum === 2;
+                  const borderColor = isRank1 ? '#f59e0b' : isRank2 ? '#94a3b8' : '#ea580c';
+                  const bgGrad = isRank1 
+                    ? 'linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(15,23,42,0.92) 100%)' 
+                    : isRank2 
+                      ? 'linear-gradient(135deg, rgba(148,163,184,0.16) 0%, rgba(15,23,42,0.92) 100%)' 
+                      : 'linear-gradient(135deg, rgba(234,88,12,0.16) 0%, rgba(15,23,42,0.92) 100%)';
+                  const medal = isRank1 ? '🥇 ૧મો રેન્ક' : isRank2 ? '🥈 ૨જો રેન્ક' : '🥉 ૩જો રેન્ક';
+
+                  return (
+                    <div key={key} style={{
+                      background: bgGrad,
+                      border: `1.5px solid ${borderColor}`,
+                      borderRadius: 14,
+                      padding: '14px 10px',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      position: 'relative',
+                      boxShadow: `0 4px 16px ${borderColor}22`
+                    }}>
+                      {isRank1 && (
+                        <span style={{ position: 'absolute', top: -10, background: '#f59e0b', color: '#0f172a', fontSize: '0.62rem', fontWeight: 900, padding: '2px 9px', borderRadius: 10, boxShadow: '0 2px 8px rgba(245,158,11,0.5)' }}>
+                          👑 TOPPER
+                        </span>
+                      )}
+
+                      <div style={{ fontSize: '0.76rem', fontWeight: 900, color: borderColor, marginBottom: 8, marginTop: isRank1 ? 2 : 0 }}>
+                        {medal}
+                      </div>
+
+                      {/* Photo / Avatar Preview */}
+                      <div style={{ position: 'relative', width: 62, height: 62, marginBottom: 8 }}>
+                        {photo ? (
+                          <img
+                            src={photo}
+                            alt={sName}
+                            style={{
+                              width: '100%', height: '100%', borderRadius: '50%',
+                              objectFit: 'cover', border: `2.5px solid ${borderColor}`,
+                              boxShadow: `0 0 14px ${borderColor}66`
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%', height: '100%', borderRadius: '50%',
+                            background: isRank1 ? 'linear-gradient(135deg, #d97706, #78350f)' : 'linear-gradient(135deg, #1e3a8a, #0f172a)',
+                            border: `2.5px solid ${borderColor}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontWeight: 900, fontSize: '1.3rem',
+                            boxShadow: `0 0 12px ${borderColor}44`
+                          }}>
+                            {(sName.trim()[0] || '?').toUpperCase()}
+                          </div>
+                        )}
+                        {photo && (
+                          <span style={{ position: 'absolute', bottom: -2, right: -2, background: '#059669', color: 'white', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900, border: '1.5px solid #0f172a' }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ color: 'white', fontWeight: 900, fontSize: '0.84rem', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sName}
+                      </div>
+                      <div style={{ color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800, marginBottom: 10 }}>
+                        {score} ગુણ
+                      </div>
+
+                      {/* Upload & Remove buttons */}
+                      <div style={{ display: 'flex', gap: 6, width: '100%', justifyContent: 'center' }}>
+                        <label style={{
+                          background: isRank1 ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.1)',
+                          border: isRank1 ? 'none' : '1px solid rgba(255,255,255,0.2)',
+                          color: 'white',
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          boxShadow: isRank1 ? '0 2px 10px rgba(217,119,6,0.4)' : 'none'
+                        }}>
+                          <Camera size={13} />
+                          {photo ? 'બદલો' : 'ફોટો અપલોડ'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handlePhotoSelect(key, e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </label>
+                        {photo && (
+                          <button
+                            onClick={() => handleRemovePhoto(key)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              color: '#f87171',
+                              borderRadius: 8,
+                              padding: '6px 9px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="ફોટો હટાવો"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: 'none', color: '#cbd5e1',
-              width: 32, height: 32, borderRadius: 10,
-              fontSize: '1.1rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* ── Test-Wise Dropdown Selector ── */}
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1.5px solid rgba(56, 189, 248, 0.4)',
-          borderRadius: 14,
-          padding: '12px 14px',
-          marginBottom: 16
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <label style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Filter size={14} /> કસોટી પસંદ કરો (Select Test-Wise):
-            </label>
-            <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
-              {testOptions.length - 1} કસોટીઓ ઉપલબ્ધ
-            </span>
-          </div>
-
-          <select
-            value={selectedKey}
-            onChange={e => setSelectedKey(e.target.value)}
-            style={{
-              width: '100%',
-              background: '#090e1a',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: 10,
-              padding: '10px 12px',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            {testOptions.map(opt => (
-              <option key={opt.key} value={opt.key} style={{ background: '#090e1a', color: '#ffffff' }}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Student Preview Summary Strip */}
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 14,
-          padding: '12px 16px',
-          marginBottom: 18
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ color: '#fbbf24', fontSize: '0.76rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Crown size={14} /> પસંદ કરેલ: {currentTestMeta.testName}
-            </span>
-            <span style={{ color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800 }}>
-              {currentTop10.length} વિદ્યાર્થીઓ
-            </span>
-          </div>
-
-          {currentTop10.length === 0 ? (
-            <div style={{ color: '#94a3b8', fontSize: '0.76rem', textAlign: 'center', padding: '10px 0' }}>
-              આ કસોટીમાં હજુ કોઈ સબમિશન ઉપલબ્ધ નથી
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              {currentTop10.slice(0, 5).map((s, idx) => (
-                <div key={idx} style={{
-                  background: idx === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: idx === 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                  padding: '4px 10px', borderRadius: 8,
-                  fontSize: '0.72rem', fontWeight: 800,
-                  color: idx === 0 ? '#fef08a' : '#e2e8f0',
-                  whiteSpace: 'nowrap'
-                }}>
-                  #{idx + 1} {s.student?.name || 'વિદ્યાર્થી'} ({Number(s.mcqScore ?? s.score ?? s.marks ?? 0)} ગુણ)
+            {/* Rank 4 to 10 Achievers List */}
+            {currentTop10.length > 3 && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 900, color: '#38bdf8', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>
+                  🎖️ રેન્ક ૪ થી ૧૦ વિદ્યાર્થીઓ (વૈકલ્પિક ફોટો):
                 </div>
-              ))}
-              {currentTop10.length > 5 && (
-                <div style={{ color: '#94a3b8', fontSize: '0.72rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                  +{currentTop10.length - 5} વધુ...
-                </div>
-              )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
+                  {currentTop10.slice(3, 10).map((s, idx) => {
+                    const rankNum = idx + 4;
+                    const key = getStudentKey(s);
+                    const photo = studentPhotos[key] || s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
+                    const sName = s.student?.name || 'વિદ્યાર્થી';
+                    const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
+
+                    return (
+                      <div key={key} style={{
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        borderRadius: 10,
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          <span style={{
+                            background: 'rgba(56,189,248,0.15)', color: '#38bdf8',
+                            fontSize: '0.7rem', fontWeight: 900, width: 22, height: 22,
+                            borderRadius: '50%', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', flexShrink: 0
+                          }}>
+                            #{rankNum}
+                          </span>
+
+                          {/* Avatar Circle */}
+                          <div style={{ width: 34, height: 34, position: 'relative', flexShrink: 0 }}>
+                            {photo ? (
+                              <img
+                                src={photo}
+                                alt={sName}
+                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #38bdf8' }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: '100%', height: '100%', borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #1e3a8a, #0f172a)',
+                                border: '1.5px solid rgba(255,255,255,0.2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white', fontWeight: 800, fontSize: '0.8rem'
+                              }}>
+                                {(sName.trim()[0] || '?').toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {sName}
+                            </div>
+                            <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>
+                              {score} ગુણ
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Upload & Remove */}
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                          <label style={{
+                            background: photo ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.08)',
+                            border: photo ? '1px solid rgba(5, 150, 105, 0.45)' : '1px solid rgba(255,255,255,0.15)',
+                            color: photo ? '#6ee7b7' : '#cbd5e1',
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            <Camera size={11} />
+                            {photo ? 'બદલો' : 'ફોટો'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                handlePhotoSelect(key, e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </label>
+                        {photo && (
+                          <button
+                            onClick={() => handleRemovePhoto(key)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#f87171',
+                              borderRadius: 6,
+                              padding: '4px 6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="હટાવો"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* 3 Main Action Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Action Bar */}
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            paddingTop: 14,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10
+          }}>
+            <button
+              onClick={() => setShowPhotoStep(false)}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#94a3b8',
+                padding: '9px 14px',
+                borderRadius: 10,
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              ← પાછા જાઓ
+            </button>
 
-          {/* Option 1: Combined Booklet PDF */}
-          <button
-            onClick={handleDownloadBooklet}
-            disabled={downloading || currentTop10.length === 0}
-            style={{
-              background: 'linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(15,23,42,0.9) 100%)',
-              border: '1.5px solid rgba(56,189,248,0.45)',
-              borderRadius: 16,
-              padding: '16px',
-              cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentTop10.length === 0 ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              textAlign: 'left',
-              transition: 'all 0.18s ease',
-              boxShadow: '0 4px 18px rgba(37,99,235,0.25)'
-            }}
-            onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: 'linear-gradient(135deg, #1d4ed8, #0284c7)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', flexShrink: 0,
-              boxShadow: '0 0 12px rgba(56,189,248,0.4)'
-            }}>
-              <FileText size={22} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
-                  ૧. સંપૂર્ણ મલ્ટી-પેજ A4 બુકલેટ PDF (Print / PDF)
-                </span>
-                <span style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
-                  સત્તાવાર ૧૧ પેજ
-                </span>
-              </div>
-              <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                પેજ ૧: સંપૂર્ણ મેરિટ સમરી • પેજ ૨ થી ૧૧: દરેક ટોપર વિદ્યાર્થીનું વ્યક્તિગત સ્કોરકાર્ડ
-              </p>
-            </div>
-            <Download size={18} color="#38bdf8" />
-          </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => handleDownloadPoster(false)}
+                disabled={downloading}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#cbd5e1',
+                  padding: '9px 14px',
+                  borderRadius: 10,
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                ⏩ ફોટા વગર સીધું ડાઉનલોડ
+              </button>
 
-          {/* Option 2: WhatsApp / Notice Board Poster PDF */}
-          <button
-            onClick={handleDownloadPoster}
-            disabled={downloading || currentTop10.length === 0}
-            style={{
-              background: 'linear-gradient(135deg, rgba(217,119,6,0.25) 0%, rgba(15,23,42,0.9) 100%)',
-              border: '1.5px solid rgba(245,158,11,0.45)',
-              borderRadius: 16,
-              padding: '16px',
-              cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentTop10.length === 0 ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              textAlign: 'left',
-              transition: 'all 0.18s ease',
-              boxShadow: '0 4px 18px rgba(217,119,6,0.25)'
-            }}
-            onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: 'linear-gradient(135deg, #d97706, #b45309)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', flexShrink: 0,
-              boxShadow: '0 0 12px rgba(245,158,11,0.4)'
-            }}>
-              <Award size={22} color="#fef08a" />
+              <button
+                onClick={() => handleDownloadPoster(true)}
+                disabled={downloading}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #b45309)',
+                  border: 'none',
+                  color: '#0f172a',
+                  padding: '9px 20px',
+                  borderRadius: 10,
+                  fontSize: '0.84rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 18px rgba(245,158,11,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <Printer size={16} color="#0f172a" />
+                {downloading ? 'જનરેટ થઈ રહ્યું છે...' : '🖨️ ફોટા સાથે પોસ્ટર બનાવો (PDF)'}
+              </button>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
-                  ૨. સિંગલ-પેજ નોટિસ બોર્ડ & WhatsApp પોસ્ટર PDF
-                </span>
-                <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
-                  પોસ્ટર / સ્ટેટસ
-                </span>
-              </div>
-              <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                WhatsApp ગ્રૂપ, સ્ટેટસ અથવા નોટિસ બોર્ડ માટે ૧ સિંગલ હાઈ-રિઝોલ્યુશન A4 પોસ્ટર
-              </p>
-            </div>
-            <Printer size={18} color="#fbbf24" />
-          </button>
-
-          {/* Option 3: Excel Spreadsheet */}
-          <button
-            onClick={handleDownloadExcel}
-            disabled={currentTop10.length === 0}
-            style={{
-              background: 'linear-gradient(135deg, rgba(5,150,105,0.25) 0%, rgba(15,23,42,0.9) 100%)',
-              border: '1.5px solid rgba(52,211,153,0.45)',
-              borderRadius: 16,
-              padding: '16px',
-              cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentTop10.length === 0 ? 0.5 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              textAlign: 'left',
-              transition: 'all 0.18s ease',
-              boxShadow: '0 4px 18px rgba(5,150,105,0.2)'
-            }}
-            onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: 'linear-gradient(135deg, #059669, #047857)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', flexShrink: 0,
-              boxShadow: '0 0 12px rgba(52,211,153,0.4)'
-            }}>
-              <Download size={22} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
-                  ૩. એક્સેલ સ્પ્રેડશીટ ડાઉનલોડ (.xlsx)
-                </span>
-                <span style={{ background: 'rgba(52,211,153,0.2)', color: '#6ee7b7', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
-                  Excel ડેટા
-                </span>
-              </div>
-              <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
-                ૧ ક્લિકમાં તમામ ટોપ ૧૦ વિદ્યાર્થીઓના નામ, મોબાઈલ, ગુણ અને ગ્રેડ સાથે એક્સેલ ફાઈલ
-              </p>
-            </div>
-            <Download size={18} color="#6ee7b7" />
-          </button>
+          </div>
 
         </div>
+      ) : (
 
-        {/* Footer info note */}
-        <div style={{ marginTop: 18, textAlign: 'center', color: '#64748b', fontSize: '0.7rem' }}>
-          🔒 સુરક્ષિત એક્સપોર્ટ • ત્રિનેત્ર ઓનલાઇન એકેડેમી પોર્ટલ • સહાયતા: {teacherProfile.phone || '8200405300'}
+        /* ═══════════════════════════════════════════════════════════
+            VIEW B: MAIN 3 OPTIONS SELECTION
+        ═══════════════════════════════════════════════════════════ */
+        <div>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 14,
+                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 16px rgba(245,158,11,0.4)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}>
+                <Trophy size={22} color="#fef08a" />
+              </div>
+              <div>
+                <h2 style={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', margin: 0 }}>
+                  Top 10 સ્કોરકાર્ડ & મેરિટ એક્સપોર્ટ
+                </h2>
+                <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '3px 0 0', fontWeight: 600 }}>
+                  ટેસ્ટ વાઇઝ અથવા ઓવરઓલ ૧૦ વિદ્યાર્થીઓના રિપોર્ટ ડાઉનલોડ કરો
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none', color: '#cbd5e1',
+                width: 32, height: 32, borderRadius: 10,
+                fontSize: '1.1rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* ── Test-Wise Dropdown Selector ── */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.75)',
+            border: '1.5px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: 14,
+            padding: '12px 14px',
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Filter size={14} /> કસોટી પસંદ કરો (Select Test-Wise):
+              </label>
+              <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
+                {testOptions.length - 1} કસોટીઓ ઉપલબ્ધ
+              </span>
+            </div>
+
+            <select
+              value={selectedKey}
+              onChange={e => setSelectedKey(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#090e1a',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: 10,
+                padding: '10px 12px',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {testOptions.map(opt => (
+                <option key={opt.key} value={opt.key} style={{ background: '#090e1a', color: '#ffffff' }}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Student Preview Summary Strip */}
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14,
+            padding: '12px 16px',
+            marginBottom: 18
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ color: '#fbbf24', fontSize: '0.76rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Crown size={14} /> પસંદ કરેલ: {currentTestMeta.testName}
+              </span>
+              <span style={{ color: '#93c5fd', fontSize: '0.72rem', fontWeight: 800 }}>
+                {currentTop10.length} વિદ્યાર્થીઓ
+              </span>
+            </div>
+
+            {currentTop10.length === 0 ? (
+              <div style={{ color: '#94a3b8', fontSize: '0.76rem', textAlign: 'center', padding: '10px 0' }}>
+                આ કસોટીમાં હજુ કોઈ સબમિશન ઉપલબ્ધ નથી
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {currentTop10.slice(0, 5).map((s, idx) => (
+                  <div key={idx} style={{
+                    background: idx === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: idx === 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                    padding: '4px 10px', borderRadius: 8,
+                    fontSize: '0.72rem', fontWeight: 800,
+                    color: idx === 0 ? '#fef08a' : '#e2e8f0',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    #{idx + 1} {s.student?.name || 'વિદ્યાર્થી'} ({Number(s.mcqScore ?? s.score ?? s.marks ?? 0)} ગુણ)
+                  </div>
+                ))}
+                {currentTop10.length > 5 && (
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                    +{currentTop10.length - 5} વધુ...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 3 Main Action Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Option 1: Combined Booklet PDF */}
+            <button
+              onClick={handleDownloadBooklet}
+              disabled={downloading || currentTop10.length === 0}
+              style={{
+                background: 'linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(15,23,42,0.9) 100%)',
+                border: '1.5px solid rgba(56,189,248,0.45)',
+                borderRadius: 16,
+                padding: '16px',
+                cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: currentTop10.length === 0 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                textAlign: 'left',
+                transition: 'all 0.18s ease',
+                boxShadow: '0 4px 18px rgba(37,99,235,0.25)'
+              }}
+              onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #1d4ed8, #0284c7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', flexShrink: 0,
+                boxShadow: '0 0 12px rgba(56,189,248,0.4)'
+              }}>
+                <FileText size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
+                    ૧. સંપૂર્ણ મલ્ટી-પેજ A4 બુકલેટ PDF (Print / PDF)
+                  </span>
+                  <span style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
+                    સત્તાવાર ૧૧ પેજ
+                  </span>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                  પેજ ૧: સંપૂર્ણ મેરિટ સમરી • પેજ ૨ થી ૧૧: દરેક ટોપર વિદ્યાર્થીનું વ્યક્તિગત સ્કોરકાર્ડ
+                </p>
+              </div>
+              <Download size={18} color="#38bdf8" />
+            </button>
+
+            {/* Option 2: WhatsApp / Notice Board Poster PDF */}
+            <button
+              onClick={() => setShowPhotoStep(true)}
+              disabled={downloading || currentTop10.length === 0}
+              style={{
+                background: 'linear-gradient(135deg, rgba(217,119,6,0.25) 0%, rgba(15,23,42,0.9) 100%)',
+                border: '1.5px solid rgba(245,158,11,0.45)',
+                borderRadius: 16,
+                padding: '16px',
+                cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: currentTop10.length === 0 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                textAlign: 'left',
+                transition: 'all 0.18s ease',
+                boxShadow: '0 4px 18px rgba(217,119,6,0.25)'
+              }}
+              onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', flexShrink: 0,
+                boxShadow: '0 0 12px rgba(245,158,11,0.4)'
+              }}>
+                <Award size={22} color="#fef08a" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
+                    ૨. સિંગલ-પેજ નોટિસ બોર્ડ & WhatsApp પોસ્ટર PDF
+                  </span>
+                  <span style={{ background: 'rgba(245,158,11,0.2)', color: '#fbbf24', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
+                    📸 ફોટો અપલોડ & 3D પોડિયમ
+                  </span>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                  વિદ્યાર્થીઓના ફોટા અપલોડ કરો અને WhatsApp સ્ટેટસ/ગ્રૂપ માટે 3D પોડિયમ પોસ્ટર બનાવો
+                </p>
+              </div>
+              <Camera size={18} color="#fbbf24" />
+            </button>
+
+            {/* Option 3: Excel Spreadsheet */}
+            <button
+              onClick={handleDownloadExcel}
+              disabled={currentTop10.length === 0}
+              style={{
+                background: 'linear-gradient(135deg, rgba(5,150,105,0.25) 0%, rgba(15,23,42,0.9) 100%)',
+                border: '1.5px solid rgba(52,211,153,0.45)',
+                borderRadius: 16,
+                padding: '16px',
+                cursor: currentTop10.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: currentTop10.length === 0 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                textAlign: 'left',
+                transition: 'all 0.18s ease',
+                boxShadow: '0 4px 18px rgba(5,150,105,0.2)'
+              }}
+              onMouseEnter={e => { if (currentTop10.length > 0) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'linear-gradient(135deg, #059669, #047857)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', flexShrink: 0,
+                boxShadow: '0 0 12px rgba(52,211,153,0.4)'
+              }}>
+                <Download size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'white', fontWeight: 900, fontSize: '0.94rem' }}>
+                    ૩. એક્સેલ સ્પ્રેડશીટ ડાઉનલોડ (.xlsx)
+                  </span>
+                  <span style={{ background: 'rgba(52,211,153,0.2)', color: '#6ee7b7', fontSize: '0.64rem', padding: '2px 8px', borderRadius: 6, fontWeight: 900 }}>
+                    Excel ડેટા
+                  </span>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                  ૧ ક્લિકમાં તમામ ટોપ ૧૦ વિદ્યાર્થીઓના નામ, મોબાઈલ, ગુણ અને ગ્રેડ સાથે એક્સેલ ફાઈલ
+                </p>
+              </div>
+              <Download size={18} color="#6ee7b7" />
+            </button>
+
+          </div>
+
+          {/* Footer info note */}
+          <div style={{ marginTop: 18, textAlign: 'center', color: '#64748b', fontSize: '0.7rem' }}>
+            🔒 સુરક્ષિત એક્સપોર્ટ • ત્રિનેત્ર ઓનલાઇન એકેડેમી પોર્ટલ • સહાયતા: {teacherProfile.phone || '8200405300'}
+          </div>
         </div>
+      )}
 
       </div>
     </div>,
