@@ -1014,6 +1014,7 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
   const [reportLoading, setReportLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showTop10Modal, setShowTop10Modal] = useState(false);
+  const [overrides, setOverrides] = useState([]);
 
   const handleSendDailyReport = async () => {
     setReportLoading(true);
@@ -1033,11 +1034,16 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
 
   const loadDashboardStats = async (retryCount = 0) => {
     try {
-      const [subRes, qRes] = await Promise.all([getSubmissions(), getAllQuestions()]);
+      const [subRes, qRes, ovRes] = await Promise.all([
+        getSubmissions(),
+        getAllQuestions(),
+        getLeaderboardOverrides().catch(() => ({ data: [] }))
+      ]);
       const s = Array.isArray(subRes?.data) ? subRes.data : [];
       const qList = Array.isArray(qRes?.data) ? qRes.data : [];
+      const ovList = Array.isArray(ovRes?.data) ? ovRes.data : [];
       const today = s.filter(x => new Date(x.createdAt || x.submittedAt) > new Date(Date.now() - 86400000));
-      setSubs(s); setQs(qList);
+      setSubs(s); setQs(qList); setOverrides(ovList);
       setStats({
         students: new Set(s.map(x => x.student?.mobile).filter(Boolean)).size,
         tests: s.length,
@@ -1060,6 +1066,9 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
 
   useEffect(() => {
     loadDashboardStats();
+    const handleUpdate = () => loadDashboardStats();
+    window.addEventListener('trinetra_leaderboard_updated', handleUpdate);
+    return () => window.removeEventListener('trinetra_leaderboard_updated', handleUpdate);
   }, []);
 
   const handleSaveProfile = () => {
@@ -1135,8 +1144,43 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
     { label: 'Grade Pending',  key: 'pending',  grad: 'stat-grad-red',    emoji: '⏳', badge: stats.pending > 0 ? '⚠️ ચેક કરો' : '✅ ક્લીયર', tab: 'answers' },
   ];
 
-  const recentSubs   = subs.slice(0, 5);
-  const topStudents  = [...subs].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10);
+  const recentSubs = subs.slice(0, 5);
+  const topStudents = useMemo(() => {
+    const enriched = [...subs].map(s => {
+      const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
+      return { ...s, score };
+    });
+
+    enriched.sort((a, b) => b.score - a.score);
+
+    // Apply active overrides
+    const activeOvs = (overrides || []).filter(o => o.isActive).sort((a, b) => (b.rank || 1) - (a.rank || 1));
+    activeOvs.forEach(ov => {
+      const matchIdx = enriched.findIndex(s => 
+        (ov.submissionId && s.id === ov.submissionId) ||
+        (s.student?.name && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
+      );
+      if (matchIdx >= 0) {
+        const item = { ...enriched[matchIdx], isTeacherOverride: true, score: ov.score ?? enriched[matchIdx].score, overrideRank: ov.rank };
+        enriched.splice(matchIdx, 1);
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
+        enriched.splice(targetPos, 0, item);
+      } else {
+        const item = {
+          id: ov.submissionId || Math.floor(Math.random() * 100000),
+          student: { name: ov.studentName, mobile: ov.mobile },
+          score: ov.score,
+          totalMarks: ov.totalMarks || 100,
+          isTeacherOverride: true,
+          overrideRank: ov.rank
+        };
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
+        enriched.splice(targetPos, 0, item);
+      }
+    });
+
+    return enriched.slice(0, 10);
+  }, [subs, overrides]);
 
   return (
     <div className="animate-fade-in" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', paddingBottom: 80 }}>
@@ -2655,6 +2699,7 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
         onClose={() => setShowTop10Modal(false)}
         topStudents={topStudents}
         submissions={subs}
+        overrides={overrides}
         teacherProfile={teacherProfile}
       />
     </div>
@@ -14123,6 +14168,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       showToast?.(res.data?.message || `👑 ${sName} ને ૧મો રેન્ક (Leader) બનાવવામાં આવ્યા!`, 'success');
       triggerConfetti();
       await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
     } catch (err) {
       showToast?.(err.response?.data?.error || 'લીડર બદલવામાં ક્ષતિ.', 'error');
     } finally {
@@ -14140,6 +14186,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       });
       showToast?.(res.data?.message || 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.', 'info');
       await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
     } catch (err) {
       showToast?.(err.response?.data?.error || 'રીસેટ કરવામાં ક્ષતિ.', 'error');
     } finally {
@@ -14175,6 +14222,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       showToast?.(res.data?.message || `👑 ${sName} ને #${rankNum} મો રેન્ક આપવામાં આવ્યો!`, 'success');
       triggerConfetti();
       await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
     } catch (err) {
       showToast?.(err.response?.data?.error || 'રેન્ક બદલવામાં ક્ષતિ.', 'error');
     } finally {
@@ -14196,6 +14244,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       });
       showToast?.(res.data?.message || `${sName} નો મેન્યુઅલ રેન્ક રદ થયો.`, 'info');
       await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
     } catch (err) {
       showToast?.(err.response?.data?.error || 'રીસેટ કરવામાં ક્ષતિ.', 'error');
     } finally {
@@ -14246,6 +14295,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       setCandidateSubId('');
       setCustomLeaderForm({ studentName: '', mobile: '', score: '', totalMarks: '', rank: 1 });
       await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
     } catch (err) {
       showToast?.(err.response?.data?.error || 'લીડર અપડેટ કરવામાં ક્ષતિ.', 'error');
     } finally {
@@ -15385,16 +15435,20 @@ function TestHistory({ showToast, teacherProfile }) {
     setTop10ModalOpen(true);
   };
 
+  const fetchSubs = async () => {
+    try {
+      const r = await getSubmissions();
+      setSubs(r.data || []);
+    } catch {
+      showToast('સબમિશન લોડ કરવામાં ભૂલ.', 'error');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await getSubmissions();
-        setSubs(r.data || []);
-      } catch {
-        showToast('સબમિશન લોડ કરવામાં ભૂલ.', 'error');
-      }
-      setLoading(false);
-    })();
+    fetchSubs();
+    window.addEventListener('trinetra_leaderboard_updated', fetchSubs);
+    return () => window.removeEventListener('trinetra_leaderboard_updated', fetchSubs);
   }, []);
 
   const today = useMemo(() => {
@@ -15427,8 +15481,13 @@ function TestHistory({ showToast, teacherProfile }) {
     });
 
     return Object.values(map).map(group => {
-      // Sort submissions by score descending
-      group.submissions.sort((a, b) => (b.mcqScore ?? b.score ?? 0) - (a.mcqScore ?? a.score ?? 0));
+      // Sort submissions by customRank first if teacher assigned one, then score descending
+      group.submissions.sort((a, b) => {
+        const rankA = a.customRank ? Number(a.customRank) : 999999;
+        const rankB = b.customRank ? Number(b.customRank) : 999999;
+        if (rankA !== rankB) return rankA - rankB;
+        return (b.mcqScore ?? b.score ?? 0) - (a.mcqScore ?? a.score ?? 0);
+      });
       const validScores = group.submissions.map(s => s.mcqScore ?? s.score ?? 0);
       const topScore = validScores.length ? Math.max(...validScores) : 0;
       const avgScore = validScores.length ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(1) : 0;

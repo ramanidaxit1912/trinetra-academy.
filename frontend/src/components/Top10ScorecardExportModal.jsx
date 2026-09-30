@@ -518,6 +518,7 @@ export default function Top10ScorecardExportModal({
   onClose,
   topStudents = [],
   submissions = [],
+  overrides = [],
   initialTestKey = 'ALL',
   teacherProfile = {}
 }) {
@@ -582,7 +583,7 @@ export default function Top10ScorecardExportModal({
     }
   }, [initialTestKey, isOpen]);
 
-  // Compute Top 10 for the currently selected test
+  // Compute Top 10 for the currently selected test (applying teacher overrides)
   const { currentTop10, currentTestMeta } = useMemo(() => {
     const selectedGroup = testOptions.find(o => o.key === selectedKey) || testOptions[0];
     const rawSubs = selectedGroup?.submissions || [];
@@ -598,13 +599,43 @@ export default function Top10ScorecardExportModal({
       }
     });
 
-    const sorted = Array.from(studentBestMap.values())
-      .sort((a, b) => {
-        const scA = Number(a.mcqScore ?? a.score ?? a.marks ?? 0);
-        const scB = Number(b.mcqScore ?? b.score ?? b.marks ?? 0);
-        return scB - scA;
-      })
-      .slice(0, 10);
+    const enriched = Array.from(studentBestMap.values())
+      .map(s => ({
+        ...s,
+        score: Number(s.mcqScore ?? s.score ?? s.marks ?? 0)
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    // Apply active overrides for this test (or ALL)
+    const activeOvs = (overrides || [])
+      .filter(o => o.isActive && (o.testCode === selectedKey || o.testCode === 'ALL' || o.testCode === selectedGroup?.testCode || (selectedGroup?.testName && o.testCode === `NAME_${selectedGroup.testName}`)))
+      .sort((a, b) => (b.rank || 1) - (a.rank || 1));
+
+    activeOvs.forEach(ov => {
+      const matchIdx = enriched.findIndex(s => 
+        (ov.submissionId && s.id === ov.submissionId) ||
+        (s.student?.name && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
+      );
+      if (matchIdx >= 0) {
+        const item = { ...enriched[matchIdx], isTeacherOverride: true, score: ov.score ?? enriched[matchIdx].score, overrideRank: ov.rank };
+        enriched.splice(matchIdx, 1);
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
+        enriched.splice(targetPos, 0, item);
+      } else {
+        const item = {
+          id: ov.submissionId || Math.floor(Math.random() * 100000),
+          student: { name: ov.studentName, mobile: ov.mobile },
+          score: ov.score,
+          totalMarks: ov.totalMarks || selectedGroup?.totalMarks || 100,
+          isTeacherOverride: true,
+          overrideRank: ov.rank
+        };
+        const targetPos = Math.min(enriched.length, Math.max(0, (ov.rank || 1) - 1));
+        enriched.splice(targetPos, 0, item);
+      }
+    });
+
+    const sorted = enriched.slice(0, 10);
 
     let metaTotal = selectedGroup?.totalMarks;
     if (!metaTotal || metaTotal <= 0) {
@@ -621,7 +652,7 @@ export default function Top10ScorecardExportModal({
         totalMarks: metaTotal
       }
     };
-  }, [testOptions, selectedKey]);
+  }, [testOptions, selectedKey, overrides]);
 
   if (!isOpen) return null;
 

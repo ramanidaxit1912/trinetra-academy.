@@ -1432,35 +1432,37 @@ router.get('/leaderboard', async (req, res) => {
       };
     });
 
-    // Check for active override for ALL tests
-    const allOverride = await prisma.leaderboardOverride.findFirst({
-      where: { testCode: 'ALL', isActive: true },
-      orderBy: { rank: 'asc' }
+    // Check for active overrides (for ALL tests or specific tests)
+    const activeOverrides = await prisma.leaderboardOverride.findMany({
+      where: { isActive: true },
+      orderBy: { rank: 'desc' }
     });
 
-    if (allOverride) {
-      const existingIdx = leaderboard.findIndex(l => 
-        (allOverride.submissionId && l.submissionId === allOverride.submissionId) ||
-        (l.studentName && l.studentName.trim().toLowerCase() === allOverride.studentName.trim().toLowerCase())
-      );
-      let leaderItem;
-      if (existingIdx >= 0) {
-        leaderItem = { ...leaderboard[existingIdx], mcqScore: allOverride.score, isTeacherOverride: true };
-        leaderboard.splice(existingIdx, 1);
-      } else {
-        leaderItem = {
-          submissionId: allOverride.submissionId,
-          studentName: allOverride.studentName,
-          mobile: allOverride.mobile ? (allOverride.mobile.slice(0, 5) + '*****') : '******',
-          mcqScore: allOverride.score,
-          totalMCQ: allOverride.totalMarks || 100,
-          percentage: (allOverride.totalMarks && allOverride.totalMarks > 0) ? Math.round((allOverride.score / allOverride.totalMarks) * 100) : 100,
-          submittedAt: allOverride.updatedAt || allOverride.createdAt,
-          isTeacherOverride: true
-        };
-      }
-      const targetPos = Math.max(0, (allOverride.rank || 1) - 1);
-      leaderboard.splice(targetPos, 0, leaderItem);
+    if (activeOverrides.length > 0) {
+      activeOverrides.forEach(ov => {
+        const existingIdx = leaderboard.findIndex(l => 
+          (ov.submissionId && l.submissionId === ov.submissionId) ||
+          (l.studentName && l.studentName.trim().toLowerCase() === ov.studentName.trim().toLowerCase())
+        );
+        let leaderItem;
+        if (existingIdx >= 0) {
+          leaderItem = { ...leaderboard[existingIdx], mcqScore: ov.score ?? leaderboard[existingIdx].mcqScore, isTeacherOverride: true };
+          leaderboard.splice(existingIdx, 1);
+        } else {
+          leaderItem = {
+            submissionId: ov.submissionId,
+            studentName: ov.studentName,
+            mobile: ov.mobile ? (ov.mobile.slice(0, 5) + '*****') : '******',
+            mcqScore: ov.score,
+            totalMCQ: ov.totalMarks || 100,
+            percentage: (ov.totalMarks && ov.totalMarks > 0) ? Math.round((ov.score / ov.totalMarks) * 100) : 100,
+            submittedAt: ov.updatedAt || ov.createdAt,
+            isTeacherOverride: true
+          };
+        }
+        const targetPos = Math.min(leaderboard.length, Math.max(0, (ov.rank || 1) - 1));
+        leaderboard.splice(targetPos, 0, leaderItem);
+      });
     }
 
     // Always strictly enforce Top 10 ranking
@@ -1593,8 +1595,15 @@ router.get('/leaderboard/by-test', async (req, res) => {
         testMap[key].resultsPublishAt = pubAt || null;
 
         // Apply any leaderboard overrides for this testCode
-        const testOverrides = overrides.filter(o => o.testCode === key || o.testCode === 'ALL');
+        const testOverrides = overrides.filter(o => 
+          o.testCode === key || 
+          o.testCode === 'ALL' || 
+          o.testCode === testMap[key].testCode ||
+          (testMap[key].testName && o.testCode === `NAME_${testMap[key].testName}`)
+        );
+
         if (testOverrides.length > 0) {
+          testOverrides.sort((a, b) => (b.rank || 1) - (a.rank || 1));
           testOverrides.forEach(ov => {
             const existingIdx = testMap[key].leaders.findIndex(l => 
               (ov.submissionId && l.submissionId === ov.submissionId) || 
@@ -1605,7 +1614,7 @@ router.get('/leaderboard/by-test', async (req, res) => {
             if (existingIdx >= 0) {
               leaderItem = { 
                 ...testMap[key].leaders[existingIdx], 
-                mcqScore: ov.score,
+                mcqScore: ov.score ?? testMap[key].leaders[existingIdx].mcqScore, 
                 isTeacherOverride: true,
                 overrideNote: ov.note
               };
@@ -1625,8 +1634,17 @@ router.get('/leaderboard/by-test', async (req, res) => {
                 overrideNote: ov.note
               };
             }
-            const targetPos = Math.max(0, (ov.rank || 1) - 1);
+            const targetPos = Math.min(testMap[key].leaders.length, Math.max(0, (ov.rank || 1) - 1));
             testMap[key].leaders.splice(targetPos, 0, leaderItem);
+
+            // Also sync studentRankMap
+            if (ov.mobile) {
+              const cleanM = String(ov.mobile).replace(/\D/g, '').slice(-10);
+              if (cleanM && testMap[key].studentRankMap[cleanM]) {
+                testMap[key].studentRankMap[cleanM].rank = ov.rank || 1;
+                testMap[key].studentRankMap[cleanM].isTeacherOverride = true;
+              }
+            }
           });
 
           // Re-index ranks
@@ -1675,9 +1693,17 @@ router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, re
 
     if (action === 'reset') {
       await prisma.leaderboardOverride.updateMany({
-        where: { testCode },
+        where: testCode === 'ALL' ? {} : { testCode },
         data: { isActive: false }
       });
+      try {
+        await prisma.submission.updateMany({
+          where: testCode === 'ALL' ? {} : { testCode },
+          data: { customRank: null }
+        });
+      } catch (err) {
+        console.warn('Submission customRank reset note:', err.message);
+      }
       return res.json({ success: true, message: 'લીડરબોર્ડ સફળતાપૂર્વક મૂળ ઓટોમેટિક ક્રમ પર રીસેટ થયું.' });
     }
 
@@ -1692,6 +1718,16 @@ router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, re
         },
         data: { isActive: false }
       });
+      if (submissionId) {
+        try {
+          await prisma.submission.update({
+            where: { id: parseInt(submissionId) },
+            data: { customRank: null }
+          });
+        } catch (err) {
+          console.warn('Submission customRank reset student note:', err.message);
+        }
+      }
       return res.json({ success: true, message: 'વિદ્યાર્થીનો મેન્યુઅલ રેન્ક રદ થયો.' });
     }
 
@@ -1727,6 +1763,18 @@ router.post('/leaderboard/override', authMiddleware, teacherOnly, async (req, re
         note: 'શિક્ષક દ્વારા મેન્યુઅલ લીડર સિલેક્શન'
       }
     });
+
+    // Update submission record with customRank
+    if (submissionId) {
+      try {
+        await prisma.submission.update({
+          where: { id: parseInt(submissionId) },
+          data: { customRank: targetRank }
+        });
+      } catch (subErr) {
+        console.warn('submission customRank update note:', subErr.message);
+      }
+    }
 
     res.json({
       success: true,

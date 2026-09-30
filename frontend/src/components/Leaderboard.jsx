@@ -1310,11 +1310,17 @@ export default function Leaderboard() {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchLeaderboard = () => {
     getTestWiseLeaderboard()
       .then(res => setTests(res.data || []))
       .catch(() => setTests([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
+    window.addEventListener('trinetra_leaderboard_updated', fetchLeaderboard);
+    return () => window.removeEventListener('trinetra_leaderboard_updated', fetchLeaderboard);
   }, []);
 
   return (
