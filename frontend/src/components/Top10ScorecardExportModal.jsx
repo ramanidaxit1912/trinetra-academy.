@@ -383,7 +383,7 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const metaTotal = Number(testMeta.totalMarks || 0);
 
   // Helper for generating High-End Student Photo / Royal Golden Avatar
-  const getStudentAvatar = (s, rankNum, size = 44) => {
+  const getStudentAvatar = (s, rankNum, size = 48) => {
     const sName = s?.student?.name || 'વિદ્યાર્થી';
     const photo = s?.photoUrl || s?.student?.photoUrl || s?.student?.photo || null;
     const initial = (sName.trim()[0] || '?').toUpperCase();
@@ -391,8 +391,15 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const isTopper2 = rankNum === 2;
     const isTopper3 = rankNum === 3;
 
-    const ringBorder = isTopper1 ? '#f59e0b' : isTopper2 ? '#94a3b8' : isTopper3 ? '#ea580c' : '#38bdf8';
-    const glow = isTopper1 ? 'rgba(245,158,11,0.65)' : isTopper2 ? 'rgba(148,163,184,0.45)' : isTopper3 ? 'rgba(234,88,12,0.45)' : 'rgba(56,189,248,0.3)';
+    const ringBorder = isTopper1 ? '#f59e0b' : isTopper2 ? '#cbd5e1' : isTopper3 ? '#ea580c' : '#38bdf8';
+    const glow = isTopper1 ? 'rgba(245,158,11,0.75)' : isTopper2 ? 'rgba(203,213,225,0.45)' : isTopper3 ? 'rgba(234,88,12,0.45)' : 'rgba(56,189,248,0.3)';
+    const ringGradient = isTopper1 
+      ? 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #f59e0b 100%)' 
+      : isTopper2 
+        ? 'linear-gradient(135deg, #f8fafc 0%, #94a3b8 50%, #cbd5e1 100%)' 
+        : isTopper3 
+          ? 'linear-gradient(135deg, #fed7aa 0%, #ea580c 50%, #c2410c 100%)' 
+          : 'linear-gradient(135deg, #38bdf8, #1e3a8a)';
     const bg = isTopper1 
       ? 'linear-gradient(135deg, #d97706, #78350f)' 
       : isTopper2 
@@ -403,17 +410,31 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
 
     if (photo && (photo.startsWith('http') || photo.startsWith('data:'))) {
       return `
-        <div style="position: relative; width: ${size}px; height: ${size}px; flex-shrink: 0; display: inline-block;">
-          <img src="${photo}" alt="${sName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid ${ringBorder}; box-shadow: 0 0 14px ${glow}; background: #0f172a;" />
-          ${isTopper1 ? `<span style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: ${Math.round(size * 0.42)}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));">👑</span>` : ''}
+        <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+          ${isTopper1 ? `
+            <div style="font-size: ${Math.round(size * 0.34)}px; line-height: 1; margin-bottom: 3px; filter: drop-shadow(0 2px 6px rgba(245,158,11,0.95)); z-index: 5;">
+              👑
+            </div>
+          ` : ''}
+          <div style="width: ${size}px; height: ${size}px; border-radius: 50%; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 22px ${glow}, 0 4px 14px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-block;">
+            <img src="${photo}" alt="${sName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center top; display: block; background: #0f172a;" />
+          </div>
         </div>
       `;
     }
 
     return `
-      <div style="position: relative; width: ${size}px; height: ${size}px; border-radius: 50%; background: ${bg}; border: 2.5px solid ${ringBorder}; box-shadow: 0 0 14px ${glow}; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${Math.round(size * 0.42)}px; flex-shrink: 0; text-transform: uppercase;">
-        ${initial}
-        ${isTopper1 ? `<span style="position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: ${Math.round(size * 0.42)}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));">👑</span>` : ''}
+      <div style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+        ${isTopper1 ? `
+          <div style="font-size: ${Math.round(size * 0.34)}px; line-height: 1; margin-bottom: 3px; filter: drop-shadow(0 2px 6px rgba(245,158,11,0.95)); z-index: 5;">
+            👑
+          </div>
+        ` : ''}
+        <div style="width: ${size}px; height: ${size}px; border-radius: 50%; padding: ${isTopper1 ? '3.5px' : '2.5px'}; background: ${ringGradient}; box-shadow: 0 0 22px ${glow}, 0 4px 14px rgba(0,0,0,0.6); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: 100%; border-radius: 50%; background: ${bg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${Math.round(size * 0.42)}px; text-transform: uppercase;">
+            ${initial}
+          </div>
+        </div>
       </div>
     `;
   };
@@ -424,9 +445,9 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
   const others = topList.slice(3, 10);
 
   // Helper for single podium card in Top 3
-  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 48) => {
+  const renderPodiumCard = (s, rankNum, medal, label, color, borderGlow, avatarSize = 76) => {
     if (!s) {
-      return `<div style="flex: 1; min-height: 140px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 14px;"></div>`;
+      return `<div style="flex: 1; min-height: 200px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 16px;"></div>`;
     }
     const sName = s.student?.name || 'વિદ્યાર્થી';
     const sMobile = s.student?.mobile ? String(s.student.mobile).slice(0, 5) + '*****' : '';
@@ -436,31 +457,37 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const isFirst = rankNum === 1;
 
     return `
-      <div style="flex: ${isFirst ? '1.15' : '1'}; background: ${isFirst ? 'linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(15,23,42,0.95) 100%)' : 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(15,23,42,0.9) 100%)'}; border: 2px solid ${color}; border-radius: 16px; padding: ${isFirst ? '16px 12px' : '12px 10px'}; text-align: center; box-shadow: 0 8px 24px ${borderGlow}; position: relative; ${isFirst ? 'transform: translateY(-6px); z-index: 2;' : ''}">
+      <div style="flex: ${isFirst ? '1.25' : '1'}; background: ${isFirst ? 'radial-gradient(130% 120% at 50% 0%, rgba(245,158,11,0.22) 0%, rgba(15,23,42,0.96) 100%)' : 'radial-gradient(130% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.94) 100%)'}; border: ${isFirst ? '2.5px solid #f59e0b' : `2px solid ${color}`}; border-radius: 18px; padding: ${isFirst ? '16px 12px' : '14px 10px'}; text-align: center; box-shadow: 0 10px 30px ${borderGlow}, inset 0 0 15px rgba(0,0,0,0.4); position: relative; ${isFirst ? 'transform: translateY(-8px); z-index: 2;' : ''}">
         
         <!-- Medal Badge Pill -->
-        <div style="display: inline-block; background: ${color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: 3px 12px; border-radius: 20px; font-weight: 900; font-size: 11px; margin-bottom: 10px; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+        <div style="display: inline-block; background: ${isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : color}; color: ${isFirst ? '#0f172a' : '#ffffff'}; padding: ${isFirst ? '4px 14px' : '3px 12px'}; border-radius: 20px; font-weight: 900; font-size: ${isFirst ? '12px' : '11px'}; margin-bottom: 8px; letter-spacing: 0.5px; box-shadow: 0 3px 10px rgba(0,0,0,0.5);">
           ${medal} ${label}
         </div>
 
-        <!-- Student DP / Avatar -->
-        <div style="margin: 4px 0 8px;">
+        <!-- Student DP / Avatar (Big & Beautiful with Crown above, NOT overlapping face) -->
+        <div style="margin: 2px 0 8px; display: flex; justify-content: center;">
           ${getStudentAvatar(s, rankNum, avatarSize)}
         </div>
 
         <!-- Student Name -->
-        <div style="font-weight: 900; font-size: ${isFirst ? '15px' : '13px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;">
+        <div style="font-weight: 900; font-size: ${isFirst ? '17px' : '14px'}; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-shadow: 0 2px 6px rgba(0,0,0,0.7); letter-spacing: 0.3px;">
           ${sName}
         </div>
 
-        ${sMobile ? `<div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 2px;">📞 ${sMobile}</div>` : ''}
+        ${sMobile ? `<div style="font-size: 10.5px; color: #94a3b8; font-family: monospace; margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <span style="color: #94a3b8; font-weight: 700;">${sMobile}</span>
+        </div>` : ''}
 
-        <!-- Score & Percentage -->
-        <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
-          <span style="font-weight: 900; font-size: ${isFirst ? '16px' : '14px'}; color: #4ade80;">
-            ${score} ${total > 0 ? `<span style="font-size: 11px; color: #94a3b8;">/ ${total}</span>` : ''}
+        <!-- Score & Percentage Badge -->
+        <div style="margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.55); padding: 4px 12px; border-radius: 12px; border: 1.5px solid ${isFirst ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.14)'}; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+          <span style="font-weight: 900; font-size: ${isFirst ? '17px' : '14.5px'}; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">
+            ${score} ${total > 0 ? `<span style="font-size: 11px; color: #94a3b8; font-weight: 700;">/ ${total}</span>` : ''}
           </span>
-          <span style="background: rgba(37,99,235,0.3); color: #93c5fd; padding: 1px 6px; border-radius: 6px; font-weight: 800; font-size: 11px;">
+          <span style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #ffffff; padding: 2px 8px; border-radius: 6px; font-weight: 900; font-size: 11.5px; box-shadow: 0 2px 6px rgba(29,78,216,0.4);">
             ${pct}%
           </span>
         </div>
@@ -479,7 +506,7 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     const pct = total > 0 ? Math.round((score / total) * 100) : (score > 0 ? 100 : 0);
 
     return `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.07);">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(255,255,255,0.035); border-radius: 10px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.08);">
         
         <div style="display: flex; align-items: center; gap: 10px;">
           <!-- Rank Pill -->
@@ -488,21 +515,27 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
           </div>
 
           <!-- Student DP / Avatar -->
-          ${getStudentAvatar(s, rankNum, 34)}
+          ${getStudentAvatar(s, rankNum, 40)}
 
           <!-- Name & Mobile -->
           <div style="text-align: left;">
-            <div style="font-weight: 800; font-size: 13px; color: #ffffff;">${sName}</div>
-            ${sMobile ? `<div style="font-size: 9.5px; color: #64748b; font-family: monospace;">${sMobile}</div>` : ''}
+            <div style="font-weight: 800; font-size: 13.5px; color: #ffffff;">${sName}</div>
+            ${sMobile ? `<div style="font-size: 9.5px; color: #94a3b8; font-family: monospace; display: flex; align-items: center; gap: 3px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block;">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              <span>${sMobile}</span>
+            </div>` : ''}
           </div>
         </div>
 
         <!-- Score & Percentage -->
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-weight: 900; font-size: 14px; color: #4ade80;">
-            ${score} ${total > 0 ? `<span style="font-size: 10px; color: #94a3b8;">/ ${total}</span>` : ''}
+          <span style="font-weight: 900; font-size: 14.5px; color: #4ade80;">
+            ${score} ${total > 0 ? `<span style="font-size: 10.5px; color: #94a3b8;">/ ${total}</span>` : ''}
           </span>
-          <span style="font-size: 11px; color: #93c5fd; background: rgba(37,99,235,0.25); padding: 2px 7px; border-radius: 6px; font-weight: 800;">
+          <span style="font-size: 11px; color: #93c5fd; background: rgba(37,99,235,0.25); padding: 2px 8px; border-radius: 6px; font-weight: 800;">
             ${pct}%
           </span>
         </div>
@@ -569,11 +602,11 @@ export function exportTop10PosterPDF(topList = [], teacherProfile = {}, testMeta
     </div>
 
     <!-- 🏆 3D WINNERS PODIUM (TOP 3 SPOTLIGHT STAGE) -->
-    <div style="margin: 14px 0 10px;">
-      <div style="display: flex; gap: 10px; align-items: flex-end; justify-content: center; max-width: 650px; margin: 0 auto;">
-        ${renderPodiumCard(top2, 2, '🥈', '૨જો રેન્ક', '#94a3b8', 'rgba(148,163,184,0.3)', 46)}
-        ${renderPodiumCard(top1, 1, '🥇', '૧મો રેન્ક (Topper)', '#f59e0b', 'rgba(245,158,11,0.5)', 56)}
-        ${renderPodiumCard(top3, 3, '🥉', '૩જો રેન્ક', '#ea580c', 'rgba(234,88,12,0.3)', 46)}
+    <div style="margin: 12px 0 12px;">
+      <div style="display: flex; gap: 12px; align-items: flex-end; justify-content: center; max-width: 680px; margin: 0 auto;">
+        ${renderPodiumCard(top2, 2, '🥈', '૨જો રેન્ક', '#cbd5e1', 'rgba(148,163,184,0.35)', 76)}
+        ${renderPodiumCard(top1, 1, '🥇', '૧મો રેન્ક (Topper)', '#f59e0b', 'rgba(245,158,11,0.55)', 92)}
+        ${renderPodiumCard(top3, 3, '🥉', '૩જો રેન્ક', '#ea580c', 'rgba(234,88,12,0.35)', 76)}
       </div>
     </div>
 
@@ -1168,41 +1201,41 @@ export default function Top10ScorecardExportModal({
                       boxShadow: `0 4px 16px ${borderColor}22`
                     }}>
                       {isRank1 && (
-                        <span style={{ position: 'absolute', top: -10, background: '#f59e0b', color: '#0f172a', fontSize: '0.62rem', fontWeight: 900, padding: '2px 9px', borderRadius: 10, boxShadow: '0 2px 8px rgba(245,158,11,0.5)' }}>
-                          👑 TOPPER
-                        </span>
+                        <div style={{ fontSize: '20px', lineHeight: 1, marginBottom: 2, filter: 'drop-shadow(0 2px 6px rgba(245,158,11,0.8))' }}>
+                          👑
+                        </div>
                       )}
 
-                      <div style={{ fontSize: '0.76rem', fontWeight: 900, color: borderColor, marginBottom: 8, marginTop: isRank1 ? 2 : 0 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 900, color: borderColor, marginBottom: 8 }}>
                         {medal}
                       </div>
 
-                      {/* Photo / Avatar Preview */}
-                      <div style={{ position: 'relative', width: 62, height: 62, marginBottom: 8 }}>
+                      {/* Photo / Avatar Preview (Larger & Attractive) */}
+                      <div style={{ position: 'relative', width: isRank1 ? 82 : 70, height: isRank1 ? 82 : 70, marginBottom: 10 }}>
                         {photo ? (
                           <img
                             src={photo}
                             alt={sName}
                             style={{
                               width: '100%', height: '100%', borderRadius: '50%',
-                              objectFit: 'cover', border: `2.5px solid ${borderColor}`,
-                              boxShadow: `0 0 14px ${borderColor}66`
+                              objectFit: 'cover', objectPosition: 'center top', border: `3px solid ${borderColor}`,
+                              boxShadow: `0 0 16px ${borderColor}88`
                             }}
                           />
                         ) : (
                           <div style={{
                             width: '100%', height: '100%', borderRadius: '50%',
                             background: isRank1 ? 'linear-gradient(135deg, #d97706, #78350f)' : 'linear-gradient(135deg, #1e3a8a, #0f172a)',
-                            border: `2.5px solid ${borderColor}`,
+                            border: `3px solid ${borderColor}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'white', fontWeight: 900, fontSize: '1.3rem',
-                            boxShadow: `0 0 12px ${borderColor}44`
+                            color: 'white', fontWeight: 900, fontSize: isRank1 ? '1.8rem' : '1.5rem',
+                            boxShadow: `0 0 16px ${borderColor}66`
                           }}>
                             {(sName.trim()[0] || '?').toUpperCase()}
                           </div>
                         )}
                         {photo && (
-                          <span style={{ position: 'absolute', bottom: -2, right: -2, background: '#059669', color: 'white', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900, border: '1.5px solid #0f172a' }}>
+                          <span style={{ position: 'absolute', bottom: 0, right: 0, background: '#059669', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, border: '2px solid #0f172a', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
                             ✓
                           </span>
                         )}
