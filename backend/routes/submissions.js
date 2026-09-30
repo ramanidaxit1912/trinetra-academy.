@@ -1407,17 +1407,16 @@ router.get('/leaderboard', async (req, res) => {
     const topSubmissions = await prisma.submission.findMany({
       where: { mcqScore: { not: null }, status: { not: 'IN_PROGRESS' } },
       orderBy: [{ mcqScore: 'desc' }, { submittedAt: 'asc' }],
-      take: 15,
+      take: 60,
       include: {
         student: { select: { name: true, mobile: true } }
       }
     });
 
-    let leaderboard = topSubmissions.map((sub, index) => {
+    let leaderboard = topSubmissions.map((sub) => {
       const timeStats = computeSubmissionTimeStats(sub);
       return {
         submissionId: sub.id,
-        rank: index + 1,
         studentName: sub.student.name,
         mobile: sub.student.mobile.slice(0, 5) + '*****',
         mcqScore: sub.mcqScore,
@@ -1431,6 +1430,20 @@ router.get('/leaderboard', async (req, res) => {
         timeSpentFormatted: timeStats.timeSpentFormatted
       };
     });
+
+    // Sort by mcqScore descending; if equal, by least time (faster completion) ascending; then submittedAt
+    leaderboard.sort((a, b) => {
+      if (b.mcqScore !== a.mcqScore) return b.mcqScore - a.mcqScore;
+      const durA = (a.timeSpentSeconds && a.timeSpentSeconds > 0) ? a.timeSpentSeconds : 999999;
+      const durB = (b.timeSpentSeconds && b.timeSpentSeconds > 0) ? b.timeSpentSeconds : 999999;
+      if (durA !== durB) return durA - durB;
+      return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+    });
+
+    leaderboard = leaderboard.slice(0, 15).map((l, index) => ({
+      ...l,
+      rank: index + 1
+    }));
 
     // Check for active overrides (for ALL tests or specific tests)
     const activeOverrides = await prisma.leaderboardOverride.findMany({
@@ -1530,53 +1543,67 @@ router.get('/leaderboard/by-test', async (req, res) => {
           participants: 0,
           isLocked: false,
           resultsPublishAt: scheduledPublishMap[key] || null,
+          rawSubs: [],
           leaders: [],
           studentRankMap: {}
         };
       }
       testMap[key].participants++;
-      const currentRank = testMap[key].participants;
       const timeStats = computeSubmissionTimeStats(sub);
+      testMap[key].rawSubs.push({
+        submissionId: sub.id,
+        studentName: sub.student?.name || 'વિદ્યાર્થી',
+        mobile: sub.student?.mobile ? sub.student.mobile.slice(0, 5) + '*****' : '*****',
+        rawMobile: sub.student?.mobile || '',
+        mcqScore: sub.mcqScore,
+        totalMCQ: sub.totalMCQ,
+        totalMarks: sub.totalMarks,
+        percentage: sub.totalMCQ > 0 ? Math.round((sub.mcqScore / sub.totalMCQ) * 100) : 0,
+        startedAt: sub.startedAt,
+        submittedAt: sub.submittedAt,
+        timeSpentSeconds: timeStats.timeSpentSeconds,
+        timeSpentFormatted: timeStats.timeSpentFormatted
+      });
+    });
 
-      // Track individual student rank by mobile so student can see their rank even outside Top 10
-      if (sub.student?.mobile) {
-        const cleanM = String(sub.student.mobile).replace(/\D/g, '').slice(-10);
-        if (cleanM && !testMap[key].studentRankMap[cleanM]) {
-          testMap[key].studentRankMap[cleanM] = {
-            rank: currentRank,
-            submissionId: sub.id,
-            studentName: sub.student.name,
-            score: sub.mcqScore,
-            totalMarks: sub.totalMarks || sub.totalMCQ,
-            percentage: sub.totalMCQ > 0 ? Math.round((sub.mcqScore / sub.totalMCQ) * 100) : 0,
-            startedAt: sub.startedAt,
-            submittedAt: sub.submittedAt,
-            timeSpentSeconds: timeStats.timeSpentSeconds,
-            timeSpentFormatted: timeStats.timeSpentFormatted
-          };
+    // For each test, sort by score descending; if equal, by least time (faster completion) ascending; then submittedAt
+    Object.keys(testMap).forEach(key => {
+      testMap[key].rawSubs.sort((a, b) => {
+        if (b.mcqScore !== a.mcqScore) return b.mcqScore - a.mcqScore;
+        const durA = (a.timeSpentSeconds && a.timeSpentSeconds > 0) ? a.timeSpentSeconds : 999999;
+        const durB = (b.timeSpentSeconds && b.timeSpentSeconds > 0) ? b.timeSpentSeconds : 999999;
+        if (durA !== durB) return durA - durB;
+        return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+      });
+
+      testMap[key].rawSubs.forEach((item, idx) => {
+        const currentRank = idx + 1;
+        if (item.rawMobile) {
+          const cleanM = String(item.rawMobile).replace(/\D/g, '').slice(-10);
+          if (cleanM && !testMap[key].studentRankMap[cleanM]) {
+            testMap[key].studentRankMap[cleanM] = {
+              rank: currentRank,
+              submissionId: item.submissionId,
+              studentName: item.studentName,
+              score: item.mcqScore,
+              totalMarks: item.totalMarks || item.totalMCQ,
+              percentage: item.percentage,
+              startedAt: item.startedAt,
+              submittedAt: item.submittedAt,
+              timeSpentSeconds: item.timeSpentSeconds,
+              timeSpentFormatted: item.timeSpentFormatted
+            };
+          }
         }
-      }
 
-      // Only keep top 15 per test for ranking
-      if (testMap[key].leaders.length < 15) {
-        testMap[key].leaders.push({
-          submissionId: sub.id,
-          rank: testMap[key].leaders.length + 1,
-          studentName: sub.student.name,
-          mobile: sub.student.mobile.slice(0, 5) + '*****',
-          rawMobile: sub.student.mobile,
-          mcqScore: sub.mcqScore,
-          totalMCQ: sub.totalMCQ,
-          totalMarks: sub.totalMarks,
-          percentage: sub.totalMCQ > 0
-            ? Math.round((sub.mcqScore / sub.totalMCQ) * 100)
-            : 0,
-          startedAt: sub.startedAt,
-          submittedAt: sub.submittedAt,
-          timeSpentSeconds: timeStats.timeSpentSeconds,
-          timeSpentFormatted: timeStats.timeSpentFormatted
-        });
-      }
+        if (idx < 15) {
+          testMap[key].leaders.push({
+            ...item,
+            rank: currentRank
+          });
+        }
+      });
+      delete testMap[key].rawSubs;
     });
 
     // Apply scheduled result lock and teacher overrides per test

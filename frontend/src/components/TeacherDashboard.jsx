@@ -1146,12 +1146,29 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
 
   const recentSubs = subs.slice(0, 5);
   const topStudents = useMemo(() => {
+    const getDur = (item) => {
+      let d = item.duration || item.timeTaken || item.timeSpentSeconds || 0;
+      if (!d && Array.isArray(item.answers)) {
+        item.answers.forEach(ans => { if (ans && ans.timeSpent) d += Number(ans.timeSpent) || 0; });
+      }
+      if (!d && item.startedAt && item.submittedAt) {
+        const diff = Math.round((new Date(item.submittedAt).getTime() - new Date(item.startedAt).getTime()) / 1000);
+        if (diff > 0 && diff < 86400) d = diff;
+      }
+      return d > 0 ? d : 999999;
+    };
+
     const enriched = [...subs].map(s => {
       const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
-      return { ...s, score };
+      const duration = getDur(s);
+      return { ...s, score, duration };
     });
 
-    enriched.sort((a, b) => b.score - a.score);
+    enriched.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.duration !== b.duration) return a.duration - b.duration;
+      return new Date(a.submittedAt || a.createdAt || 0).getTime() - new Date(b.submittedAt || b.createdAt || 0).getTime();
+    });
 
     // Apply active overrides
     const activeOvs = (overrides || []).filter(o => o.isActive).sort((a, b) => (b.rank || 1) - (a.rank || 1));
@@ -14321,7 +14338,17 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       const totalMarks = Number(s.totalMarks || s.totalMCQ || activeGroup?.totalMarks || 1);
       const pct = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
       const accuracy = (correct + wrong) > 0 ? Math.round((correct / (correct + wrong)) * 100) : pct;
-      const duration = s.duration || s.timeTaken || 0;
+      
+      let duration = s.duration || s.timeTaken || s.timeSpentSeconds || 0;
+      if (!duration && Array.isArray(s.answers)) {
+        s.answers.forEach(a => {
+          if (a && a.timeSpent) duration += Number(a.timeSpent) || 0;
+        });
+      }
+      if (!duration && s.startedAt && s.submittedAt) {
+        const diff = Math.round((new Date(s.submittedAt).getTime() - new Date(s.startedAt).getTime()) / 1000);
+        if (diff > 0 && diff < 86400) duration = diff;
+      }
       const submittedAt = new Date(s.submittedAt || s.createdAt || 0).getTime();
 
       return {
@@ -14338,11 +14365,12 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       };
     });
 
-    // Multi-factor sorting:
+    // Sorting: Score FIRST (high to low); if score equal, least time (faster completion) FIRST; then submittedAt
     enriched.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
-      if (a.duration && b.duration && a.duration !== b.duration) return a.duration - b.duration;
+      const durA = (a.duration && a.duration > 0) ? a.duration : 999999;
+      const durB = (b.duration && b.duration > 0) ? b.duration : 999999;
+      if (durA !== durB) return durA - durB;
       return a.submittedAt - b.submittedAt;
     });
 
@@ -14376,6 +14404,7 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
           correct: Math.round(ov.score),
           wrong: 0,
           skipped: 0,
+          duration: 0,
           submittedAt: new Date(ov.updatedAt || ov.createdAt).getTime(),
           isTeacherOverride: true,
           overrideRank: ov.rank
@@ -14385,18 +14414,18 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       }
     });
 
-    // Assign rank with tie detection
+    // Assign rank with tie detection (tied ONLY if score and duration are both identical)
     let currentRank = 1;
     return enriched.map((student, idx, arr) => {
       if (idx > 0) {
         const prev = arr[idx - 1];
-        const isTie = student.score === prev.score && student.accuracy === prev.accuracy;
+        const isTie = student.score === prev.score && student.duration === prev.duration;
         if (!isTie) {
           currentRank = idx + 1;
         }
       }
-      const isTiedWithPrev = idx > 0 && student.score === arr[idx - 1].score && student.accuracy === arr[idx - 1].accuracy;
-      const isTiedWithNext = idx < arr.length - 1 && student.score === arr[idx + 1].score && student.accuracy === arr[idx + 1].accuracy;
+      const isTiedWithPrev = idx > 0 && student.score === arr[idx - 1].score && student.duration === arr[idx - 1].duration;
+      const isTiedWithNext = idx < arr.length - 1 && student.score === arr[idx + 1].score && student.duration === arr[idx + 1].duration;
 
       return {
         ...student,
@@ -15509,7 +15538,27 @@ function TestHistory({ showToast, teacherProfile }) {
         const rankA = ovA?.rank ? Number(ovA.rank) : (a.customRank ? Number(a.customRank) : 999999);
         const rankB = ovB?.rank ? Number(ovB.rank) : (b.customRank ? Number(b.customRank) : 999999);
         if (rankA !== rankB) return rankA - rankB;
-        return (b.mcqScore ?? b.score ?? 0) - (a.mcqScore ?? a.score ?? 0);
+
+        const scoreA = Number(a.mcqScore ?? a.score ?? 0);
+        const scoreB = Number(b.mcqScore ?? b.score ?? 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+
+        const getDur = (item) => {
+          let d = item.duration || item.timeTaken || item.timeSpentSeconds || 0;
+          if (!d && Array.isArray(item.answers)) {
+            item.answers.forEach(ans => { if (ans && ans.timeSpent) d += Number(ans.timeSpent) || 0; });
+          }
+          if (!d && item.startedAt && item.submittedAt) {
+            const diff = Math.round((new Date(item.submittedAt).getTime() - new Date(item.startedAt).getTime()) / 1000);
+            if (diff > 0 && diff < 86400) d = diff;
+          }
+          return d > 0 ? d : 999999;
+        };
+        const durA = getDur(a);
+        const durB = getDur(b);
+        if (durA !== durB) return durA - durB;
+
+        return new Date(a.submittedAt || a.createdAt || 0).getTime() - new Date(b.submittedAt || b.createdAt || 0).getTime();
       });
       const validScores = group.submissions.map(s => s.mcqScore ?? s.score ?? 0);
       const topScore = validScores.length ? Math.max(...validScores) : 0;

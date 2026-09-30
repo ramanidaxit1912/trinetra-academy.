@@ -703,6 +703,20 @@ export default function Top10ScorecardExportModal({
     const unassigned = withRankInfo.filter(s => s.assignedRank === null)
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
+        const getDur = (item) => {
+          let d = item.duration || item.timeTaken || item.timeSpentSeconds || 0;
+          if (!d && Array.isArray(item.answers)) {
+            item.answers.forEach(ans => { if (ans && ans.timeSpent) d += Number(ans.timeSpent) || 0; });
+          }
+          if (!d && item.startedAt && item.submittedAt) {
+            const diff = Math.round((new Date(item.submittedAt).getTime() - new Date(item.startedAt).getTime()) / 1000);
+            if (diff > 0 && diff < 86400) d = diff;
+          }
+          return d > 0 ? d : 999999;
+        };
+        const durA = getDur(a);
+        const durB = getDur(b);
+        if (durA !== durB) return durA - durB;
         const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
         const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
         return timeA - timeB;
