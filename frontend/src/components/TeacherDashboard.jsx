@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
+import Top10ScorecardExportModal from './Top10ScorecardExportModal';
 import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
 import EnrolledStudentsManager from './EnrolledStudentsManager';
 import EnrolledStudentsOtpManager from './EnrolledStudentsOtpManager';
@@ -1012,6 +1013,7 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showTop10Modal, setShowTop10Modal] = useState(false);
 
   const handleSendDailyReport = async () => {
     setReportLoading(true);
@@ -1134,7 +1136,7 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
   ];
 
   const recentSubs   = subs.slice(0, 5);
-  const topStudents  = [...subs].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5);
+  const topStudents  = [...subs].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10);
 
   return (
     <div className="animate-fade-in" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', paddingBottom: 80 }}>
@@ -2033,7 +2035,24 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setShowTop10Modal(true)}
+                      style={{
+                        color: '#ffffff', background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                        border: '1px solid rgba(56, 189, 248, 0.5)', borderRadius: 10,
+                        padding: '6px 13px', cursor: 'pointer', fontWeight: 900, fontSize: '0.76rem',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        boxShadow: '0 4px 14px rgba(37,99,235,0.4)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <Download size={14} />
+                      <span>📥 Top 10 સ્કોરકાર્ડ</span>
+                    </button>
+
                     <button
                       onClick={() => setActiveTab('history')}
                       style={{
@@ -2158,23 +2177,44 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
                 )}
               </div>
 
-              {/* Bottom Gold CTA Bar */}
-              <button
-                onClick={() => setActiveTab('history')}
-                style={{
-                  width: '100%',
-                  marginTop: 6,
-                  background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                  color: 'white', border: '1px solid rgba(245,158,11,0.5)', padding: '11px 16px',
-                  borderRadius: 12, fontWeight: 900, fontSize: '0.84rem',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: '0 4px 16px rgba(217,119,6,0.35)',
-                  fontFamily: 'Hind Vadodara, sans-serif',
-                  transition: 'all 0.18s ease'
-                }}
-              >
-                <Trophy size={16} /> સંપૂર્ણ લીડરબોર્ડ અને WhatsApp શેરિંગ જુઓ ➔
-              </button>
+              {/* Bottom Dual Action Bar */}
+              <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setShowTop10Modal(true)}
+                  style={{
+                    flex: '1 1 200px',
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
+                    color: 'white', border: '1px solid rgba(56,189,248,0.5)', padding: '11px 16px',
+                    borderRadius: 12, fontWeight: 900, fontSize: '0.84rem',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: '0 4px 16px rgba(2,132,199,0.35)',
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    transition: 'all 0.18s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <Download size={16} /> 📥 Top 10 સ્કોરકાર્ડ બુકલેટ ➔
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('history')}
+                  style={{
+                    flex: '1 1 220px',
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    color: 'white', border: '1px solid rgba(245,158,11,0.5)', padding: '11px 16px',
+                    borderRadius: 12, fontWeight: 900, fontSize: '0.84rem',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: '0 4px 16px rgba(217,119,6,0.35)',
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    transition: 'all 0.18s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <Trophy size={16} /> સંપૂર્ણ લીડરબોર્ડ & શેરિંગ ➔
+                </button>
+              </div>
             </div>
 
             {/* BENTO 2 (Narrow: Span 5): 📊 Question Bank Mastery Hub */}
@@ -2609,6 +2649,13 @@ function Overview({ showToast, setActiveTab, teacherProfile, saveTeacherProfile,
           </div>
         </>
       )}
+      {/* ── Top 10 Scorecard Batch Export Modal ── */}
+      <Top10ScorecardExportModal
+        isOpen={showTop10Modal}
+        onClose={() => setShowTop10Modal(false)}
+        topStudents={topStudents}
+        teacherProfile={teacherProfile}
+      />
     </div>
   );
 }
