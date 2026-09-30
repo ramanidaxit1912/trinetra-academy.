@@ -6508,8 +6508,98 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
           </div>
 
           {loading ? <Loader /> : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="gt-cards-grid">
               {(() => {
+                const getTestSubjectTheme = (subject = '', isMixed = false, isMCQOnly = false) => {
+                  const s = String(subject || '').toLowerCase();
+                  if (s.includes('વિજ્ઞાન') || s.includes('science')) {
+                    return {
+                      icon: '🧪',
+                      label: 'વિજ્ઞાન (Science)',
+                      gradient: 'linear-gradient(90deg, #0284c7, #0369a1)',
+                      glow: 'rgba(2, 132, 199, 0.35)',
+                      badgeBg: 'rgba(2, 132, 199, 0.16)',
+                      badgeColor: '#38bdf8',
+                      borderColor: 'rgba(2, 132, 199, 0.4)'
+                    };
+                  }
+                  if (s.includes('ગણિત') || s.includes('math')) {
+                    return {
+                      icon: '📐',
+                      label: 'ગણિત (Maths)',
+                      gradient: 'linear-gradient(90deg, #d97706, #f59e0b)',
+                      glow: 'rgba(217, 119, 6, 0.35)',
+                      badgeBg: 'rgba(217, 119, 6, 0.16)',
+                      badgeColor: '#fbbf24',
+                      borderColor: 'rgba(217, 119, 6, 0.4)'
+                    };
+                  }
+                  if (s.includes('ગુજરાતી') || s.includes('gujarati')) {
+                    return {
+                      icon: '📚',
+                      label: 'ગુજરાતી',
+                      gradient: 'linear-gradient(90deg, #c2410c, #ea580c)',
+                      glow: 'rgba(234, 88, 12, 0.35)',
+                      badgeBg: 'rgba(234, 88, 12, 0.16)',
+                      badgeColor: '#fb923c',
+                      borderColor: 'rgba(234, 88, 12, 0.4)'
+                    };
+                  }
+                  if (s.includes('અંગ્રેજી') || s.includes('english')) {
+                    return {
+                      icon: '🔤',
+                      label: 'અંગ્રેજી (English)',
+                      gradient: 'linear-gradient(90deg, #4f46e5, #6366f1)',
+                      glow: 'rgba(99, 102, 241, 0.35)',
+                      badgeBg: 'rgba(99, 102, 241, 0.16)',
+                      badgeColor: '#a5b4fc',
+                      borderColor: 'rgba(99, 102, 241, 0.4)'
+                    };
+                  }
+                  if (s.includes('સામાજિક') || s.includes('ભૂગોળ') || s.includes('ઇતિહાસ') || s.includes('social')) {
+                    return {
+                      icon: '🌍',
+                      label: 'સામાજિક વિજ્ઞાન',
+                      gradient: 'linear-gradient(90deg, #d97706, #f59e0b)',
+                      glow: 'rgba(217, 119, 6, 0.35)',
+                      badgeBg: 'rgba(217, 119, 6, 0.16)',
+                      badgeColor: '#fbbf24',
+                      borderColor: 'rgba(217, 119, 6, 0.4)'
+                    };
+                  }
+                  if (s.includes('તર્ક') || s.includes('રીઝનિંગ') || s.includes('reasoning') || s.includes('માનસિક')) {
+                    return {
+                      icon: '🧠',
+                      label: 'માનસિક ક્ષમતા / Reasoning',
+                      gradient: 'linear-gradient(90deg, #0891b2, #06b6d4)',
+                      glow: 'rgba(8, 145, 178, 0.35)',
+                      badgeBg: 'rgba(8, 145, 178, 0.16)',
+                      badgeColor: '#38bdf8',
+                      borderColor: 'rgba(8, 145, 178, 0.4)'
+                    };
+                  }
+                  if (s.includes('સામાન્ય જ્ઞાન') || s.includes('gk') || s.includes('બંધારણ') || s.includes('કરંટ')) {
+                    return {
+                      icon: '💡',
+                      label: 'સામાન્ય જ્ઞાન (GK)',
+                      gradient: 'linear-gradient(90deg, #0284c7, #0369a1)',
+                      glow: 'rgba(2, 132, 199, 0.35)',
+                      badgeBg: 'rgba(2, 132, 199, 0.16)',
+                      badgeColor: '#38bdf8',
+                      borderColor: 'rgba(2, 132, 199, 0.4)'
+                    };
+                  }
+                  return {
+                    icon: isMixed ? '🔀' : isMCQOnly ? '⚡' : '📝',
+                    label: subject || 'સામાન્ય',
+                    gradient: 'linear-gradient(90deg, #2563eb, #38bdf8)',
+                    glow: 'rgba(37, 99, 235, 0.35)',
+                    badgeBg: 'rgba(37, 99, 235, 0.16)',
+                    badgeColor: '#60a5fa',
+                    borderColor: 'rgba(37, 99, 235, 0.4)'
+                  };
+                };
+
                 const list = existingTests.filter(t => {
                   const matchSearch = t.testName.toLowerCase().includes(searchTest.toLowerCase()) ||
                     t.subject.toLowerCase().includes(searchTest.toLowerCase()) ||
@@ -6523,7 +6613,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
 
                 if (list.length === 0) {
                   return (
-                    <div className="glass-card" style={{ padding: 32, textAlign: 'center' }}>
+                    <div className="glass-card" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', borderRadius: 16 }}>
                       <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>📋</div>
                       <div style={{ color: '#e2e8f0', fontWeight: 800 }}>કોઈ કસોટી મળી નહીં.</div>
                       <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 4 }}>
@@ -6537,160 +6627,226 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                   const isExpanded = expandedTestCode === t.testCode;
                   const isMixed = t.mcqCount > 0 && t.descCount > 0;
                   const isMCQOnly = t.mcqCount > 0 && t.descCount === 0;
+                  const theme = getTestSubjectTheme(t.subject, isMixed, isMCQOnly);
 
                   return (
-                    <div key={t.testCode} className="glass-card animate-fade-in"
+                    <div
+                      key={t.testCode}
+                      className={`gt-card animate-fade-in ${isExpanded ? 'card-expanded' : ''}`}
                       style={{
-                        padding: 18,
-                        border: isExpanded ? '1.5px solid rgba(59,130,246,0.45)' : '1px solid rgba(255,255,255,0.08)',
-                        background: isExpanded ? 'rgba(59,130,246,0.04)' : 'rgba(255,255,255,0.02)',
-                        transition: 'all 0.2s'
-                      }}>
+                        '--card-border': theme.borderColor,
+                        '--card-glow': theme.glow,
+                        '--card-gradient': theme.gradient
+                      }}
+                    >
+                      <div className="gt-card-beam" />
                       
-                      {/* Test Card Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                            <span style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', fontSize: '0.72rem', fontWeight: 800, padding: '3px 9px', borderRadius: 6 }}>
-                              📚 {t.subject}
-                            </span>
-                            <span style={{ background: 'rgba(255,255,255,0.08)', color: '#38bdf8', fontSize: '0.72rem', fontWeight: 900, padding: '3px 9px', borderRadius: 6, fontFamily: 'monospace', border: '1px solid rgba(56,189,248,0.25)' }}>
-                              🏷️ ID: {t.testCode}
-                            </span>
-                            <span style={{
-                              background: isMixed ? 'rgba(168,85,247,0.2)' : isMCQOnly ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.2)',
-                              color: isMixed ? '#c084fc' : isMCQOnly ? '#4ade80' : '#fbbf24',
-                              fontSize: '0.7rem',
-                              fontWeight: 800,
-                              padding: '3px 8px',
-                              borderRadius: 6
-                            }}>
-                              {isMixed ? '🔀 સંયુક્ત (MCQ + Desc)' : isMCQOnly ? '🔵 ફક્ત MCQ' : '📝 ફક્ત વર્ણાત્મક'}
-                            </span>
-                          </div>
-
-                          <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', margin: 0, letterSpacing: '0.01em' }}>
-                            {t.testName}
-                          </h3>
+                      {/* Top Badges Row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{
+                            background: theme.badgeBg,
+                            color: theme.badgeColor,
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 8,
+                            border: `1px solid ${theme.borderColor}`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            <span>{theme.icon}</span> {t.subject}
+                          </span>
+                          <span style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            color: '#38bdf8',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 8,
+                            fontFamily: 'monospace',
+                            border: '1px solid rgba(56,189,248,0.25)'
+                          }}>
+                            🏷️ {t.testCode}
+                          </span>
                         </div>
 
-                        {/* Badges strip */}
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.65rem' }}>પ્રશ્નો</div>
-                            <div style={{ color: '#e2e8f0', fontWeight: 800, fontSize: '0.85rem' }}>{t.questions.length}</div>
-                          </div>
-                          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.65rem' }}>કુલ ગુણ</div>
-                            <div style={{ color: '#4ade80', fontWeight: 800, fontSize: '0.85rem' }}>{t.totalMarks}m</div>
-                          </div>
-                          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#64748b', fontSize: '0.65rem' }}>સમય</div>
-                            <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: '0.85rem' }}>
-                              {t.timeLimit === 0 ? 'No Limit' : t.timeLimit <= 300 ? `${t.timeLimit}s/Q` : `${Math.round(t.timeLimit / 60)}m`}
-                            </div>
+                        <span style={{
+                          background: isMixed ? 'rgba(168,85,247,0.18)' : isMCQOnly ? 'rgba(34,197,94,0.16)' : 'rgba(245,158,11,0.18)',
+                          color: isMixed ? '#c084fc' : isMCQOnly ? '#4ade80' : '#fbbf24',
+                          border: isMixed ? '1px solid rgba(168,85,247,0.35)' : isMCQOnly ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(245,158,11,0.35)',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: 8
+                        }}>
+                          {isMixed ? '🔀 સંયુક્ત' : isMCQOnly ? '🔵 ફક્ત MCQ' : '📝 વર્ણાત્મક'}
+                        </span>
+                      </div>
+
+                      {/* Test Title */}
+                      <h3 style={{
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: '1.06rem',
+                        margin: '2px 0 0 0',
+                        lineHeight: 1.35,
+                        letterSpacing: '0.01em'
+                      }}>
+                        {t.testName}
+                      </h3>
+
+                      {/* Bento Stats Strip */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: 6,
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        padding: '8px 10px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(255, 255, 255, 0.06)'
+                      }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 700 }}>પ્રશ્નો</div>
+                          <div style={{ color: '#f8fafc', fontWeight: 900, fontSize: '0.88rem' }}>{t.questions.length}</div>
+                        </div>
+                        <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 700 }}>કુલ ગુણ</div>
+                          <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '0.88rem' }}>{t.totalMarks}m</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ color: '#94a3b8', fontSize: '0.66rem', fontWeight: 700 }}>સમય</div>
+                          <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '0.88rem' }}>
+                            {t.timeLimit === 0 ? 'No Limit' : t.timeLimit <= 300 ? `${t.timeLimit}s/Q` : `${Math.round(t.timeLimit / 60)}m`}
                           </div>
                         </div>
                       </div>
 
                       {/* Action Bar */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                        <button onClick={() => setExpandedTestCode(isExpanded ? null : t.testCode)}
-                          style={{
-                            background: isExpanded ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.06)',
-                            border: isExpanded ? '1.5px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                            color: isExpanded ? '#60a5fa' : '#cbd5e1',
-                            padding: '7px 14px',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                            fontWeight: 800,
-                            fontSize: '0.8rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontFamily: 'Hind Vadodara, sans-serif'
-                          }}>
-                          <Eye size={14} />
-                          {isExpanded ? 'પ્રશ્નો છુપાવો (Hide Questions)' : `👁️ પ્રશ્નો જુઓ (${t.questions.length})`}
-                        </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Primary Buttons */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 8 }}>
+                          <button
+                            onClick={() => setExpandedTestCode(isExpanded ? null : t.testCode)}
+                            className="sa-btn-pressable"
+                            style={{
+                              background: isExpanded ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.06)',
+                              border: isExpanded ? '1.5px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                              color: isExpanded ? '#60a5fa' : '#cbd5e1',
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              fontFamily: 'Hind Vadodara, sans-serif'
+                            }}
+                          >
+                            <Eye size={14} />
+                            <span>{isExpanded ? 'પ્રશ્નો છુપાવો' : `👁️ પ્રશ્નો જુઓ (${t.questions.length})`}</span>
+                          </button>
 
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <button onClick={() => { setMainChoice('edit_old'); setSelectedOldTest(t); }}
+                          <button
+                            onClick={() => {
+                              if (setSelectedLiveTestCode) setSelectedLiveTestCode(t.testCode);
+                              if (setActiveTab) setActiveTab('live');
+                            }}
+                            className="sa-btn-pressable"
+                            style={{
+                              background: 'linear-gradient(135deg, #047857, #10b981)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              fontSize: '0.78rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              fontFamily: 'Hind Vadodara, sans-serif',
+                              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
+                            }}
+                          >
+                            <Play size={13} fill="white" />
+                            <span>Live કરો</span>
+                          </button>
+                        </div>
+
+                        {/* Secondary Tools: Edit, PDF, Delete */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 6 }}>
+                          <button
+                            onClick={() => { setMainChoice('edit_old'); setSelectedOldTest(t); }}
+                            className="sa-btn-pressable"
                             style={{
                               background: 'rgba(245,158,11,0.15)',
                               border: '1px solid rgba(245,158,11,0.3)',
                               color: '#fbbf24',
-                              padding: '7px 12px',
+                              padding: '6px 10px',
                               borderRadius: 8,
                               cursor: 'pointer',
                               fontWeight: 700,
-                              fontSize: '0.8rem',
+                              fontSize: '0.76rem',
                               display: 'flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                               gap: 5,
                               fontFamily: 'Hind Vadodara, sans-serif'
-                            }}>
-                            <Edit3 size={13} /> Edit (સુધારો)
+                            }}
+                          >
+                            <Edit3 size={13} />
+                            <span>Edit</span>
                           </button>
 
-                          <button onClick={() => exportTestPDF(t, teacherProfile)}
+                          <button
+                            onClick={() => exportTestPDF(t, teacherProfile)}
+                            className="sa-btn-pressable"
                             style={{
                               background: 'rgba(59,130,246,0.15)',
                               border: '1px solid rgba(59,130,246,0.3)',
                               color: '#93c5fd',
-                              padding: '7px 12px',
+                              padding: '6px 10px',
                               borderRadius: 8,
                               cursor: 'pointer',
                               fontWeight: 700,
-                              fontSize: '0.8rem',
+                              fontSize: '0.76rem',
                               display: 'flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                               gap: 5,
                               fontFamily: 'Hind Vadodara, sans-serif'
-                            }}>
-                            <Download size={13} /> PDF
+                            }}
+                          >
+                            <Download size={13} />
+                            <span>PDF</span>
                           </button>
 
-                          <button onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length, t.questions)}
+                          <button
+                            onClick={() => handleDeleteTest(t.testCode, t.testName, t.questions.length, t.questions)}
                             title="આખી કસોટી ડિલીટ કરો અને ડેટાબેઝ ખાલી કરો"
+                            className="sa-btn-pressable"
                             style={{
                               background: 'rgba(239, 68, 68, 0.15)',
                               border: '1px solid rgba(239, 68, 68, 0.35)',
                               color: '#f87171',
-                              padding: '7px 12px',
+                              padding: '6px 10px',
                               borderRadius: 8,
                               cursor: 'pointer',
                               fontWeight: 700,
-                              fontSize: '0.8rem',
+                              fontSize: '0.76rem',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 5,
+                              justifyContent: 'center',
+                              gap: 4,
                               fontFamily: 'Hind Vadodara, sans-serif'
-                            }}>
-                            <Trash2 size={13} /> Delete
-                          </button>
-
-                          <button onClick={() => {
-                            if (setSelectedLiveTestCode) setSelectedLiveTestCode(t.testCode);
-                            if (setActiveTab) setActiveTab('live');
-                          }}
-                            style={{
-                              background: 'linear-gradient(135deg,#047857,#10b981)',
-                              color: 'white',
-                              border: 'none',
-                              padding: '7px 14px',
-                              borderRadius: 8,
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              fontSize: '0.8rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              fontFamily: 'Hind Vadodara, sans-serif'
-                            }}>
-                            <Play size={13} fill="white" /> Live કરો
+                            }}
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
@@ -6772,7 +6928,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                                     showToast('ડીલીટ કરવામાં ક્ષતિ.', 'error');
                                   }
                                 }
-                              }} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}
+                              }} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', color: '#ffffff', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}
                                 title="પ્રશ્ન દૂર કરો">
                                 <Trash2 size={12} />
                               </button>

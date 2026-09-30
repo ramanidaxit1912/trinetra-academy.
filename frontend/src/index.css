@@ -3093,6 +3093,64 @@ textarea.input-dark {
   transform: scale(0.96) translateY(1px);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   📝 GENERATE TESTS GRID CARDS (gt-cards-*)
+   Ultra-Luxury 3D Grid Layout for Teacher Test Management
+═══════════════════════════════════════════════════════════════════ */
+.gt-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .gt-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.gt-card {
+  position: relative;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, box-shadow 0.22s ease;
+  overflow: hidden;
+}
+
+.gt-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--card-border, rgba(56, 189, 248, 0.45));
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.65), 0 0 20px -4px var(--card-glow, rgba(56, 189, 248, 0.25));
+}
+
+.gt-card.card-expanded {
+  grid-column: 1 / -1 !important;
+  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%);
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.8), 0 0 24px -4px rgba(56, 189, 248, 0.3);
+}
+
+.gt-card-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-gradient, linear-gradient(90deg, #2563eb, #38bdf8));
+}
+
+
 /* Staggered entry animation for student cards when accordion opens */
 @keyframes waterfallCardEntry {
   0% {
