@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
+import { formatMathText, formatQuestionText, stripQuestionNumber } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
 import Top10ScorecardExportModal from './Top10ScorecardExportModal';
 import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
@@ -5851,7 +5851,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
 
   // ── JSON format normalizer ─────────────────────────────
   const normalizeJsonQuestion = (q, defaultSubject, defaultTestName, defaultTestCode, defaultTimeLimit) => {
-    let text = (q.question || q.text || q.title || q.qText || '').trim();
+    let text = stripQuestionNumber((q.question || q.text || q.title || q.qText || '').trim());
     let image = (q.image || q.imageUrl || q.img || q.photo || q.questionImage || q.question_image || '').trim();
 
     // If question text itself is an image URL/base64
