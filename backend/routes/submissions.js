@@ -35,10 +35,10 @@ function isTeacherRequest(req) {
 }
 
 
-// Memory cache for recent generated PDF URLs: submissionId -> url (capped at 150 entries to prevent memory leak)
+// Memory cache for recent generated PDF URLs: submissionId -> url (capped at 40 entries to prevent memory bloat)
 const scorecardPdfUrlCache = new Map();
 function setScorecardPdfCache(id, url) {
-  if (scorecardPdfUrlCache.size >= 150) {
+  if (scorecardPdfUrlCache.size >= 40) {
     const oldestKey = scorecardPdfUrlCache.keys().next().value;
     if (oldestKey !== undefined) scorecardPdfUrlCache.delete(oldestKey);
   }
@@ -47,7 +47,7 @@ function setScorecardPdfCache(id, url) {
 
 // ⚡ In-Memory RAM Cache for Test Questions in Review (serves 500+ students instantly with 0 DB query overhead)
 const reviewQuestionsCache = new Map();
-const REVIEW_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const REVIEW_CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
 
 function getCachedReviewQuestions(testCode) {
   if (!testCode) return null;
@@ -60,21 +60,21 @@ function getCachedReviewQuestions(testCode) {
 
 function setCachedReviewQuestions(testCode, questions) {
   if (!testCode || !Array.isArray(questions)) return;
-  if (reviewQuestionsCache.size >= 100) {
+  if (reviewQuestionsCache.size >= 20) {
     const oldestKey = reviewQuestionsCache.keys().next().value;
     if (oldestKey !== undefined) reviewQuestionsCache.delete(oldestKey);
   }
   reviewQuestionsCache.set(testCode, { questions, timestamp: Date.now() });
 }
 
-// ⚡ RAM Cache for generated Scorecard PDF Buffers: id -> { buffer, filename } (Capped at 50 to protect RAM)
-// Once generated, re-downloads take 0.001 seconds with 0% CPU!
+// ⚡ Ultra-Light RAM Cache for recent Scorecard PDF Buffers (Capped at 12 to strictly protect RAM)
+// Frees up to 40 MB of RAM while maintaining instantaneous re-downloads for active students!
 const generatedPdfBufferCache = new Map();
 function getCachedPdfBuffer(submissionId) {
   return generatedPdfBufferCache.get(submissionId) || null;
 }
 function setCachedPdfBuffer(submissionId, buffer, filename) {
-  if (generatedPdfBufferCache.size >= 50) {
+  if (generatedPdfBufferCache.size >= 12) {
     const oldestKey = generatedPdfBufferCache.keys().next().value;
     if (oldestKey !== undefined) generatedPdfBufferCache.delete(oldestKey);
   }

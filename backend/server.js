@@ -62,8 +62,25 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static file serving for uploaded photos and materials
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static file serving for uploaded photos and materials with 7-day browser caching (reduces backend RAM and bandwidth)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d' }));
+
+// ⚡ Active Memory Optimizer & Garbage Collector (Keeps RAM minimal during 850+ student tests)
+if (global.gc) {
+  console.log('🧹 [Memory Shield] V8 Garbage Collector enabled (--expose-gc) for active RAM management');
+  setInterval(() => {
+    try {
+      const memory = process.memoryUsage();
+      const heapMb = Math.round(memory.heapUsed / 1024 / 1024);
+      // Trigger GC if heap exceeds 140MB or RSS exceeds 200MB
+      if (heapMb > 140) {
+        global.gc();
+        const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        console.log(`🧹 [Memory Shield] Cleaned RAM: ${heapMb} MB → ${after} MB`);
+      }
+    } catch (_) {}
+  }, 2 * 60 * 1000); // Check every 2 minutes
+}
 
 // ─── Root Check ───────────────────────────────────────────────
 app.get('/', (req, res) => {

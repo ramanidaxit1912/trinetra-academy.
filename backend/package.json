@@ -4,7 +4,7 @@
   "description": "Trinetra Online Academy - Node.js + Express + PostgreSQL Backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --max-old-space-size=256 --expose-gc server.js",
     "dev": "nodemon server.js",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
