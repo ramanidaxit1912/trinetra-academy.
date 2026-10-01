@@ -308,9 +308,9 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
         <!-- Luxury Award Certificate Container (Landscape A4: 100% × 650px) -->
         <div style="width: 100%; height: 650px; border-radius: 16px; position: relative; background: radial-gradient(circle at 75% 25%, rgba(245,158,11,0.03) 0%, transparent 60%), #ffffff; box-shadow: 0 4px 25px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid #e2e8f0;">
           
-          <!-- TOP ELEGANT CURVED WAVES (Flatter curve ensuring CERTIFICATE starts cleanly below yellow border) -->
-          <div style="position: absolute; top: 0; left: 0; right: 0; height: 60px; pointer-events: none; z-index: 1;">
-            <svg viewBox="0 0 1000 60" style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none">
+          <!-- TOP ELEGANT CURVED WAVES (Expanded slightly downwards as requested) -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 80px; pointer-events: none; z-index: 1;">
+            <svg viewBox="0 0 1000 80" style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="topGoldWave${idx}" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#b45309" />
@@ -320,17 +320,17 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
                   <stop offset="100%" stop-color="#b45309" />
                 </linearGradient>
               </defs>
-              <!-- Deep Navy Wave (Stays well above CERTIFICATE) -->
-              <path d="M0,0 L1000,0 L1000,28 C820,38 600,14 350,30 C210,40 100,50 0,42 Z" fill="#0b1736" />
-              <!-- Rich Gold Wave Underneath (Ends cleanly at Y ~ 42px) -->
-              <path d="M0,42 C100,50 210,40 350,30 C600,14 820,38 1000,28 L1000,38 C820,48 600,24 350,40 C210,50 100,60 0,52 Z" fill="url(#topGoldWave${idx})" />
+              <!-- Deep Navy Wave (Expanded lower down) -->
+              <path d="M0,0 L1000,0 L1000,40 C820,56 600,30 350,46 C210,58 100,68 0,58 Z" fill="#0b1736" />
+              <!-- Rich Gold Wave Underneath (Expanded gracefully to Y ~ 58-68px) -->
+              <path d="M0,58 C100,68 210,58 350,46 C600,30 820,56 1000,40 L1000,50 C820,66 600,40 350,56 C210,68 100,78 0,68 Z" fill="url(#topGoldWave${idx})" />
             </svg>
           </div>
 
-          <!-- Top-Left Official Trinetra Logo (ONLY Logo, Lines Removed, Big Size as requested) -->
-          <div style="position: absolute; top: 10px; left: 24px; z-index: 5;">
-            <!-- Big Trinetra Logo Image (80px x 80px) -->
-            <div style="width: 80px; height: 80px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(0,0,0,0.45); border: 3px solid #f59e0b; overflow: hidden; padding: 4px;">
+          <!-- Top-Left Official Trinetra Logo (Horizontally aligned with student photo & enlarged to 100px x 100px as requested) -->
+          <div style="position: absolute; top: 8px; left: 20px; width: 200px; display: flex; justify-content: center; z-index: 10;">
+            <!-- Big Trinetra Logo Image (100px x 100px) -->
+            <div style="width: 100px; height: 100px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 22px rgba(0,0,0,0.5); border: 3.5px solid #f59e0b; overflow: hidden; padding: 5px;">
               <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
           </div>
@@ -375,7 +375,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
             <div style="flex: 1; padding: 20px 36px 14px 22px; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
               
               <!-- Certificate Title Block (Starts cleanly BELOW the yellow wave border) -->
-              <div style="margin-top: 50px;">
+              <div style="margin-top: 62px;">
                 <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 38px; font-weight: 900; color: #0b1736; letter-spacing: 4px; text-transform: uppercase; line-height: 1;">
                   CERTIFICATE
                 </div>
