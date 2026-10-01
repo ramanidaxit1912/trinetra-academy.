@@ -163,69 +163,144 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       z-index: 1;
     }
     .q-card {
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       page-break-inside: avoid;
-      border-bottom: 1px dashed #cbd5e1;
-      padding-bottom: 10px;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-left: 4.5px solid #1e3a8a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
       position: relative;
       z-index: 1;
     }
     .q-head {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .q-badge {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 900;
+      padding: 3px 10px;
+      border-radius: 20px;
+      box-shadow: 0 2px 4px rgba(30,58,138,0.25);
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .q-type-badge {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 10px;
       font-weight: 700;
-      font-size: 13px;
-      color: #1e3a8a;
-      margin-bottom: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+    .q-marks-badge {
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid #a7f3d0;
+    }
+    .q-neg-badge {
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 10px;
+      border: 1px solid #fecaca;
     }
     .q-text {
-      color: #1e293b;
-      font-weight: 600;
-      margin-bottom: 8px;
+      color: #0f172a;
+      font-weight: 700;
+      margin-bottom: 10px;
       font-size: 13.5px;
-      line-height: 1.45;
+      line-height: 1.55;
     }
     .mcq-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px 20px;
-      margin-left: 14px;
+      gap: 8px 14px;
       font-size: 12.5px;
     }
     .mcq-opt {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #334155;
+      font-size: 12.5px;
+    }
+    .opt-circle-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #1e293b;
+      font-weight: 900;
+      font-size: 11px;
+      flex-shrink: 0;
     }
     .mcq-opt.correct-opt {
-      background: #f0fdf4;
-      border: 1px solid #86efac;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      color: #15803d;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+      border: 1.5px solid #22c55e !important;
+      color: #14532d !important;
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(34,197,94,0.15);
     }
-    .opt-circle {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 1.5px solid #475569;
-      border-radius: 50%;
+    .mcq-opt.correct-opt .opt-circle-badge {
+      background: #15803d !important;
+      color: #ffffff !important;
+    }
+    .correct-tag {
+      background: #15803d;
+      color: #ffffff;
+      font-size: 9.5px;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: auto;
+      letter-spacing: 0.2px;
       flex-shrink: 0;
     }
     .solution-box {
-      margin-top: 8px;
-      margin-left: 14px;
-      background: #eff6ff;
-      border-left: 3.5px solid #2563eb;
-      padding: 6px 10px;
-      border-radius: 0 6px 6px 0;
+      margin-top: 10px;
+      background: linear-gradient(180deg, #f0f7ff 0%, #e0f2fe 100%);
+      border: 1.5px solid #bae6fd;
+      border-left: 5px solid #0284c7;
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(2,132,199,0.06);
+    }
+    .solution-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 900;
+      color: #0369a1;
       font-size: 11.5px;
-      color: #1e3a8a;
+      margin-bottom: 5px;
     }
     .desc-box {
       margin-top: 8px;
-      margin-left: 14px;
     }
     .desc-line {
       border-bottom: 1px solid #cbd5e1;
@@ -361,8 +436,14 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       return `
         <div class="q-card">
           <div class="q-head">
-            <span>પ્રશ્ન ${idx + 1}. [${q.type === 'mcq' ? 'બહુવિકલ્પ (MCQ)' : 'વર્ણાત્મક પ્રશ્ન'}]</span>
-            <span>[ગુણ: ${q.marks || 1}]</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="q-badge">પ્રશ્ન ${idx + 1}</span>
+              <span class="q-type-badge">${q.type === 'mcq' ? '🎯 બહુવિકલ્પ (MCQ)' : '✍️ વર્ણાત્મક'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="q-marks-badge">+${q.marks || 1} ગુણ</span>
+              ${test.negativeMarking && Number(test.negativeMarking) > 0 ? `<span class="q-neg-badge">-${test.negativeMarking} ઋણ</span>` : ''}
+            </div>
           </div>
           <div class="q-text">${formatMathText(q.text)}</div>
           ${(q.image || q.imageUrl) ? `
@@ -378,21 +459,27 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
                 const isCorrect = includeSolutions && (correctOpt === opt);
                 return `
                   <div class="mcq-opt ${isCorrect ? 'correct-opt' : ''}">
-                    <span class="opt-circle" style="${isCorrect ? 'border-color: #15803d; background: #15803d;' : ''}"></span>
-                    <strong>(${opt})</strong> ${formatMathText(optVal)}
-                    ${isCorrect ? '<span style="color: #15803d; font-weight: 900; margin-left: 6px;">✓ (સાચો ઉત્તર)</span>' : ''}
+                    <span class="opt-circle-badge">${opt}</span>
+                    <span style="flex: 1; word-break: break-word;">${formatMathText(optVal)}</span>
+                    ${isCorrect ? '<span class="correct-tag">✓ સાચો ઉત્તર</span>' : ''}
                   </div>
                 `;
               }).join('')}
             </div>
             ${(includeSolutions && correctOpt) ? `
-              <div style="margin-top: 6px; padding: 3px 8px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #166534; font-weight: 800;">
-                <span>✅ સાચો ઉત્તર વિકલ્પ: <strong>(${correctOpt})</strong></span>
+              <div style="margin-top: 8px; padding: 4px 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #166534; font-weight: 800;">
+                <span>🎯 સાચો વિકલ્પ: <strong>(${correctOpt})</strong></span>
               </div>
             ` : ''}
             ${(includeSolutions && q.explanation) ? `
               <div class="solution-box">
-                💡 <strong>સમજૂતી:</strong> ${formatMathText(q.explanation)}
+                <div class="solution-title">
+                  <span>💡</span>
+                  <span>વિષય નિષ્ણાત સમજૂતી / Solution:</span>
+                </div>
+                <div style="line-height: 1.5; color: #1e293b;">
+                  ${formatMathText(q.explanation)}
+                </div>
               </div>
             ` : ''}
           ` : `
@@ -403,7 +490,13 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
             </div>
             ${(includeSolutions && (q.sampleAnswer || q.solution || q.answer)) ? `
               <div class="solution-box">
-                💡 <strong>મોડેલ ઉત્તર / સમજૂતી:</strong> ${formatMathText(q.sampleAnswer || q.solution || q.answer)}
+                <div class="solution-title">
+                  <span>💡</span>
+                  <span>મોડેલ ઉત્તર / Model Solution:</span>
+                </div>
+                <div style="line-height: 1.5; color: #1e293b;">
+                  ${formatMathText(q.sampleAnswer || q.solution || q.answer)}
+                </div>
               </div>
             ` : ''}
           `}
