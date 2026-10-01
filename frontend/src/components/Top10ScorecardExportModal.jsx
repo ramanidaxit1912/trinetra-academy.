@@ -327,20 +327,11 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
             </svg>
           </div>
 
-          <!-- Top-Left Official Trinetra Logo & TET/TAT Tagline (Enlarged as requested) -->
-          <div style="position: absolute; top: 8px; left: 24px; display: flex; align-items: center; gap: 14px; z-index: 5;">
-            <!-- Real Trinetra Logo Image (Enlarged to 60px) -->
-            <div style="width: 60px; height: 60px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.4); border: 2.5px solid #f59e0b; overflow: hidden; flex-shrink: 0; padding: 3px;">
+          <!-- Top-Left Official Trinetra Logo (ONLY Logo, Lines Removed, Big Size as requested) -->
+          <div style="position: absolute; top: 10px; left: 24px; z-index: 5;">
+            <!-- Big Trinetra Logo Image (80px x 80px) -->
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(0,0,0,0.45); border: 3px solid #f59e0b; overflow: hidden; padding: 4px;">
               <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
-            </div>
-            <div>
-              <div style="color: #ffffff; font-weight: 900; font-size: 20px; text-transform: uppercase; letter-spacing: 0.8px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); line-height: 1.2;">
-                ${academy}
-              </div>
-              <!-- Line requested by user: TET / TAT PARIKSHA NI TAYARI KARVATI VISHWASU SANSTHA (Enlarged to 13px) -->
-              <div style="color: #fde047; font-size: 13px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.6); margin-top: 2px;">
-                TET / TAT પરીક્ષાની તૈયારી કરાવતી વિશ્વાસુ સંસ્થા
-              </div>
             </div>
           </div>
 
@@ -410,11 +401,23 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
                 <!-- Elegant Center Accent Divider -->
                 <div style="width: 72%; height: 2px; background: linear-gradient(90deg, transparent, #0b1736 15%, #d97706 50%, #0b1736 85%, transparent); margin: 0 auto 16px;"></div>
 
-                <!-- Dignified Citation Paragraph (Enlarged font 16.5px with 1.85 line height to beautifully fill the middle space!) -->
-                <div style="max-width: 720px; margin: 0 auto; font-size: 16.5px; color: #1e293b; line-height: 1.85; font-weight: 500;">
-                  જેમણે <strong>${academy}</strong> દ્વારા આયોજિત <strong>"${cardTestTitle}"</strong> ${testSubject ? `(વિષય: <strong>${testSubject}</strong>)` : ''} કસોટીમાં અસાધારણ શૈક્ષણિક ગુણવત્તા અને ઉત્કૃષ્ટ પરિણામ દર્શાવી સમગ્ર કક્ષામાં 
-                  <strong style="color: #92400e; font-weight: 900; background: #fef3c7; padding: 4px 12px; border-radius: 6px; border: 1.5px solid #f59e0b; font-size: 16.5px; display: inline-block; margin: 2px 0;">${rankTitle}</strong> 
-                  પ્રાપ્ત કરેલ છે. તેમના આ તેજસ્વી પ્રદર્શન અને સતત પ્રગતિ માટે સંસ્થા ગૌરવપૂર્વક આ પ્રમાણપત્ર અર્પણ કરે છે.
+                <!-- Dignified Citation Paragraph (Rank box on its OWN line, text after starts on a NEW line) -->
+                <div style="max-width: 740px; margin: 0 auto; font-size: 16px; color: #1e293b; line-height: 1.7; font-weight: 500;">
+                  <div style="margin-bottom: 5px;">
+                    જેમણે <strong>${academy}</strong> દ્વારા આયોજિત <strong>"${cardTestTitle}"</strong> ${testSubject ? `(વિષય: <strong>${testSubject}</strong>)` : ''} કસોટીમાં અસાધારણ શૈક્ષણિક ગુણવત્તા અને ઉત્કૃષ્ટ પરિણામ દર્શાવી સમગ્ર કક્ષામાં
+                  </div>
+                  
+                  <!-- Standalone Rank Box on its OWN line -->
+                  <div style="margin: 8px 0;">
+                    <strong style="color: #92400e; font-weight: 900; background: #fef3c7; padding: 5px 22px; border-radius: 8px; border: 1.5px solid #f59e0b; font-size: 17.5px; display: inline-block; box-shadow: 0 2px 8px rgba(245,158,11,0.22);">
+                      ${rankTitle}
+                    </strong>
+                  </div>
+
+                  <!-- Text after the box starts on a NEW line -->
+                  <div style="margin-top: 5px;">
+                    પ્રાપ્ત કરેલ છે. તેમના આ તેજસ્વી પ્રદર્શન અને સતત પ્રગતિ માટે સંસ્થા ગૌરવપૂર્વક આ પ્રમાણપત્ર અર્પણ કરે છે.
+                  </div>
                 </div>
 
                 <!-- 4 Performance Metric Badges (Enlarged and positioned nicely below citation) -->
