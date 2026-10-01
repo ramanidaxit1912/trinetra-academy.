@@ -316,18 +316,18 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
             </svg>
           </div>
 
-          <!-- Top-Left Official Trinetra Logo & TET/TAT Tagline -->
-          <div style="position: absolute; top: 10px; left: 26px; display: flex; align-items: center; gap: 12px; z-index: 5;">
-            <!-- Real Trinetra Logo Image -->
-            <div style="width: 48px; height: 48px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); border: 2px solid #f59e0b; overflow: hidden; flex-shrink: 0; padding: 2px;">
+          <!-- Top-Left Official Trinetra Logo & TET/TAT Tagline (Enlarged as requested) -->
+          <div style="position: absolute; top: 8px; left: 24px; display: flex; align-items: center; gap: 14px; z-index: 5;">
+            <!-- Real Trinetra Logo Image (Enlarged to 60px) -->
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.4); border: 2.5px solid #f59e0b; overflow: hidden; flex-shrink: 0; padding: 3px;">
               <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
             <div>
-              <div style="color: #ffffff; font-weight: 900; font-size: 15.5px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1.2;">
+              <div style="color: #ffffff; font-weight: 900; font-size: 20px; text-transform: uppercase; letter-spacing: 0.8px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); line-height: 1.2;">
                 ${academy}
               </div>
-              <!-- Line requested by user: TET / TAT PARIKSHA NI TAYARI KARVATI VISHWASU SANSTHA -->
-              <div style="color: #fde047; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">
+              <!-- Line requested by user: TET / TAT PARIKSHA NI TAYARI KARVATI VISHWASU SANSTHA (Enlarged to 13px) -->
+              <div style="color: #fde047; font-size: 13px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.6); margin-top: 2px;">
                 TET / TAT પરીક્ષાની તૈયારી કરાવતી વિશ્વાસુ સંસ્થા
               </div>
             </div>
@@ -389,9 +389,9 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
                   આ સન્માન પ્રમાણપત્ર ગૌરવપૂર્વક એનાયત કરવામાં આવે છે
                 </div>
 
-                <!-- Big Student Recipient Name (Enlarged to 54px as requested!) -->
+                <!-- Big Student Recipient Name (Consistent Script Font Across All Certificates!) -->
                 <div style="margin: 6px 0 8px;">
-                  <span style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 54px; font-weight: 800; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1; text-shadow: 0 1px 2px rgba(0,0,0,0.12);">
+                  <span class="certificate-student-name" style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 54px; font-weight: 800; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1; text-shadow: 0 1px 2px rgba(0,0,0,0.12); display: inline-block;">
                     ${sName}
                   </span>
                 </div>
@@ -485,7 +485,17 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
   <meta charset="utf-8">
   <title>Top 10 Scorecard Booklet - ${testTitle} - ${academy}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Hind+Vadodara:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Hind+Vadodara:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,700;1,900&display=swap');
+    
+    .certificate-student-name {
+      font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif !important;
+      font-size: 54px !important;
+      font-weight: 800 !important;
+      color: #0b1736 !important;
+      letter-spacing: 0.5px !important;
+      line-height: 1.1 !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+    }
     
     @page {
       size: A4 landscape;
@@ -550,20 +560,17 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     
     <div style="width: 100%; height: 650px; border-radius: 16px; border: 3px solid #0b1736; outline: 1.5px solid #d97706; outline-offset: -7px; background: #ffffff; padding: 14px 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
       
-      <!-- Top Branding with Logo -->
+      <!-- Top Branding with Logo (Enlarged as requested) -->
       <div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; border-bottom: 2px solid #0b1736; padding-bottom: 8px; margin-bottom: 8px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 2px solid #f59e0b; overflow: hidden; padding: 2px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; border-bottom: 2px solid #0b1736; padding-bottom: 8px; margin-bottom: 8px;">
+          <div style="width: 58px; height: 58px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 2.5px solid #f59e0b; overflow: hidden; padding: 3px; flex-shrink: 0;">
             <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
           </div>
-          <div style="text-align: center;">
-            <div style="color: #d97706; font-size: 11px; font-weight: 800; letter-spacing: 3px;">
-              ★ ★ ★ ★ ★
-            </div>
-            <div style="color: #0b1736; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">
+          <div style="text-align: left;">
+            <div style="color: #0b1736; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; line-height: 1.2;">
               ${academy}
             </div>
-            <div style="color: #475569; font-size: 10.5px; font-weight: 800; text-transform: uppercase;">
+            <div style="color: #1e3a8a; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
               TET / TAT પરીક્ષાની તૈયારી કરાવતી વિશ્વાસુ સંસ્થા
             </div>
           </div>
