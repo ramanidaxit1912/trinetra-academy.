@@ -8,6 +8,16 @@ import { getLeaderboardOverrides } from '../services/api';
    SHARED HELPERS FOR SCORECARDS & POSTERS
 ═══════════════════════════════════════════════════════════════ */
 
+// Helper to ensure student names in certificates connect elegantly with cursive script font (like "Sunil Radadiya")
+export const formatStudentNameForCertificate = (name) => {
+  if (!name) return 'વિદ્યાર્થી';
+  const str = String(name).trim();
+  if (/[a-zA-Z]/.test(str)) {
+    return str.replace(/\b[a-zA-Z]+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  }
+  return str;
+};
+
 // Shared helper to extract duration and finish time
 export const getSubmissionTimeInfo = (s) => {
   let d = s?.duration || s?.timeTaken || s?.timeSpentSeconds || 0;
@@ -205,7 +215,8 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
 
   // Generate HTML for Page 1: Merit Summary Table Rows (A4 Landscape Layout)
   const page1SummaryRows = topList.slice(0, 10).map((s, idx) => {
-    const sName = s.student?.name || 'વિદ્યાર્થી';
+    const rawName = s.student?.name || 'વિદ્યાર્થી';
+    const sName = formatStudentNameForCertificate(rawName);
     const sRoll = s.student?.mobile || s.student?.rollNo || `TR-${1000 + idx + 1}`;
     const sPhoto = s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
@@ -484,6 +495,9 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
 <head>
   <meta charset="utf-8">
   <title>Top 10 Scorecard Booklet - ${testTitle} - ${academy}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Hind+Vadodara:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,700;1,900&display=swap" rel="stylesheet">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Hind+Vadodara:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@1,700;1,900&display=swap');
     
@@ -495,6 +509,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
       letter-spacing: 0.5px !important;
       line-height: 1.1 !important;
       text-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+      text-transform: capitalize !important;
     }
     
     @page {
@@ -624,8 +639,10 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
         </table>
       </div>
 
-      <!-- Official Signature Line with QR and Stamp (Dixit Ramani & Sunil Sir) -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 6px; border-top: 1.5px solid #e2e8f0;">
+      <!-- Official Signature Line with Stamp and QR (All in ONE single flex line!) -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 6px; border-top: 1.5px solid #e2e8f0; width: 100%;">
+        
+        <!-- Left: Exam Convener Dixit Ramani -->
         <div style="text-align: center; width: 165px;">
           <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
             ${convenerName}
@@ -636,15 +653,21 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
           </div>
         </div>
 
-        <div style="text-align: center;">
-          <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 2px;">
-            ${getOfficialSealStampHtml(56)}
+        <!-- Center: Official Red APPROVED Rubber Stamp & QR Verification -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+          <img 
+            src="${approvedStampUrl}" 
+            alt="Official Approved Stamp" 
+            onerror="this.onerror=null; this.src=APPROVED_STAMP_BASE64;" 
+            style="width: 58px; height: 58px; object-fit: contain; transform: rotate(-10deg); filter: drop-shadow(0 2px 4px rgba(220,38,38,0.3));" 
+          />
+          <div style="text-align: center;">
             ${getSvgQrCode(46)}
-          </div>
-          <div style="font-size: 8.5px; color: #0284c7; font-weight: 800;">સ્કેન કરીને પરિણામ ચકાસો • હેલ્પલાઇન: ${helpline}</div>
+            <div style="font-size: 8.5px; color: #0284c7; font-weight: 800; margin-top: 2px;">સ્કેન કરીને પરિણામ ચકાસો</div>
           </div>
         </div>
 
+        <!-- Right: Principal Sunil Sir -->
         <div style="text-align: center; width: 165px;">
           <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
             ${principalName}
@@ -654,6 +677,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
             <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">સુનિલ સર (${principalName})</div>
           </div>
         </div>
+
       </div>
 
     </div>
