@@ -82,12 +82,44 @@ const DEFAULT_OFFERS = [
   }
 ];
 
+const getInitialCarousel = () => {
+  try {
+    const cached = localStorage.getItem('trinetra_cached_carousel');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return DEFAULT_CAROUSEL;
+};
+
+const getInitialOffers = () => {
+  try {
+    const cached = localStorage.getItem('trinetra_cached_offers');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return DEFAULT_OFFERS;
+};
+
 export default function HomePage() {
-  const [carouselList, setCarouselList] = useState(DEFAULT_CAROUSEL);
-  const [offersList, setOffersList] = useState(DEFAULT_OFFERS);
+  const [carouselList, setCarouselList] = useState(getInitialCarousel);
+  const [offersList, setOffersList] = useState(getInitialOffers);
   const [heroIdx, setHeroIdx] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const [zoomPoster, setZoomPoster] = useState(null);
+
+  // Background Preload carousel images for instantaneous rendering
+  useEffect(() => {
+    carouselList.forEach(item => {
+      if (item?.imageUrl) {
+        const img = new Image();
+        img.src = getImageSrc(item.imageUrl);
+      }
+    });
+  }, [carouselList]);
 
   // Fetch live marketing items from backend
   useEffect(() => {
@@ -98,8 +130,25 @@ export default function HomePage() {
           const carouselItems = items.filter(i => i.category === 'CAROUSEL' && i.isActive !== false && i.showInHome !== false);
           const offerItems = items.filter(i => i.category === 'DHAMAKA_OFFER' && i.isActive !== false && i.showInHome !== false);
 
-          if (carouselItems.length > 0) setCarouselList(carouselItems);
-          if (offerItems.length > 0) setOffersList(offerItems);
+          if (carouselItems.length > 0) {
+            // Preload first poster so replacement is seamless without blank flicker
+            const preloadImg = new Image();
+            preloadImg.src = getImageSrc(carouselItems[0].imageUrl);
+            const applyCarousel = () => {
+              setCarouselList(carouselItems);
+              try {
+                localStorage.setItem('trinetra_cached_carousel', JSON.stringify(carouselItems));
+              } catch (e) {}
+            };
+            preloadImg.onload = applyCarousel;
+            preloadImg.onerror = applyCarousel;
+          }
+          if (offerItems.length > 0) {
+            setOffersList(offerItems);
+            try {
+              localStorage.setItem('trinetra_cached_offers', JSON.stringify(offerItems));
+            } catch (e) {}
+          }
         }
       })
       .catch(err => {
@@ -115,7 +164,7 @@ export default function HomePage() {
       setTimeout(() => {
         setHeroIdx(i => (i + 1) % carouselList.length);
         setFadeIn(true);
-      }, 250);
+      }, 200);
     }, 4500);
     return () => clearInterval(timer);
   }, [carouselList.length]);
@@ -128,7 +177,7 @@ export default function HomePage() {
     setTimeout(() => {
       setHeroIdx(i => (i - 1 + carouselList.length) % carouselList.length);
       setFadeIn(true);
-    }, 150);
+    }, 120);
   };
 
   const handleNext = (e) => {
@@ -137,7 +186,7 @@ export default function HomePage() {
     setTimeout(() => {
       setHeroIdx(i => (i + 1) % carouselList.length);
       setFadeIn(true);
-    }, 150);
+    }, 120);
   };
 
   return (
@@ -265,13 +314,15 @@ export default function HomePage() {
                 </div>
 
                 <img
+                  key={currentPoster.id || currentPoster.imageUrl || heroIdx}
                   src={getImageSrc(currentPoster.imageUrl)}
                   alt={currentPoster.title || 'Marketing Poster'}
+                  loading="eager"
                   style={{
                     width: '100%', height: '100%',
                     objectFit: 'contain',
-                    opacity: fadeIn ? 1 : 0,
-                    transition: 'opacity 0.25s ease-in-out',
+                    opacity: fadeIn ? 1 : 0.4,
+                    transition: 'opacity 0.22s ease-in-out',
                     display: 'block'
                   }}
                   onError={(e) => {
