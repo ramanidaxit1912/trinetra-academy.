@@ -4014,7 +4014,7 @@ export default function StudentDashboard() {
                     let cumulativeAngle = 0;
                     const gradientSegments = [];
 
-                    const slices = subjectAnalytics.map((sub, idx) => {
+                    const rawSlices = subjectAnalytics.map((sub, idx) => {
                       const count = sub.count || 1;
                       const pct = Math.max(1, Math.round((count / totalWeight) * 100));
                       const color = colors[idx % colors.length];
@@ -4029,11 +4029,33 @@ export default function StudentDashboard() {
                       const midAngle = cumulativeAngle + sliceAngle / 2;
                       cumulativeAngle += sliceAngle;
 
-                      // Position on the colored donut ring for the clean percentage label
+                      // Base coordinates (Chart center at cx=180, cy=155)
                       const rad = Math.PI / 180;
-                      const ringRadius = 82; // center of the colored band
-                      const pX = 110 + ringRadius * Math.cos((-90 + midAngle) * rad);
-                      const pY = 110 + ringRadius * Math.sin((-90 + midAngle) * rad);
+                      const angleRad = (-90 + midAngle) * rad;
+                      const cosVal = Math.cos(angleRad);
+                      const sinVal = Math.sin(angleRad);
+
+                      // Distance where the badge anchors from the center
+                      const anchorR = 92;
+                      const rawX = 180 + anchorR * cosVal;
+                      const rawY = 155 + anchorR * sinVal;
+
+                      // Directional zones to push badges AWAY from center
+                      let zone = 'right';
+                      let transform = 'translate(6px, -50%)';
+                      if (midAngle >= 335 || midAngle < 25) {
+                        zone = 'top';
+                        transform = 'translate(-50%, calc(-100% - 6px))';
+                      } else if (midAngle >= 155 && midAngle < 205) {
+                        zone = 'bottom';
+                        transform = 'translate(-50%, 6px)';
+                      } else if (midAngle >= 205 && midAngle < 335) {
+                        zone = 'left';
+                        transform = 'translate(calc(-100% - 6px), -50%)';
+                      } else {
+                        zone = 'right';
+                        transform = 'translate(6px, -50%)';
+                      }
 
                       return {
                         subject: sub.subject,
@@ -4043,10 +4065,37 @@ export default function StudentDashboard() {
                         pct,
                         color,
                         scorePct: sub.pct,
-                        pX,
-                        pY,
                         midAngle,
-                        sliceAngle
+                        sliceAngle,
+                        rawX,
+                        rawY,
+                        targetY: rawY,
+                        zone,
+                        transform
+                      };
+                    });
+
+                    // Collision prevention: separate badges on the same side vertically
+                    const resolveZoneOverlap = (arr) => {
+                      arr.sort((a, b) => a.targetY - b.targetY);
+                      const MIN_GAP = 28;
+                      for (let i = 1; i < arr.length; i++) {
+                        if (arr[i].targetY - arr[i - 1].targetY < MIN_GAP) {
+                          arr[i].targetY = arr[i - 1].targetY + MIN_GAP;
+                        }
+                      }
+                    };
+
+                    const rightSide = rawSlices.filter(s => s.zone === 'right');
+                    const leftSide = rawSlices.filter(s => s.zone === 'left');
+                    resolveZoneOverlap(rightSide);
+                    resolveZoneOverlap(leftSide);
+
+                    const slices = rawSlices.map(s => {
+                      return {
+                        ...s,
+                        displayX: s.rawX,
+                        displayY: (s.zone === 'right' || s.zone === 'left') ? s.targetY : s.rawY
                       };
                     });
 
@@ -4056,22 +4105,25 @@ export default function StudentDashboard() {
 
                     return (
                       <div>
-                        {/* Top: Donut Chart with Direct On-Slice Percentages & Center Counter */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                          <div style={{ position: 'relative', width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* Top: Donut Chart with Perfectly Positioned Non-Overlapping Subject Badges */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'visible' }}>
+                          <div style={{ position: 'relative', width: 360, height: 310, maxWidth: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             
-                            {/* Main Conic Donut Circle */}
+                            {/* Main Conic Donut Circle in exact center */}
                             <div style={{
-                              width: 220, height: 220,
+                              position: 'absolute',
+                              left: '50%',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: 176, height: 176,
                               borderRadius: '50%',
                               background: conicStyle,
                               boxShadow: '0 10px 28px rgba(0,0,0,0.12), inset 0 0 0 3px rgba(255,255,255,0.9)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              position: 'relative'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
                             }}>
                               {/* Inner White Cutout - Completely Clear & Unobstructed */}
                               <div style={{
-                                width: 116, height: 116,
+                                width: 92, height: 92,
                                 borderRadius: '50%',
                                 background: '#ffffff',
                                 boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
@@ -4080,73 +4132,41 @@ export default function StudentDashboard() {
                                 textAlign: 'center',
                                 zIndex: 2
                               }}>
-                                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
+                                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
                                   {subjectAnalytics.length}
                                 </div>
-                                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
+                                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
                                   વિષયો
                                 </div>
                               </div>
                             </div>
 
-                            {/* Direct Clean Percentages Positioned On Each Slice */}
-                            {slices.map((s, i) => {
-                              if (s.pct < 6) return null; // Avoid crowding very small slices
-                              return (
-                                <div
-                                  key={i}
-                                  style={{
-                                    position: 'absolute',
-                                    left: s.pX,
-                                    top: s.pY,
-                                    transform: 'translate(-50%, -50%)',
-                                    color: '#ffffff',
-                                    fontWeight: 900,
-                                    fontSize: '0.84rem',
-                                    letterSpacing: '0.3px',
-                                    textShadow: '0 1.5px 3px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.6)',
-                                    pointerEvents: 'none',
-                                    zIndex: 5
-                                  }}
-                                >
-                                  {s.pct}%
-                                </div>
-                              );
-                            })}
-
-                          </div>
-
-                          {/* Elegant Wrapped Subject Badges Legend (Zero Overlap on Mobile & PC) */}
-                          <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '8px 10px',
-                            marginTop: 18,
-                            maxWidth: 540,
-                            width: '100%',
-                            padding: '0 8px'
-                          }}>
+                            {/* Direct Clean Subject Badges Around the Pie Chart */}
                             {slices.map((s, i) => (
                               <div
                                 key={i}
                                 style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  background: '#ffffff',
-                                  border: `1.5px solid ${s.color}50`,
-                                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                                  padding: '5px 12px',
+                                  position: 'absolute',
+                                  left: s.displayX,
+                                  top: s.displayY,
+                                  transform: s.transform,
+                                  background: 'rgba(255, 255, 255, 0.96)',
+                                  border: `1.5px solid ${s.color}`,
+                                  boxShadow: '0 3px 10px rgba(0,0,0,0.12)',
+                                  padding: '3px 8px',
                                   borderRadius: 20,
-                                  fontSize: '0.8rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  whiteSpace: 'nowrap',
+                                  zIndex: 10,
+                                  fontSize: '0.72rem',
                                   fontWeight: 800,
-                                  color: '#1e293b'
+                                  color: '#0f172a'
                                 }}
                               >
-                                <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                                <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                                <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.subject}>
                                   {s.subject}
                                 </span>
                                 <span style={{ color: s.color, fontWeight: 900, flexShrink: 0 }}>
@@ -4154,6 +4174,7 @@ export default function StudentDashboard() {
                                 </span>
                               </div>
                             ))}
+
                           </div>
                         </div>
 
