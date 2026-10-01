@@ -184,8 +184,11 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     return;
   }
 
+  const origin = window.location.origin;
+  const logoUrl = origin + '/trinetra-logo.png';
   const academy = teacherProfile.academy || teacherProfile.academyName || 'ત્રિનેત્ર ઓનલાઇન એકેડેમી (Trinetra Online Academy)';
-  const teacher = 'Sunil'; // Explicitly set to Sunil as requested
+  const convenerName = 'Daxit Ramani';
+  const principalName = 'Sunil';
   const helpline = teacherProfile.phone || '8200405300';
   const dateStr = new Date().toLocaleDateString('gu-IN', { year: 'numeric', month: 'long', day: 'numeric' });
   const testTitle = testMeta.testName || 'કસોટી પરિણામ';
@@ -226,8 +229,8 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
         </td>
         <td style="padding: 6px 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 26px; height: 30px; border-radius: 5px; border: 1.5px solid ${rankNum === 1 ? '#d97706' : '#cbd5e1'}; overflow: hidden; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center;">
-              ${sPhoto ? `<img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<span style="color: #38bdf8; font-size: 11px; font-weight: 900;">${initial}</span>`}
+            <div style="width: 28px; height: 32px; border-radius: 5px; border: 1.5px solid ${rankNum === 1 ? '#d97706' : '#cbd5e1'}; overflow: hidden; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center;">
+              ${sPhoto ? `<img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<span style="color: #38bdf8; font-size: 12px; font-weight: 900;">${initial}</span>`}
             </div>
             <div>
               <div style="font-weight: 800; color: #0f172a; font-size: 13px; line-height: 1.2;">${sName}</div>
@@ -262,7 +265,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     `;
   }).join('');
 
-  // Generate Individual School Award Certificates in Exact Style of Reference Image (Pages 2 to 11)
+  // Generate Individual School Award Certificates in Exact Reference Style (Pages 2 to 11)
   const individualCardsHtml = topList.slice(0, 10).map((s, idx) => {
     const sName = s.student?.name || 'વિદ્યાર્થી';
     const sRoll = s.student?.mobile || s.student?.rollNo || `TR-${1000 + idx + 1}`;
@@ -288,24 +291,12 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
 
     return `
       <div class="page-break" style="padding: 10px;">
-        <!-- Luxury Award Certificate Container (Landscape Aspect Ratio matching reference image) -->
-        <div style="width: 100%; height: 690px; border-radius: 16px; position: relative; background: radial-gradient(circle at 80% 20%, rgba(245,158,11,0.03) 0%, transparent 60%), #ffffff; box-shadow: 0 4px 25px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid #e2e8f0;">
+        <!-- Luxury Award Certificate Container (Landscape A4: 1000px × 640px) -->
+        <div style="width: 100%; height: 645px; border-radius: 16px; position: relative; background: radial-gradient(circle at 75% 25%, rgba(245,158,11,0.03) 0%, transparent 60%), #ffffff; box-shadow: 0 4px 25px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid #e2e8f0;">
           
-          <!-- Subtle Guilloche Texture Pattern in Background -->
-          <svg style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.04; pointer-events: none;" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="guilloche${idx}" width="60" height="60" patternUnits="userSpaceOnUse">
-                <circle cx="30" cy="30" r="28" fill="none" stroke="#0f172a" stroke-width="0.8"/>
-                <circle cx="30" cy="30" r="20" fill="none" stroke="#d97706" stroke-width="0.8"/>
-                <circle cx="30" cy="30" r="12" fill="none" stroke="#0f172a" stroke-width="0.8"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#guilloche${idx})"/>
-          </svg>
-
-          <!-- TOP ELEGANT CURVED WAVES (Navy & Gold Ribbon as in reference image) -->
-          <div style="position: absolute; top: 0; left: 0; right: 0; height: 155px; pointer-events: none; z-index: 1;">
-            <svg viewBox="0 0 1000 155" style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none">
+          <!-- TOP ELEGANT CURVED WAVES (High sweep ensuring CERTIFICATE is 100% visible) -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 110px; pointer-events: none; z-index: 1;">
+            <svg viewBox="0 0 1000 110" style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="topGoldWave${idx}" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#b45309" />
@@ -315,118 +306,126 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
                   <stop offset="100%" stop-color="#b45309" />
                 </linearGradient>
               </defs>
-              <!-- Deep Navy Wave -->
-              <path d="M0,0 L1000,0 L1000,85 C840,140 640,40 360,95 C220,120 100,135 0,115 Z" fill="#0b1736" />
+              <!-- Deep Navy Wave swooping up in middle and staying high on right -->
+              <path d="M0,0 L1000,0 L1000,60 C800,85 580,25 320,60 C200,75 100,85 0,70 Z" fill="#0b1736" />
               <!-- Rich Gold Wave Underneath -->
-              <path d="M0,115 C100,135 220,120 360,95 C640,40 840,140 1000,85 L1000,112 C840,165 640,65 360,122 C220,145 100,160 0,140 Z" fill="url(#topGoldWave${idx})" />
+              <path d="M0,70 C100,85 200,75 320,60 C580,25 800,85 1000,60 L1000,78 C800,103 580,43 320,78 C200,93 100,103 0,88 Z" fill="url(#topGoldWave${idx})" />
             </svg>
           </div>
 
-          <!-- Top-Left Academy Emblem & Name (Over the Navy Wave) -->
-          <div style="position: absolute; top: 16px; left: 32px; display: flex; align-items: center; gap: 12px; z-index: 5;">
-            <!-- Golden Circular Emblem -->
-            <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #b45309 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); border: 2.5px solid #ffffff; flex-shrink: 0;">
-              <span style="font-size: 22px;">🏛️</span>
+          <!-- Top-Left Official Trinetra Logo & Header -->
+          <div style="position: absolute; top: 12px; left: 28px; display: flex; align-items: center; gap: 12px; z-index: 5;">
+            <!-- Real Trinetra Logo Image -->
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); border: 2px solid #f59e0b; overflow: hidden; flex-shrink: 0; padding: 2px;">
+              <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
             <div>
-              <div style="color: #ffffff; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${academy}</div>
-              <div style="color: #fde047; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">ગુજરાત રાજ્ય સ્પર્ધાત્મક પરીક્ષા પરિણામ બોર્ડ</div>
+              <div style="color: #ffffff; font-weight: 900; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1.2;">
+                ${academy}
+              </div>
+              <div style="color: #fde047; font-size: 9.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">
+                ગુજરાત રાજ્ય સ્પર્ધાત્મક પરીક્ષા પરિણામ બોર્ડ
+              </div>
             </div>
           </div>
 
-          <!-- MAIN BODY: Left Sash with Rosette Medal & Right Content Area -->
-          <div style="display: flex; height: 100%; padding-top: 45px; position: relative; z-index: 2;">
+          <!-- MAIN BODY: Left Sash with Large Student Photo & Rosette Medal -->
+          <div style="display: flex; height: 100%; padding-top: 15px; position: relative; z-index: 2;">
             
-            <!-- LEFT VERTICAL SASH WITH ROSETTE MEDAL & PHOTO -->
-            <div style="width: 170px; margin-left: 28px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <!-- LEFT VERTICAL SASH WITH LARGE STUDIO PHOTO & MEDAL -->
+            <div style="width: 185px; margin-left: 24px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
               
               <!-- Navy Ribbon Sash Running Top-to-Bottom -->
-              <div style="position: absolute; top: -45px; bottom: 0; width: 100px; background: linear-gradient(180deg, #0b1736 0%, #0f274a 100%); border-left: 3px solid #f59e0b; border-right: 3px solid #f59e0b; box-shadow: 2px 8px 20px rgba(0,0,0,0.18); z-index: 1;">
+              <div style="position: absolute; top: -15px; bottom: 0; width: 112px; background: linear-gradient(180deg, #0b1736 0%, #0f274a 100%); border-left: 3.5px solid #f59e0b; border-right: 3.5px solid #f59e0b; box-shadow: 2px 8px 24px rgba(0,0,0,0.25); z-index: 1;">
                 <!-- Inner Gold Pinstripes -->
-                <div style="position: absolute; inset: 0; border-left: 1px solid rgba(254,240,138,0.6); border-right: 1px solid rgba(254,240,138,0.6); margin: 0 3px;"></div>
+                <div style="position: absolute; inset: 0; border-left: 1px solid rgba(254,240,138,0.7); border-right: 1px solid rgba(254,240,138,0.7); margin: 0 3px;"></div>
               </div>
 
-              <!-- Student Studio Passport Photo (Framed on the Sash) -->
-              <div style="position: relative; z-index: 3; margin-top: 35px; margin-bottom: 8px;">
-                <div style="width: 84px; height: 96px; border-radius: 10px; border: 2.5px solid #f59e0b; overflow: hidden; background: #0b1736; box-shadow: 0 6px 18px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+              <!-- Student Studio Passport Photo (Large, Top-Notch & Framed Prominently) -->
+              <div style="position: relative; z-index: 3; margin-top: 55px; margin-bottom: 6px;">
+                <div style="width: 96px; height: 112px; border-radius: 12px; border: 3px solid #f59e0b; overflow: hidden; background: #0b1736; box-shadow: 0 8px 24px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; position: relative;">
                   ${sPhoto ? `
                     <img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />
                   ` : `
                     <div style="text-align: center; color: white;">
-                      <div style="font-size: 32px; font-weight: 900; color: #38bdf8;">${initial}</div>
-                      <div style="font-size: 8px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8;">TOPPER</div>
+                      <div style="font-size: 38px; font-weight: 900; color: #38bdf8;">${initial}</div>
+                      <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8;">TOPPER</div>
                     </div>
                   `}
+                  <!-- Floating Rank Pill on Photo -->
+                  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(11,23,54,0.92); color: ${isRank1 ? '#fbbf24' : '#38bdf8'}; font-size: 9.5px; font-weight: 900; text-align: center; padding: 2px 0; letter-spacing: 0.5px; border-top: 1px solid rgba(245,158,11,0.5);">
+                    ${isRank1 ? '👑 RANK 1' : `TOP #${rankNum}`}
+                  </div>
                 </div>
               </div>
 
-              <!-- Grand 3D Gold Rosette Medal (Matching the reference image!) -->
-              <div style="position: relative; z-index: 4; margin-top: -6px;">
+              <!-- Grand 3D Gold Rosette Medal (Exact match to reference image!) -->
+              <div style="position: relative; z-index: 4; margin-top: -4px;">
                 ${getRosetteMedalSvg(rankNum)}
               </div>
             </div>
 
-            <!-- RIGHT CONTENT AREA: Certificate Titles, Name, Citation & Signatures -->
-            <div style="flex: 1; padding: 25px 40px 18px 24px; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
+            <!-- RIGHT CONTENT AREA: Certificate Heading, Name, Citation, Badges, Signatures -->
+            <div style="flex: 1; padding: 18px 36px 14px 20px; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
               
-              <!-- Certificate Heading (Matching Reference Image) -->
+              <!-- Certificate Title & Recipient (In Clean, High-Contrast Area) -->
               <div>
-                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 34px; font-weight: 900; color: #0b1736; letter-spacing: 3px; text-transform: uppercase; line-height: 1;">
+                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 36px; font-weight: 900; color: #0b1736; letter-spacing: 4px; text-transform: uppercase; line-height: 1; margin-top: 10px;">
                   CERTIFICATE
                 </div>
-                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 13px; font-weight: 800; color: #d97706; letter-spacing: 4px; text-transform: uppercase; margin-top: 4px;">
+                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 13.5px; font-weight: 800; color: #d97706; letter-spacing: 4px; text-transform: uppercase; margin-top: 3px;">
                   OF APPRECIATION & EXCELLENCE
                 </div>
 
-                <!-- Presenter Subtitle -->
-                <div style="font-size: 12px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 14px;">
+                <!-- Subtitle Line -->
+                <div style="font-size: 12px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 12px;">
                   આ સન્માન પ્રમાણપત્ર ગૌરવપૂર્વક એનાયત કરવામાં આવે છે
                 </div>
 
-                <!-- Student Recipient Name (Grand Calligraphic Font as in reference image) -->
-                <div style="margin: 6px 0 2px;">
-                  <span style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 42px; font-weight: 700; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1;">
+                <!-- Student Recipient Name (Grand, Stylized & Beautiful) -->
+                <div style="margin: 4px 0 2px;">
+                  <span style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 44px; font-weight: 700; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1;">
                     ${sName}
                   </span>
                 </div>
-                <!-- Elegant Underline -->
-                <div style="width: 75%; height: 1.5px; background: linear-gradient(90deg, transparent, #0b1736 20%, #d97706 50%, #0b1736 80%, transparent); margin: 0 auto 12px;"></div>
+                <!-- Elegant Center Accent Divider -->
+                <div style="width: 75%; height: 1.5px; background: linear-gradient(90deg, transparent, #0b1736 20%, #d97706 50%, #0b1736 80%, transparent); margin: 0 auto 10px;"></div>
 
-                <!-- Citation Paragraph -->
-                <div style="max-width: 620px; margin: 0 auto; font-size: 12.5px; color: #334155; line-height: 1.6; font-weight: 500;">
+                <!-- Dignified Citation Paragraph -->
+                <div style="max-width: 650px; margin: 0 auto; font-size: 13.5px; color: #334155; line-height: 1.65; font-weight: 500;">
                   જેમણે <strong>${academy}</strong> દ્વારા આયોજિત <strong>"${cardTestTitle}"</strong> ${testSubject ? `(વિષય: <strong>${testSubject}</strong>)` : ''} કસોટીમાં અસાધારણ શૈક્ષણિક ગુણવત્તા અને ઉત્કૃષ્ટ પરિણામ દર્શાવી સમગ્ર કક્ષામાં 
                   <strong style="color: #b45309; font-weight: 900; background: #fef3c7; padding: 2px 8px; border-radius: 6px; border: 1px solid #fde047;">${rankTitle}</strong> 
                   પ્રાપ્ત કરેલ છે. તેમના આ તેજસ્વી પ્રદર્શન અને સતત પ્રગતિ માટે સંસ્થા ગૌરવપૂર્વક આ પ્રમાણપત્ર અર્પણ કરે છે.
                 </div>
 
-                <!-- Mini Marksheet Pill Strip -->
-                <div style="display: flex; justify-content: center; gap: 12px; margin-top: 12px;">
-                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; color: #0f172a;">
+                <!-- 4 Performance Metric Cards -->
+                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 12px;">
+                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
                     🎯 મેળવેલ ગુણ: <strong style="color: #0284c7;">${score}</strong> ${total > 0 ? `/ ${total}` : ''}
                   </span>
-                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; color: #0f172a;">
+                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
                     📊 ચોકસાઈ દર: <strong style="color: #059669;">${pct}%</strong>
                   </span>
-                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; color: #0f172a;">
+                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
                     ⏱️ સમયગાળો: <strong style="color: #0284c7;">${timeInfo.durationStr || 'પૂર્ણ'}</strong>
                   </span>
-                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; color: #0f172a;">
+                  <span style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
                     🏅 શ્રેણી: <strong style="color: #d97706;">${grade.split(' ')[0]}</strong>
                   </span>
                 </div>
               </div>
 
-              <!-- BOTTOM ROW: Left Signature, Center Best Award Seal, Right Sunil Signature -->
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; margin-top: 10px; border-top: 1px solid #e2e8f0;">
+              <!-- BOTTOM ROW: Left (Daxit Ramani), Center (Laurel Seal & QR), Right (Sunil) -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; margin-top: 8px; border-top: 1px solid #e2e8f0;">
                 
-                <!-- Left Signature: Convener -->
-                <div style="text-align: center; width: 140px;">
-                  <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0b1736; margin-bottom: 2px;">
-                    કન્વીનર TET
+                <!-- Left Signature: Convener Daxit Ramani -->
+                <div style="text-align: center; width: 160px;">
+                  <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+                    ${convenerName}
                   </div>
-                  <div style="border-top: 1.5px solid #0f172a; width: 130px; margin: 0 auto; padding-top: 3px;">
-                    <div style="font-size: 11px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
-                    <div style="font-size: 9px; color: #64748b; letter-spacing: 0.5px;">SIGNATURE</div>
+                  <div style="border-top: 1.5px solid #0f172a; width: 140px; margin: 0 auto; padding-top: 3px;">
+                    <div style="font-size: 11.5px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
+                    <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">દાક્ષિત રામાણી (${convenerName})</div>
                   </div>
                 </div>
 
@@ -434,19 +433,19 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
                 <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
                   ${getBestAwardBadgeSvg('2026')}
                   <div style="display: flex; flex-direction: column; align-items: center;">
-                    ${getSvgQrCode(52)}
+                    ${getSvgQrCode(48)}
                     <div style="font-size: 8px; color: #0284c7; font-weight: 800; margin-top: 2px;">VERIFIED</div>
                   </div>
                 </div>
 
-                <!-- Right Signature: Sunil Principal -->
-                <div style="text-align: center; width: 150px;">
-                  <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 28px; color: #0b1736; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px;">
-                    Sunil
+                <!-- Right Signature: Principal Sunil -->
+                <div style="text-align: center; width: 160px;">
+                  <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+                    ${principalName}
                   </div>
                   <div style="border-top: 1.5px solid #0f172a; width: 140px; margin: 0 auto; padding-top: 3px;">
                     <div style="font-size: 11.5px; font-weight: 900; color: #0f172a;">આચાર્યશ્રી / સંચાલક</div>
-                    <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">સુનિલ (Sunil)</div>
+                    <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">સુનિલ (${principalName})</div>
                   </div>
                 </div>
 
@@ -531,59 +530,67 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
   ═══════════════════════════════════════════════════════════════ -->
   <div style="padding: 10px;">
     
-    <div style="width: 100%; height: 690px; border-radius: 16px; border: 3px solid #0b1736; outline: 1.5px solid #d97706; outline-offset: -7px; background: #ffffff; padding: 18px 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+    <div style="width: 100%; height: 645px; border-radius: 16px; border: 3px solid #0b1736; outline: 1.5px solid #d97706; outline-offset: -7px; background: #ffffff; padding: 16px 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
       
-      <!-- Top Branding -->
+      <!-- Top Branding with Logo -->
       <div>
-        <div style="text-align: center; border-bottom: 2px solid #0b1736; padding-bottom: 10px; margin-bottom: 12px;">
-          <div style="color: #d97706; font-size: 12px; font-weight: 800; letter-spacing: 3px; margin-bottom: 2px;">
-            ★ ★ ★ ★ ★
+        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; border-bottom: 2px solid #0b1736; padding-bottom: 8px; margin-bottom: 10px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 2px solid #f59e0b; overflow: hidden; padding: 2px;">
+            <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
           </div>
-          <div style="color: #0b1736; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">
-            ${academy}
+          <div style="text-align: center;">
+            <div style="color: #d97706; font-size: 11px; font-weight: 800; letter-spacing: 3px;">
+              ★ ★ ★ ★ ★
+            </div>
+            <div style="color: #0b1736; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${academy}
+            </div>
+            <div style="color: #475569; font-size: 11px; font-weight: 700;">
+              ગુજરાત રાજ્ય સ્પર્ધાત્મક પરીક્ષા પરિણામ અને ગુણવત્તા બોર્ડ
+            </div>
           </div>
-          <div style="color: #475569; font-size: 12px; font-weight: 700; margin-top: 1px;">
-            ગુજરાત રાજ્ય સ્પર્ધાત્મક પરીક્ષા પરિણામ અને ગુણવત્તા બોર્ડ
-          </div>
-          <div style="display: inline-block; background: linear-gradient(135deg, #0b1736 0%, #1e3a8a 100%); color: #ffffff; padding: 5px 24px; border-radius: 20px; font-weight: 900; font-size: 13px; margin-top: 6px; border: 1.5px solid #d97706; box-shadow: 0 2px 6px rgba(11,23,54,0.25);">
+        </div>
+
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="display: inline-block; background: linear-gradient(135deg, #0b1736 0%, #1e3a8a 100%); color: #ffffff; padding: 4px 22px; border-radius: 20px; font-weight: 900; font-size: 12.5px; border: 1.5px solid #d97706; box-shadow: 0 2px 6px rgba(11,23,54,0.25);">
             🏆 અધિકૃત ટોપ ૧૦ સ્ટેટ મેરિટ પરિણામ પુસ્તિકા (STATE MERIT BOOKLET) 🏆
           </div>
         </div>
 
         <!-- 4-Grid Test Metadata & Highlights -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 12px;">
-            <div style="font-size: 9.5px; color: #64748b; font-weight: 800; text-transform: uppercase;">કસોટી & વિષય:</div>
-            <div style="font-size: 13.5px; font-weight: 900; color: #0f172a; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 12px;">
+            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">કસોટી & વિષય:</div>
+            <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               📝 ${testTitle}
             </div>
-            ${testSubject ? `<div style="font-size: 10.5px; color: #0284c7; font-weight: 700;">વિષય: ${testSubject}</div>` : ''}
+            ${testSubject ? `<div style="font-size: 10px; color: #0284c7; font-weight: 700;">વિષય: ${testSubject}</div>` : ''}
           </div>
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; text-align: center;">
-            <div style="font-size: 9.5px; color: #64748b; font-weight: 800; text-transform: uppercase;">કુલ ગુણ</div>
-            <div style="font-size: 16px; font-weight: 900; color: #0f172a; margin-top: 1px;">${metaTotal || highestScore}</div>
+          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; text-align: center;">
+            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">કુલ ગુણ</div>
+            <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${metaTotal || highestScore}</div>
           </div>
-          <div style="background: #fefce8; border: 1.5px solid #fde047; border-radius: 8px; padding: 8px 10px; text-align: center;">
-            <div style="font-size: 9.5px; color: #854d0e; font-weight: 800; text-transform: uppercase;">સર્વોચ્ચ સ્કોર</div>
-            <div style="font-size: 16px; font-weight: 900; color: #b45309; margin-top: 1px;">${highestScore} (${highestPct}%)</div>
+          <div style="background: #fefce8; border: 1.5px solid #fde047; border-radius: 8px; padding: 6px 10px; text-align: center;">
+            <div style="font-size: 9px; color: #854d0e; font-weight: 800; text-transform: uppercase;">સર્વોચ્ચ સ્કોર</div>
+            <div style="font-size: 15px; font-weight: 900; color: #b45309; margin-top: 1px;">${highestScore} (${highestPct}%)</div>
           </div>
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; text-align: center;">
-            <div style="font-size: 9.5px; color: #64748b; font-weight: 800; text-transform: uppercase;">જાહેરાત તારીખ</div>
-            <div style="font-size: 11.5px; font-weight: 800; color: #0f172a; margin-top: 2px;">📅 ${dateStr}</div>
+          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; text-align: center;">
+            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">જાહેરાત તારીખ</div>
+            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 2px;">📅 ${dateStr}</div>
           </div>
         </div>
 
         <!-- Summary Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
           <thead>
             <tr style="background: linear-gradient(135deg, #0b1736, #1e3a8a); color: white;">
-              <th style="padding: 7px 6px; text-align: center; font-size: 11.5px; font-weight: 900; border-top-left-radius: 6px; width: 60px;">ક્રમ</th>
-              <th style="padding: 7px 10px; text-align: left; font-size: 11.5px; font-weight: 900;">વિદ્યાર્થીનું નામ</th>
-              <th style="padding: 7px 10px; text-align: left; font-size: 11.5px; font-weight: 900; width: 110px;">રોલ / સંપર્ક</th>
-              <th style="padding: 7px 6px; text-align: center; font-size: 11.5px; font-weight: 900; width: 85px;">સમયગાળો</th>
-              <th style="padding: 7px 6px; text-align: center; font-size: 11.5px; font-weight: 900; width: 85px;">મેળવેલ ગુણ</th>
-              <th style="padding: 7px 8px; text-align: center; font-size: 11.5px; font-weight: 900; width: 100px;">ટકાવારી દર</th>
-              <th style="padding: 7px 6px; text-align: center; font-size: 11.5px; font-weight: 900; border-top-right-radius: 6px; width: 75px;">શ્રેણી</th>
+              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; border-top-left-radius: 6px; width: 55px;">ક્રમ</th>
+              <th style="padding: 6px 8px; text-align: left; font-size: 11px; font-weight: 900;">વિદ્યાર્થીનું નામ</th>
+              <th style="padding: 6px 8px; text-align: left; font-size: 11px; font-weight: 900; width: 110px;">રોલ / સંપર્ક</th>
+              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; width: 85px;">સમયગાળો</th>
+              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; width: 85px;">મેળવેલ ગુણ</th>
+              <th style="padding: 6px 6px; text-align: center; font-size: 11px; font-weight: 900; width: 100px;">ટકાવારી દર</th>
+              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; border-top-right-radius: 6px; width: 75px;">શ્રેણી</th>
             </tr>
           </thead>
           <tbody>
@@ -592,28 +599,33 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
         </table>
       </div>
 
-      <!-- Official Signature Line with QR and Stamp -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; border-top: 1.5px solid #e2e8f0;">
-        <div style="width: 140px; text-align: center;">
-          ${getOfficialSealStampHtml(64)}
-          <div style="font-size: 9.5px; color: #64748b; font-weight: 700;">સત્તાવાર મોહર</div>
+      <!-- Official Signature Line with QR and Stamp (Convener Daxit & Principal Sunil) -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 6px; border-top: 1.5px solid #e2e8f0;">
+        <div style="text-align: center; width: 160px;">
+          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+            ${convenerName}
+          </div>
+          <div style="border-top: 1.5px solid #0f172a; width: 140px; margin: 0 auto; padding-top: 2px;">
+            <div style="font-size: 11px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
+            <div style="font-size: 9px; color: #0284c7; font-weight: 800;">દાક્ષિત રામાણી (${convenerName})</div>
+          </div>
         </div>
 
         <div style="text-align: center;">
-          <div style="display: flex; justify-content: center; margin-bottom: 2px;">
-            ${getSvgQrCode(52)}
+          <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 2px;">
+            ${getOfficialSealStampHtml(56)}
+            ${getSvgQrCode(46)}
           </div>
-          <div style="font-size: 9px; color: #0284c7; font-weight: 800;">સ્કેન કરીને પરિણામ ચકાસો</div>
-          <div style="font-size: 10px; color: #64748b;">હેલ્પલાઇન: ${helpline}</div>
+          <div style="font-size: 8.5px; color: #0284c7; font-weight: 800;">સ્કેન કરીને પરિણામ ચકાસો • હેલ્પલાઇન: ${helpline}</div>
         </div>
 
-        <div style="text-align: center; width: 150px;">
-          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px;">
-            Sunil
+        <div style="text-align: center; width: 160px;">
+          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+            ${principalName}
           </div>
-          <div style="border-top: 1.5px solid #0f172a; width: 130px; margin: 0 auto; padding-top: 2px;">
+          <div style="border-top: 1.5px solid #0f172a; width: 140px; margin: 0 auto; padding-top: 2px;">
             <div style="font-size: 11px; font-weight: 900; color: #0f172a;">આચાર્યશ્રી / સંચાલક</div>
-            <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">સુનિલ (Sunil)</div>
+            <div style="font-size: 9px; color: #0284c7; font-weight: 800;">સુનિલ (${principalName})</div>
           </div>
         </div>
       </div>
