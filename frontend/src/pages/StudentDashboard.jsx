@@ -4029,11 +4029,11 @@ export default function StudentDashboard() {
                       const midAngle = cumulativeAngle + sliceAngle / 2;
                       cumulativeAngle += sliceAngle;
 
-                      // Position for label tag around the pie
+                      // Position on the colored donut ring for the clean percentage label
                       const rad = Math.PI / 180;
-                      const labelRadius = 90; // distance from center (140, 140)
-                      const labelX = 140 + labelRadius * Math.cos((-90 + midAngle) * rad);
-                      const labelY = 140 + labelRadius * Math.sin((-90 + midAngle) * rad);
+                      const ringRadius = 82; // center of the colored band
+                      const pX = 110 + ringRadius * Math.cos((-90 + midAngle) * rad);
+                      const pY = 110 + ringRadius * Math.sin((-90 + midAngle) * rad);
 
                       return {
                         subject: sub.subject,
@@ -4043,9 +4043,10 @@ export default function StudentDashboard() {
                         pct,
                         color,
                         scorePct: sub.pct,
-                        labelX,
-                        labelY,
-                        midAngle
+                        pX,
+                        pY,
+                        midAngle,
+                        sliceAngle
                       };
                     });
 
@@ -4055,68 +4056,104 @@ export default function StudentDashboard() {
 
                     return (
                       <div>
-                        {/* Top: Donut Chart with Floating Slice Labels */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                          <div style={{ position: 'relative', width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* Top: Donut Chart with Direct On-Slice Percentages & Center Counter */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                          <div style={{ position: 'relative', width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             
                             {/* Main Conic Donut Circle */}
                             <div style={{
-                              width: 210, height: 210,
+                              width: 220, height: 220,
                               borderRadius: '50%',
                               background: conicStyle,
                               boxShadow: '0 10px 28px rgba(0,0,0,0.12), inset 0 0 0 3px rgba(255,255,255,0.9)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               position: 'relative'
                             }}>
-                              {/* Inner White Cutout */}
+                              {/* Inner White Cutout - Completely Clear & Unobstructed */}
                               <div style={{
-                                width: 110, height: 110,
+                                width: 116, height: 116,
                                 borderRadius: '50%',
                                 background: '#ffffff',
                                 boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
                                 display: 'flex', flexDirection: 'column',
                                 alignItems: 'center', justifyContent: 'center',
-                                textAlign: 'center'
+                                textAlign: 'center',
+                                zIndex: 2
                               }}>
-                                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
+                                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
                                   {subjectAnalytics.length}
                                 </div>
-                                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
                                   વિષયો
                                 </div>
                               </div>
                             </div>
 
-                            {/* Direct Slice Labels / Tags Floating Around the Donut */}
+                            {/* Direct Clean Percentages Positioned On Each Slice */}
+                            {slices.map((s, i) => {
+                              if (s.pct < 6) return null; // Avoid crowding very small slices
+                              return (
+                                <div
+                                  key={i}
+                                  style={{
+                                    position: 'absolute',
+                                    left: s.pX,
+                                    top: s.pY,
+                                    transform: 'translate(-50%, -50%)',
+                                    color: '#ffffff',
+                                    fontWeight: 900,
+                                    fontSize: '0.84rem',
+                                    letterSpacing: '0.3px',
+                                    textShadow: '0 1.5px 3px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.6)',
+                                    pointerEvents: 'none',
+                                    zIndex: 5
+                                  }}
+                                >
+                                  {s.pct}%
+                                </div>
+                              );
+                            })}
+
+                          </div>
+
+                          {/* Elegant Wrapped Subject Badges Legend (Zero Overlap on Mobile & PC) */}
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px 10px',
+                            marginTop: 18,
+                            maxWidth: 540,
+                            width: '100%',
+                            padding: '0 8px'
+                          }}>
                             {slices.map((s, i) => (
                               <div
                                 key={i}
                                 style={{
-                                  position: 'absolute',
-                                  left: s.labelX,
-                                  top: s.labelY,
-                                  transform: 'translate(-50%, -50%)',
-                                  background: 'rgba(255, 255, 255, 0.95)',
-                                  border: `1.5px solid ${s.color}`,
-                                  boxShadow: '0 3px 10px rgba(0,0,0,0.12)',
-                                  padding: '3px 8px',
-                                  borderRadius: 20,
-                                  display: 'flex',
+                                  display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  whiteSpace: 'nowrap',
-                                  zIndex: 10,
-                                  fontSize: '0.72rem',
+                                  gap: 6,
+                                  background: '#ffffff',
+                                  border: `1.5px solid ${s.color}50`,
+                                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                                  padding: '5px 12px',
+                                  borderRadius: 20,
+                                  fontSize: '0.8rem',
                                   fontWeight: 800,
-                                  color: '#0f172a'
+                                  color: '#1e293b'
                                 }}
                               >
-                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                                <span>{s.subject}</span>
-                                <span style={{ color: s.color, fontWeight: 900 }}>({s.pct}%)</span>
+                                <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                                <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {s.subject}
+                                </span>
+                                <span style={{ color: s.color, fontWeight: 900, flexShrink: 0 }}>
+                                  ({s.pct}%)
+                                </span>
                               </div>
                             ))}
-
                           </div>
                         </div>
 
@@ -4608,14 +4645,37 @@ export default function StudentDashboard() {
                 </div>
 
                 {/* Scrollable Pills Carousel */}
-                <div className="material-pill-carousel">
+                <div
+                  className="material-pill-carousel"
+                  onWheel={(e) => {
+                    if (e.deltaY !== 0) {
+                      e.currentTarget.scrollLeft += e.deltaY;
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    WebkitOverflowScrolling: 'touch',
+                    touchAction: 'pan-x pan-y',
+                    overscrollBehaviorX: 'contain',
+                    paddingBottom: 6
+                  }}
+                >
                   <button
                     onClick={() => setMaterialSubjectFilter('ALL')}
                     className={`material-pill-btn ${materialSubjectFilter === 'ALL' ? 'active' : ''}`}
                     style={{
+                      flexShrink: 0,
                       background: materialSubjectFilter === 'ALL' ? 'linear-gradient(135deg, #1e3a8a, #2563eb)' : '#f1f5f9',
                       color: materialSubjectFilter === 'ALL' ? 'white' : '#475569',
-                      borderColor: materialSubjectFilter === 'ALL' ? '#2563eb' : '#e2e8f0'
+                      borderColor: materialSubjectFilter === 'ALL' ? '#2563eb' : '#e2e8f0',
+                      touchAction: 'pan-x pan-y'
                     }}>
                     🌟 તમામ ({displayList.length})
                   </button>
@@ -4628,9 +4688,11 @@ export default function StudentDashboard() {
                         onClick={() => setMaterialSubjectFilter(sub)}
                         className={`material-pill-btn ${isActive ? 'active' : ''}`}
                         style={{
+                          flexShrink: 0,
                           background: isActive ? meta.btnGrad : '#f1f5f9',
                           color: isActive ? 'white' : '#334155',
-                          borderColor: isActive ? meta.accentColor : '#e2e8f0'
+                          borderColor: isActive ? meta.accentColor : '#e2e8f0',
+                          touchAction: 'pan-x pan-y'
                         }}>
                         <span>{meta.icon}</span> {sub}
                       </button>

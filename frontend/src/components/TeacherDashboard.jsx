@@ -16870,14 +16870,37 @@ function MaterialManager({ showToast }) {
         </div>
 
         {/* Scrollable Subject Pills */}
-        <div className="material-pill-carousel">
+        <div
+          className="material-pill-carousel"
+          onWheel={(e) => {
+            if (e.deltaY !== 0) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-x pan-y',
+            overscrollBehaviorX: 'contain',
+            paddingBottom: 6
+          }}
+        >
           <button
             onClick={() => setFilterSubject('ALL')}
             className={`material-pill-btn ${filterSubject === 'ALL' ? 'active' : ''}`}
             style={{
+              flexShrink: 0,
               background: filterSubject === 'ALL' ? 'linear-gradient(135deg, #2563eb, #38bdf8)' : 'rgba(255,255,255,0.06)',
               color: filterSubject === 'ALL' ? 'white' : '#94a3b8',
-              borderColor: filterSubject === 'ALL' ? '#60a5fa' : 'rgba(255,255,255,0.1)'
+              borderColor: filterSubject === 'ALL' ? '#60a5fa' : 'rgba(255,255,255,0.1)',
+              touchAction: 'pan-x pan-y'
             }}>
             🌟 તમામ ({materials.length})
           </button>
@@ -16890,9 +16913,11 @@ function MaterialManager({ showToast }) {
                 onClick={() => setFilterSubject(sub)}
                 className={`material-pill-btn ${isActive ? 'active' : ''}`}
                 style={{
+                  flexShrink: 0,
                   background: isActive ? 'linear-gradient(135deg, #2563eb, #38bdf8)' : 'rgba(255,255,255,0.06)',
                   color: isActive ? 'white' : '#cbd5e1',
-                  borderColor: isActive ? '#60a5fa' : 'rgba(255,255,255,0.1)'
+                  borderColor: isActive ? '#60a5fa' : 'rgba(255,255,255,0.1)',
+                  touchAction: 'pan-x pan-y'
                 }}>
                 <span>{meta.icon}</span> {sub}
               </button>
