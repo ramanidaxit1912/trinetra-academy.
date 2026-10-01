@@ -4029,32 +4029,23 @@ export default function StudentDashboard() {
                       const midAngle = cumulativeAngle + sliceAngle / 2;
                       cumulativeAngle += sliceAngle;
 
-                      // Base coordinates (Chart center at cx=180, cy=155)
+                      // Chart center is at cy = 145px
                       const rad = Math.PI / 180;
                       const angleRad = (-90 + midAngle) * rad;
-                      const cosVal = Math.cos(angleRad);
                       const sinVal = Math.sin(angleRad);
 
-                      // Distance where the badge anchors from the center
-                      const anchorR = 92;
-                      const rawX = 180 + anchorR * cosVal;
-                      const rawY = 155 + anchorR * sinVal;
+                      // Calculate natural Y position on the circle (radius ~68)
+                      const naturalY = 145 + 68 * sinVal;
 
-                      // Directional zones to push badges AWAY from center
                       let zone = 'right';
-                      let transform = 'translate(6px, -50%)';
-                      if (midAngle >= 335 || midAngle < 25) {
+                      if (midAngle >= 345 || midAngle < 15) {
                         zone = 'top';
-                        transform = 'translate(-50%, calc(-100% - 6px))';
-                      } else if (midAngle >= 155 && midAngle < 205) {
+                      } else if (midAngle >= 165 && midAngle <= 195) {
                         zone = 'bottom';
-                        transform = 'translate(-50%, 6px)';
-                      } else if (midAngle >= 205 && midAngle < 335) {
-                        zone = 'left';
-                        transform = 'translate(calc(-100% - 6px), -50%)';
-                      } else {
+                      } else if (midAngle >= 15 && midAngle < 165) {
                         zone = 'right';
-                        transform = 'translate(6px, -50%)';
+                      } else {
+                        zone = 'left';
                       }
 
                       return {
@@ -4067,23 +4058,25 @@ export default function StudentDashboard() {
                         scorePct: sub.pct,
                         midAngle,
                         sliceAngle,
-                        rawX,
-                        rawY,
-                        targetY: rawY,
-                        zone,
-                        transform
+                        naturalY,
+                        targetY: naturalY,
+                        zone
                       };
                     });
 
-                    // Collision prevention: separate badges on the same side vertically
+                    // Collision prevention: separate badges on left & right sides vertically
                     const resolveZoneOverlap = (arr) => {
                       arr.sort((a, b) => a.targetY - b.targetY);
-                      const MIN_GAP = 28;
+                      const MIN_GAP = 34;
                       for (let i = 1; i < arr.length; i++) {
                         if (arr[i].targetY - arr[i - 1].targetY < MIN_GAP) {
                           arr[i].targetY = arr[i - 1].targetY + MIN_GAP;
                         }
                       }
+                      // Keep within safe vertical bounds (30px to 260px)
+                      arr.forEach(item => {
+                        item.targetY = Math.max(30, Math.min(260, item.targetY));
+                      });
                     };
 
                     const rightSide = rawSlices.filter(s => s.zone === 'right');
@@ -4092,10 +4085,20 @@ export default function StudentDashboard() {
                     resolveZoneOverlap(leftSide);
 
                     const slices = rawSlices.map(s => {
+                      let posStyle = {};
+                      if (s.zone === 'top') {
+                        posStyle = { left: '50%', top: 6, transform: 'translateX(-50%)' };
+                      } else if (s.zone === 'bottom') {
+                        posStyle = { left: '50%', bottom: 6, transform: 'translateX(-50%)' };
+                      } else if (s.zone === 'right') {
+                        posStyle = { right: 6, top: s.targetY, transform: 'translateY(-50%)' };
+                      } else {
+                        // Left side: anchored to left: 6px so it is NEVER cut off by the mobile screen edge!
+                        posStyle = { left: 6, top: s.targetY, transform: 'translateY(-50%)' };
+                      }
                       return {
                         ...s,
-                        displayX: s.rawX,
-                        displayY: (s.zone === 'right' || s.zone === 'left') ? s.targetY : s.rawY
+                        posStyle
                       };
                     });
 
@@ -4107,7 +4110,7 @@ export default function StudentDashboard() {
                       <div>
                         {/* Top: Donut Chart with Perfectly Positioned Non-Overlapping Subject Badges */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'visible' }}>
-                          <div style={{ position: 'relative', width: 360, height: 310, maxWidth: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ position: 'relative', width: 350, height: 290, maxWidth: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             
                             {/* Main Conic Donut Circle in exact center */}
                             <div style={{
@@ -4115,7 +4118,7 @@ export default function StudentDashboard() {
                               left: '50%',
                               top: '50%',
                               transform: 'translate(-50%, -50%)',
-                              width: 176, height: 176,
+                              width: 154, height: 154,
                               borderRadius: '50%',
                               background: conicStyle,
                               boxShadow: '0 10px 28px rgba(0,0,0,0.12), inset 0 0 0 3px rgba(255,255,255,0.9)',
@@ -4123,7 +4126,7 @@ export default function StudentDashboard() {
                             }}>
                               {/* Inner White Cutout - Completely Clear & Unobstructed */}
                               <div style={{
-                                width: 92, height: 92,
+                                width: 80, height: 80,
                                 borderRadius: '50%',
                                 background: '#ffffff',
                                 boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
@@ -4132,10 +4135,10 @@ export default function StudentDashboard() {
                                 textAlign: 'center',
                                 zIndex: 2
                               }}>
-                                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
+                                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
                                   {subjectAnalytics.length}
                                 </div>
-                                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
+                                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
                                   વિષયો
                                 </div>
                               </div>
@@ -4147,12 +4150,10 @@ export default function StudentDashboard() {
                                 key={i}
                                 style={{
                                   position: 'absolute',
-                                  left: s.displayX,
-                                  top: s.displayY,
-                                  transform: s.transform,
-                                  background: 'rgba(255, 255, 255, 0.96)',
+                                  ...s.posStyle,
+                                  background: 'rgba(255, 255, 255, 0.98)',
                                   border: `1.5px solid ${s.color}`,
-                                  boxShadow: '0 3px 10px rgba(0,0,0,0.12)',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                   padding: '3px 8px',
                                   borderRadius: 20,
                                   display: 'flex',
@@ -4166,7 +4167,7 @@ export default function StudentDashboard() {
                                 }}
                               >
                                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                                <span style={{ maxWidth: 125, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.subject}>
+                                <span style={{ maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.subject}>
                                   {s.subject}
                                 </span>
                                 <span style={{ color: s.color, fontWeight: 900, flexShrink: 0 }}>
