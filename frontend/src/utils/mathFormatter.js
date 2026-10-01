@@ -98,7 +98,7 @@ function cleanInnerMath(expr) {
 export function formatMathText(rawText, isQuestion = false) {
   if (!rawText || typeof rawText !== 'string') return rawText || '';
 
-  let text = rawText;
+  let text = isQuestion ? stripQuestionNumber(rawText) : rawText;
 
   // 1. Process explicit LaTeX delimited blocks: $...$ or $$...$$
   text = text.replace(/\$\$([^\$]+)\$\$/g, (_, latex) => renderKaTeX(latex.trim(), true));
@@ -418,10 +418,25 @@ export function formatMathText(rawText, isQuestion = false) {
 }
 
 /**
- * Format question text with both math rendering AND question structure (tables & statements)
+ * Smart Question Number Stripper:
+ * Removes leading question number prefixes from questions (e.g. "06. ", "6. ", "Q.06 ", "પ્રશ્ન 6: ")
+ * so questions don't display redundant or wrong question numbers when displayed or shuffled in the exam engine.
+ */
+export function stripQuestionNumber(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  return text
+    .replace(/^\s*(?:(?:પ્રશ્ન|પ્ર\.|Question|Que\.|Que|Q\.|Q)\s*[-:.]?\s*(?:નંબર|નં\.|ક્રમાંક|no\.?|num\.?)?\s*[-:.]?\s*)?(?:\([0-9૦-૯]{1,3}\)|[0-9૦-૯]{1,3}\s*[\.\)\:\-–—])\s*/i, '')
+    .replace(/^\s*(?:પ્રશ્ન|પ્ર\.|Question|Que\.|Que|Q\.|Q)\s*[-:.]?\s*(?:નંબર|નં\.|ક્રમાંક|no\.?|num\.?)?\s*[-:.]?\s*[0-9૦-૯]{1,3}\s*[-:.]?\s*/i, '')
+    .trimStart();
+}
+
+/**
+ * Format question text with both math rendering AND question structure (tables & statements),
+ * with automatic question number stripping.
  */
 export function formatQuestionText(rawText) {
-  return formatMathText(rawText, true);
+  const cleaned = stripQuestionNumber(rawText);
+  return formatMathText(cleaned, true);
 }
 
 /**
