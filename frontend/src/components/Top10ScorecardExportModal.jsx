@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
-import { X, Download, Printer, Trophy, FileText, CheckCircle, Award, Users, Smartphone, ShieldCheck, Crown, Filter, Camera, ArrowLeft, Trash2, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { X, Download, Edit3, Printer, Trophy, FileText, CheckCircle, Award, Users, Smartphone, ShieldCheck, Crown, Filter, Camera, ArrowLeft, Trash2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { getLeaderboardOverrides } from '../services/api';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -177,7 +177,7 @@ export const getBestAwardBadgeSvg = (year = '2026') => `
 </svg>
 `;
 
-export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMeta = {}) {
+export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMeta = {}, customSettings = {}) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('PDF પ્રિન્ટ કરવા માટે પોપ-અપ વિન્ડો (Popups) ચાલુ કરો.');
@@ -186,9 +186,9 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
 
   const origin = window.location.origin;
   const logoUrl = origin + '/trinetra-logo.png';
-  const academy = teacherProfile.academy || teacherProfile.academyName || 'ત્રિનેત્ર ઓનલાઇન એકેડેમી (Trinetra Online Academy)';
-  const convenerName = 'Daxit Ramani';
-  const principalName = 'Sunil Sir';
+  const academy = customSettings.academy || teacherProfile.academy || teacherProfile.academyName || 'ત્રિનેત્ર ઓનલાઇન એકેડેમી (Trinetra Online Academy)';
+  const convenerName = customSettings.convenerName || 'Dixit Ramani';
+  const principalName = customSettings.principalName || 'Sunil Sir';
   const helpline = teacherProfile.phone || '8200405300';
   const dateStr = new Date().toLocaleDateString('gu-IN', { year: 'numeric', month: 'long', day: 'numeric' });
   const testTitle = testMeta.testName || 'કસોટી પરિણામ';
@@ -331,102 +331,106 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
           </div>
 
           <!-- MAIN BODY: Left Sash with Large Student Photo & Rosette Medal -->
-          <div style="display: flex; height: 100%; padding-top: 10px; position: relative; z-index: 2;">
+          <div style="display: flex; height: 100%; position: relative; z-index: 2;">
             
-            <!-- LEFT VERTICAL SASH WITH LARGE STUDIO PHOTO & MEDAL (Matching the user's hand-drawn box) -->
-            <div style="width: 200px; margin-left: 20px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <!-- LEFT VERTICAL SASH WITH LARGE STUDIO PHOTO & MEDAL (Positioned at TOP in blue box) -->
+            <div style="width: 200px; margin-left: 20px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 28px;">
               
               <!-- Navy Ribbon Sash Running Top-to-Bottom -->
-              <div style="position: absolute; top: -10px; bottom: 0; width: 140px; background: linear-gradient(180deg, #0b1736 0%, #0f274a 100%); border-left: 3.5px solid #f59e0b; border-right: 3.5px solid #f59e0b; box-shadow: 2px 8px 24px rgba(0,0,0,0.25); z-index: 1;">
+              <div style="position: absolute; top: -10px; bottom: 0; width: 146px; background: linear-gradient(180deg, #0b1736 0%, #0f274a 100%); border-left: 3.5px solid #f59e0b; border-right: 3.5px solid #f59e0b; box-shadow: 2px 8px 24px rgba(0,0,0,0.25); z-index: 1;">
                 <!-- Inner Gold Pinstripes -->
                 <div style="position: absolute; inset: 0; border-left: 1px solid rgba(254,240,138,0.7); border-right: 1px solid rgba(254,240,138,0.7); margin: 0 3px;"></div>
               </div>
 
-              <!-- Student Studio Passport Photo (Large, Higher Up, Prominent as user drew) -->
-              <div style="position: relative; z-index: 3; margin-top: 40px; margin-bottom: 6px;">
-                <div style="width: 122px; height: 142px; border-radius: 14px; border: 3px solid #f59e0b; overflow: hidden; background: #0b1736; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative;">
+              <!-- Student Studio Passport Photo (Large, at TOP matching user's blue box) -->
+              <div style="position: relative; z-index: 3; margin-top: 6px; margin-bottom: 6px;">
+                <div style="width: 130px; height: 154px; border-radius: 14px; border: 3px solid #f59e0b; overflow: hidden; background: #0b1736; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative;">
                   ${sPhoto ? `
-                    <img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover; object-position: center top;" />
                   ` : `
                     <div style="text-align: center; color: white;">
-                      <div style="font-size: 44px; font-weight: 900; color: #38bdf8;">${initial}</div>
-                      <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8;">TOPPER</div>
+                      <div style="font-size: 46px; font-weight: 900; color: #38bdf8;">${initial}</div>
+                      <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8;">TOPPER</div>
                     </div>
                   `}
                   <!-- Floating Rank Pill on Photo -->
-                  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(11,23,54,0.95); color: ${isRank1 ? '#fbbf24' : '#38bdf8'}; font-size: 10px; font-weight: 900; text-align: center; padding: 3px 0; letter-spacing: 0.5px; border-top: 1px solid rgba(245,158,11,0.5);">
+                  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(11,23,54,0.95); color: ${isRank1 ? '#fbbf24' : '#38bdf8'}; font-size: 10.5px; font-weight: 900; text-align: center; padding: 4px 0; letter-spacing: 0.5px; border-top: 1px solid rgba(245,158,11,0.5);">
                     ${isRank1 ? '👑 RANK 1' : `TOP #${rankNum}`}
                   </div>
                 </div>
               </div>
 
               <!-- Grand 3D Gold Rosette Medal (Sitting right below the photo on the sash) -->
-              <div style="position: relative; z-index: 4; margin-top: -4px;">
+              <div style="position: relative; z-index: 4; margin-top: 4px;">
                 ${getRosetteMedalSvg(rankNum)}
               </div>
             </div>
 
-            <!-- RIGHT CONTENT AREA: Shifted down into clean high-contrast white space -->
-            <div style="flex: 1; padding: 22px 34px 14px 18px; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
+            <!-- RIGHT CONTENT AREA: Centered and balanced to eliminate empty white space -->
+            <div style="flex: 1; padding: 20px 36px 14px 22px; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
               
-              <!-- Certificate Title & Recipient (Placed in completely clean, white open area) -->
-              <div>
-                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 38px; font-weight: 900; color: #0b1736; letter-spacing: 4px; text-transform: uppercase; line-height: 1; margin-top: 16px;">
+              <!-- Certificate Title Block (Top) -->
+              <div style="margin-top: 12px;">
+                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 40px; font-weight: 900; color: #0b1736; letter-spacing: 4px; text-transform: uppercase; line-height: 1;">
                   CERTIFICATE
                 </div>
-                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 13.5px; font-weight: 800; color: #d97706; letter-spacing: 4px; text-transform: uppercase; margin-top: 3px;">
+                <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 13.5px; font-weight: 800; color: #d97706; letter-spacing: 4px; text-transform: uppercase; margin-top: 4px;">
                   OF APPRECIATION & EXCELLENCE
                 </div>
+              </div>
 
+              <!-- CENTER/MIDDLE SECTION: Recipient Name & Large Citation Paragraph (Centered to eliminate white space!) -->
+              <div style="margin: auto 0; padding: 8px 0;">
                 <!-- Subtitle Line -->
-                <div style="font-size: 12px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 12px;">
+                <div style="font-size: 13.5px; color: #475569; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">
                   આ સન્માન પ્રમાણપત્ર ગૌરવપૂર્વક એનાયત કરવામાં આવે છે
                 </div>
 
-                <!-- Student Recipient Name (Grand, Stylized Script) -->
-                <div style="margin: 4px 0 2px;">
-                  <span style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 46px; font-weight: 700; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1;">
+                <!-- Big Student Recipient Name (Enlarged to 54px as requested!) -->
+                <div style="margin: 6px 0 8px;">
+                  <span style="font-family: 'Brush Script MT', 'Dancing Script', 'Playfair Display', cursive, serif; font-size: 54px; font-weight: 800; color: #0b1736; letter-spacing: 0.5px; line-height: 1.1; text-shadow: 0 1px 2px rgba(0,0,0,0.12);">
                     ${sName}
                   </span>
                 </div>
-                <!-- Elegant Center Accent Divider -->
-                <div style="width: 75%; height: 1.5px; background: linear-gradient(90deg, transparent, #0b1736 20%, #d97706 50%, #0b1736 80%, transparent); margin: 0 auto 10px;"></div>
 
-                <!-- Dignified Citation Paragraph (Font size increased as requested!) -->
-                <div style="max-width: 680px; margin: 0 auto; font-size: 15px; color: #1e293b; line-height: 1.75; font-weight: 500;">
+                <!-- Elegant Center Accent Divider -->
+                <div style="width: 72%; height: 2px; background: linear-gradient(90deg, transparent, #0b1736 15%, #d97706 50%, #0b1736 85%, transparent); margin: 0 auto 16px;"></div>
+
+                <!-- Dignified Citation Paragraph (Enlarged font 16.5px with 1.85 line height to beautifully fill the middle space!) -->
+                <div style="max-width: 720px; margin: 0 auto; font-size: 16.5px; color: #1e293b; line-height: 1.85; font-weight: 500;">
                   જેમણે <strong>${academy}</strong> દ્વારા આયોજિત <strong>"${cardTestTitle}"</strong> ${testSubject ? `(વિષય: <strong>${testSubject}</strong>)` : ''} કસોટીમાં અસાધારણ શૈક્ષણિક ગુણવત્તા અને ઉત્કૃષ્ટ પરિણામ દર્શાવી સમગ્ર કક્ષામાં 
-                  <strong style="color: #b45309; font-weight: 900; background: #fef3c7; padding: 3px 10px; border-radius: 6px; border: 1.5px solid #fde047; font-size: 15px;">${rankTitle}</strong> 
+                  <strong style="color: #92400e; font-weight: 900; background: #fef3c7; padding: 4px 12px; border-radius: 6px; border: 1.5px solid #f59e0b; font-size: 16.5px; display: inline-block; margin: 2px 0;">${rankTitle}</strong> 
                   પ્રાપ્ત કરેલ છે. તેમના આ તેજસ્વી પ્રદર્શન અને સતત પ્રગતિ માટે સંસ્થા ગૌરવપૂર્વક આ પ્રમાણપત્ર અર્પણ કરે છે.
+                </div>
+
+                <!-- 4 Performance Metric Badges (Enlarged and positioned nicely below citation) -->
+                <div style="display: flex; justify-content: center; gap: 12px; margin-top: 18px;">
+                  <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    🎯 મેળવેલ ગુણ: <strong style="color: #0284c7; font-size: 15px;">${score}</strong> ${total > 0 ? `/ ${total}` : ''}
+                  </span>
+                  <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    📊 ચોકસાઈ દર: <strong style="color: #059669; font-size: 15px;">${pct}%</strong>
+                  </span>
+                  <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    ⏱️ સમયગાળો: <strong style="color: #0284c7; font-size: 15px;">${timeInfo.durationStr || 'પૂર્ણ'}</strong>
+                  </span>
+                  <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                    🏅 શ્રેણી: <strong style="color: #d97706; font-size: 15px;">${grade.split(' ')[0]}</strong>
+                  </span>
                 </div>
               </div>
 
-              <!-- 4 Performance Metric Badges (Shifted DOWN right above the footer & enlarged as requested!) -->
-              <div style="display: flex; justify-content: center; gap: 12px; margin-top: auto; margin-bottom: 10px;">
-                <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-                  🎯 મેળવેલ ગુણ: <strong style="color: #0284c7; font-size: 14px;">${score}</strong> ${total > 0 ? `/ ${total}` : ''}
-                </span>
-                <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-                  📊 ચોકસાઈ દર: <strong style="color: #059669; font-size: 14px;">${pct}%</strong>
-                </span>
-                <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-                  ⏱️ સમયગાળો: <strong style="color: #0284c7; font-size: 14px;">${timeInfo.durationStr || 'પૂર્ણ'}</strong>
-                </span>
-                <span style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 7px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-                  🏅 શ્રેણી: <strong style="color: #d97706; font-size: 14px;">${grade.split(' ')[0]}</strong>
-                </span>
-              </div>
-
-              <!-- BOTTOM ROW: Left (Daxit Ramani), Center (Enhanced 3D Best Award 2026), Right (Sunil Sir) -->
+              <!-- BOTTOM ROW: Left (Dixit Ramani), Center (Enhanced 3D Best Award 2026), Right (Sunil Sir) -->
               <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; border-top: 1.5px solid #cbd5e1;">
                 
-                <!-- Left Signature: Convener Daxit Ramani -->
+                <!-- Left Signature: Convener Dixit Ramani -->
                 <div style="text-align: center; width: 165px;">
                   <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
                     ${convenerName}
                   </div>
                   <div style="border-top: 1.5px solid #0f172a; width: 150px; margin: 0 auto; padding-top: 3px;">
                     <div style="font-size: 12px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
-                    <div style="font-size: 10px; color: #0284c7; font-weight: 800;">દાક્ષિત રામાણી (${convenerName})</div>
+                    <div style="font-size: 10px; color: #0284c7; font-weight: 800;">દિક્ષિત રામાણી (${convenerName})</div>
                   </div>
                 </div>
 
@@ -600,7 +604,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
         </table>
       </div>
 
-      <!-- Official Signature Line with QR and Stamp (Daxit Ramani & Sunil Sir) -->
+      <!-- Official Signature Line with QR and Stamp (Dixit Ramani & Sunil Sir) -->
       <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 6px; border-top: 1.5px solid #e2e8f0;">
         <div style="text-align: center; width: 165px;">
           <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
@@ -608,7 +612,7 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
           </div>
           <div style="border-top: 1.5px solid #0f172a; width: 150px; margin: 0 auto; padding-top: 2px;">
             <div style="font-size: 11.5px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
-            <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">દાક્ષિત રામાણી (${convenerName})</div>
+            <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">દિક્ષિત રામાણી (${convenerName})</div>
           </div>
         </div>
 
@@ -1029,6 +1033,59 @@ export default function Top10ScorecardExportModal({
     }
   });
 
+  // Teacher custom student names & signature state
+  const [customStudentNames, setCustomStudentNames] = useState(() => {
+    try {
+      const saved = localStorage.getItem('trinetra_poster_student_names');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [customConvenerName, setCustomConvenerName] = useState(() => {
+    return localStorage.getItem('trinetra_custom_convener_name') || 'Dixit Ramani';
+  });
+
+  const [customPrincipalName, setCustomPrincipalName] = useState(() => {
+    return localStorage.getItem('trinetra_custom_principal_name') || 'Sunil Sir';
+  });
+
+  const [showEditNamesPanel, setShowEditNamesPanel] = useState(false);
+
+  const handleStudentNameChange = (studentKey, newName) => {
+    setCustomStudentNames(prev => {
+      const next = { ...prev, [studentKey]: newName };
+      try {
+        localStorage.setItem('trinetra_poster_student_names', JSON.stringify(next));
+      } catch (err) {}
+      return next;
+    });
+  };
+
+  const handleConvenerNameChange = (name) => {
+    setCustomConvenerName(name);
+    try {
+      localStorage.setItem('trinetra_custom_convener_name', name);
+    } catch (err) {}
+  };
+
+  const handlePrincipalNameChange = (name) => {
+    setCustomPrincipalName(name);
+    try {
+      localStorage.setItem('trinetra_custom_principal_name', name);
+    } catch (err) {}
+  };
+
+  const handleResetAllStudentNames = () => {
+    if (window.confirm('શું તમે બધા વિદ્યાર્થીઓના નામ મૂળ સબમિશન મુજબ રીસેટ કરવા માંગો છો?')) {
+      setCustomStudentNames({});
+      try {
+        localStorage.removeItem('trinetra_poster_student_names');
+      } catch (err) {}
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) {
       setShowPhotoStep(false);
@@ -1345,12 +1402,21 @@ export default function Top10ScorecardExportModal({
     try {
       const enriched = currentTop10.map(s => {
         const key = getStudentKey(s);
+        const customName = customStudentNames[key];
+        const finalName = (customName && customName.trim()) ? customName.trim() : (s.student?.name || 'વિદ્યાર્થી');
         return {
           ...s,
+          student: {
+            ...s.student,
+            name: finalName
+          },
           photoUrl: studentPhotos[key] || s.photoUrl || s.student?.photoUrl || s.student?.photo || null
         };
       });
-      exportTop10BookletPDF(enriched, teacherProfile, currentTestMeta);
+      exportTop10BookletPDF(enriched, teacherProfile, currentTestMeta, {
+        convenerName: customConvenerName,
+        principalName: customPrincipalName
+      });
     } finally {
       setDownloading(false);
     }
@@ -1361,8 +1427,14 @@ export default function Top10ScorecardExportModal({
     try {
       const enriched = currentTop10.map(s => {
         const key = getStudentKey(s);
+        const customName = customStudentNames[key];
+        const finalName = (customName && customName.trim()) ? customName.trim() : (s.student?.name || 'વિદ્યાર્થી');
         return {
           ...s,
+          student: {
+            ...s.student,
+            name: finalName
+          },
           photoUrl: (includeCustomPhotos && studentPhotos[key]) 
             ? studentPhotos[key] 
             : (s.photoUrl || s.student?.photoUrl || s.student?.photo || null)
@@ -1375,7 +1447,19 @@ export default function Top10ScorecardExportModal({
   };
 
   const handleDownloadExcel = () => {
-    exportTop10Excel(currentTop10, teacherProfile, currentTestMeta);
+    const enriched = currentTop10.map(s => {
+      const key = getStudentKey(s);
+      const customName = customStudentNames[key];
+      const finalName = (customName && customName.trim()) ? customName.trim() : (s.student?.name || 'વિદ્યાર્થી');
+      return {
+        ...s,
+        student: {
+          ...s.student,
+          name: finalName
+        }
+      };
+    });
+    exportTop10Excel(enriched, teacherProfile, currentTestMeta);
   };
 
   return createPortal(
@@ -1947,6 +2031,226 @@ export default function Top10ScorecardExportModal({
                     +{currentTop10.length - 5} વધુ...
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* ── TEACHER NAME & SIGNATURE EDITING FEATURE ── */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1.5px solid rgba(245, 158, 11, 0.45)',
+            borderRadius: 16,
+            padding: '12px 16px',
+            marginBottom: 16,
+            boxShadow: '0 4px 18px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(245, 158, 11, 0.2)', border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Edit3 size={18} color="#fbbf24" />
+                </div>
+                <div>
+                  <div style={{ color: '#fef3c7', fontWeight: 900, fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>શિક્ષક સ્પેશિયલ: નામ & સહીઓ એડિટ કરો</span>
+                    <span style={{ background: '#059669', color: '#ffffff', fontSize: '0.62rem', padding: '1px 6px', borderRadius: 4, fontWeight: 900 }}>નવું</span>
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.71rem' }}>
+                    વિદ્યાર્થીઓના નામ સુધારો, ફોટો અપલોડ કરો અથવા કન્વીનર/આચાર્યનું નામ બદલો
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditNamesPanel(!showEditNamesPanel)}
+                style={{
+                  background: showEditNamesPanel ? 'rgba(239, 68, 68, 0.25)' : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  border: showEditNamesPanel ? '1px solid #f87171' : 'none',
+                  color: showEditNamesPanel ? '#f87171' : '#0f172a',
+                  padding: '7px 14px',
+                  borderRadius: 9,
+                  fontSize: '0.78rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: showEditNamesPanel ? 'none' : '0 2px 10px rgba(245, 158, 11, 0.35)'
+                }}
+              >
+                <Edit3 size={14} />
+                {showEditNamesPanel ? '✕ એડિટર બંધ કરો' : '✏️ નામ & સહી એડિટ કરો'}
+              </button>
+            </div>
+
+            {showEditNamesPanel && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                {/* Signatures Edit Row */}
+                <div style={{ marginBottom: 14, background: 'rgba(0,0,0,0.3)', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#fbbf24', fontWeight: 900, textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>
+                    🖋️ પ્રમાણપત્ર પર સત્તાવાર સહીઓ (Authority Signatures):
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.7rem', fontWeight: 700, marginBottom: 3 }}>
+                        પરીક્ષા કન્વીનર નામ:
+                      </label>
+                      <input
+                        type="text"
+                        value={customConvenerName}
+                        onChange={e => handleConvenerNameChange(e.target.value)}
+                        placeholder="Dixit Ramani"
+                        style={{
+                          width: '100%',
+                          background: '#090e1a',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          borderRadius: 8,
+                          padding: '7px 10px',
+                          color: '#ffffff',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.7rem', fontWeight: 700, marginBottom: 3 }}>
+                        આચાર્યશ્રી / સંચાલક નામ:
+                      </label>
+                      <input
+                        type="text"
+                        value={customPrincipalName}
+                        onChange={e => handlePrincipalNameChange(e.target.value)}
+                        placeholder="Sunil Sir"
+                        style={{
+                          width: '100%',
+                          background: '#090e1a',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          borderRadius: 8,
+                          padding: '7px 10px',
+                          color: '#ffffff',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top 10 Student Names Editor List */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: '0.74rem', color: '#38bdf8', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🎓 ટોપ ૧૦ વિદ્યાર્થીઓના નામ સુધારો (સર્ટિફિકેટ & લિસ્ટ માટે):
+                    </div>
+                    {Object.keys(customStudentNames).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetAllStudentNames}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#f87171',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        રીસેટ (મૂળ નામ)
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8, maxHeight: 260, overflowY: 'auto', paddingRight: 4 }}>
+                    {currentTop10.map((s, idx) => {
+                      const key = getStudentKey(s);
+                      const currentName = customStudentNames[key] !== undefined ? customStudentNames[key] : (s.student?.name || '');
+                      const photo = studentPhotos[key] || s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
+                      const rankNum = idx + 1;
+                      const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
+
+                      return (
+                        <div key={key} style={{
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 10,
+                          padding: '7px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}>
+                          <span style={{
+                            background: rankNum === 1 ? '#f59e0b' : rankNum === 2 ? '#94a3b8' : rankNum === 3 ? '#ea580c' : '#1e3a8a',
+                            color: rankNum <= 3 ? '#0f172a' : '#ffffff',
+                            fontSize: '0.68rem',
+                            fontWeight: 900,
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {rankNum}
+                          </span>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <input
+                              type="text"
+                              value={currentName}
+                              onChange={e => handleStudentNameChange(key, e.target.value)}
+                              placeholder="વિદ્યાર્થીનું નામ દાખલ કરો"
+                              style={{
+                                width: '100%',
+                                background: '#090e1a',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 6,
+                                padding: '5px 8px',
+                                color: '#ffffff',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                outline: 'none'
+                              }}
+                            />
+                            <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 2 }}>
+                              {score} ગુણ {customStudentNames[key] && <span style={{ color: '#34d399' }}>• એડિટ થયેલ</span>}
+                            </div>
+                          </div>
+
+                          {/* Quick Photo Upload Button */}
+                          <label style={{
+                            background: photo ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.08)',
+                            border: photo ? '1px solid rgba(5, 150, 105, 0.45)' : '1px solid rgba(255,255,255,0.15)',
+                            color: photo ? '#6ee7b7' : '#cbd5e1',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            padding: '5px 7px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            flexShrink: 0
+                          }} title={photo ? 'ફોટો બદલો' : 'ફોટો અપલોડ કરો'}>
+                            <Camera size={11} />
+                            {photo ? '✓ ફોટો' : '+ ફોટો'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handlePhotoSelect(key, e.target.files[0]);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
