@@ -834,6 +834,7 @@ export default function StudentDashboard() {
   const [waSuccessModal, setWaSuccessModal]           = useState(null);
   const [sendingPragatiWa, setSendingPragatiWa]       = useState(false);
   const [enrolledLockModal, setEnrolledLockModal]     = useState({ isOpen: false, testName: '' });
+  const [hoveredPieSubjectIdx, setHoveredPieSubjectIdx] = useState(null);
 
   // Extract unique subjects from student's submissions
   const uniqueSubjects = useMemo(() => {
@@ -4007,46 +4008,65 @@ export default function StudentDashboard() {
                   </div>
 
                   {(() => {
-                    const colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#ea580c', '#6366f1'];
-                    const totalWeight = subjectAnalytics.reduce((sum, s) => sum + (s.count || 1), 0) || 1;
+                    if (subjectAnalytics.length === 0) {
+                      return (
+                        <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b' }}>
+                          <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🥧</div>
+                          <div style={{ fontWeight: 800, color: '#334155' }}>હજુ સુધી કોઈ કસોટી આપેલ નથી</div>
+                          <div style={{ fontSize: '0.82rem', marginTop: 4 }}>કસોટી આપ્યા પછી અહીં વિષયવાર સુંદર પાઈ ચાર્ટ જોવા મળશે.</div>
+                        </div>
+                      );
+                    }
 
-                    let currentPercent = 0;
+                    // Strict Zero Pink Rule palette:
+                    const colors = [
+                      '#10b981', // Emerald Green
+                      '#0284c7', // Sky Blue
+                      '#f59e0b', // Amber Orange
+                      '#7c3aed', // Royal Purple
+                      '#dc2626', // Crimson Red
+                      '#eab308', // Golden Yellow
+                      '#0d9488', // Teal
+                      '#2563eb', // Royal Blue
+                      '#059669', // Mint Forest
+                      '#4f46e5'  // Indigo
+                    ];
+
+                    const getSubjectIcon = (name = '') => {
+                      const n = (name || '').toLowerCase();
+                      if (n.includes('ગણિત') || n.includes('math') || n.includes('રીઝનિંગ') || n.includes('reasoning')) return '🔢';
+                      if (n.includes('ગુજરાતી') || n.includes('સાહિત્ય') || n.includes('વ્યાકરણ')) return '📖';
+                      if (n.includes('અંગ્રેજી') || n.includes('english')) return '🔤';
+                      if (n.includes('મનોવિજ્ઞાન') || n.includes('psychology') || n.includes('શિક્ષણ') || n.includes('બાળ')) return '🧠';
+                      if (n.includes('વિજ્ઞાન') || n.includes('science') || n.includes('ટેક')) return '🔬';
+                      if (n.includes('ઇતિહાસ') || n.includes('બંધારણ') || n.includes('ભૂગોળ') || n.includes('gk') || n.includes('સામાન્ય')) return '🏛️';
+                      if (n.includes('પર્યાવરણ') || n.includes('env')) return '🌱';
+                      if (n.includes('સંસ્કૃત') || n.includes('sanskrit')) return '🕉️';
+                      if (n.includes('હિન્દી') || n.includes('hindi')) return '🇮🇳';
+                      return '📚';
+                    };
+
+                    const totalWeight = subjectAnalytics.reduce((sum, s) => sum + (s.count || 1), 0) || 1;
                     let cumulativeAngle = 0;
-                    const gradientSegments = [];
 
                     const rawSlices = subjectAnalytics.map((sub, idx) => {
                       const count = sub.count || 1;
                       const pct = Math.max(1, Math.round((count / totalWeight) * 100));
                       const color = colors[idx % colors.length];
 
-                      const startP = currentPercent;
-                      const endP = idx === subjectAnalytics.length - 1 ? 100 : Math.min(100, currentPercent + (count / totalWeight) * 100);
-                      currentPercent = endP;
-
-                      gradientSegments.push(`${color} ${startP.toFixed(1)}% ${endP.toFixed(1)}%`);
-
                       const sliceAngle = (count / totalWeight) * 360;
+                      const startAngle = cumulativeAngle;
+                      const endAngle = cumulativeAngle + sliceAngle;
                       const midAngle = cumulativeAngle + sliceAngle / 2;
                       cumulativeAngle += sliceAngle;
 
-                      // Chart center is at cy = 145px
                       const rad = Math.PI / 180;
-                      const angleRad = (-90 + midAngle) * rad;
-                      const sinVal = Math.sin(angleRad);
+                      const midRad = (-90 + midAngle) * rad;
 
-                      // Calculate natural Y position on the circle (radius ~68)
-                      const naturalY = 145 + 68 * sinVal;
-
-                      let zone = 'right';
-                      if (midAngle >= 345 || midAngle < 15) {
-                        zone = 'top';
-                      } else if (midAngle >= 165 && midAngle <= 195) {
-                        zone = 'bottom';
-                      } else if (midAngle >= 15 && midAngle < 165) {
-                        zone = 'right';
-                      } else {
-                        zone = 'left';
-                      }
+                      // Chart center is (320, 210)
+                      const naturalY = 210 + 130 * Math.sin(midRad);
+                      // Slices on right side: -90 deg to +90 deg Cartesian (midAngle between 0 and 180)
+                      const isRight = Math.cos(midRad) >= 0;
 
                       return {
                         subject: sub.subject,
@@ -4056,125 +4076,340 @@ export default function StudentDashboard() {
                         pct,
                         color,
                         scorePct: sub.pct,
-                        midAngle,
+                        startAngle,
+                        endAngle,
                         sliceAngle,
+                        midAngle,
+                        midRad,
                         naturalY,
                         targetY: naturalY,
-                        zone
+                        isRight
                       };
                     });
 
-                    // Collision prevention: separate badges on left & right sides vertically
+                    // Collision prevention for leader line target Y on left and right
+                    const rightSide = rawSlices.filter(s => s.isRight);
+                    const leftSide = rawSlices.filter(s => !s.isRight);
+
                     const resolveZoneOverlap = (arr) => {
-                      arr.sort((a, b) => a.targetY - b.targetY);
-                      const MIN_GAP = 34;
+                      if (arr.length <= 1) return;
+                      arr.sort((a, b) => a.naturalY - b.naturalY);
+                      const MIN_GAP = 40;
                       for (let i = 1; i < arr.length; i++) {
                         if (arr[i].targetY - arr[i - 1].targetY < MIN_GAP) {
                           arr[i].targetY = arr[i - 1].targetY + MIN_GAP;
                         }
                       }
-                      // Keep within safe vertical bounds (30px to 260px)
-                      arr.forEach(item => {
-                        item.targetY = Math.max(30, Math.min(260, item.targetY));
-                      });
+                      const maxY = 385;
+                      if (arr[arr.length - 1].targetY > maxY) {
+                        const shift = arr[arr.length - 1].targetY - maxY;
+                        for (let i = 0; i < arr.length; i++) {
+                          arr[i].targetY -= shift;
+                        }
+                      }
+                      const minY = 35;
+                      if (arr[0].targetY < minY) {
+                        const shift = minY - arr[0].targetY;
+                        for (let i = 0; i < arr.length; i++) {
+                          arr[i].targetY += shift;
+                        }
+                      }
                     };
 
-                    const rightSide = rawSlices.filter(s => s.zone === 'right');
-                    const leftSide = rawSlices.filter(s => s.zone === 'left');
                     resolveZoneOverlap(rightSide);
                     resolveZoneOverlap(leftSide);
 
-                    const slices = rawSlices.map(s => {
-                      let posStyle = {};
-                      if (s.zone === 'top') {
-                        posStyle = { left: '50%', top: 6, transform: 'translateX(-50%)' };
-                      } else if (s.zone === 'bottom') {
-                        posStyle = { left: '50%', bottom: 6, transform: 'translateX(-50%)' };
-                      } else if (s.zone === 'right') {
-                        posStyle = { right: 6, top: s.targetY, transform: 'translateY(-50%)' };
-                      } else {
-                        // Left side: anchored to left: 6px so it is NEVER cut off by the mobile screen edge!
-                        posStyle = { left: 6, top: s.targetY, transform: 'translateY(-50%)' };
-                      }
-                      return {
-                        ...s,
-                        posStyle
-                      };
-                    });
-
-                    const conicStyle = gradientSegments.length > 0
-                      ? `conic-gradient(${gradientSegments.join(', ')})`
-                      : '#2563eb';
+                    const cx = 320;
+                    const cy = 210;
+                    const R = 115;
 
                     return (
                       <div>
-                        {/* Top: Donut Chart with Perfectly Positioned Non-Overlapping Subject Badges */}
+                        {/* 🎯 INFOGRAPHIC PIE CHART WITH CONNECTING LEADER ARROWS & SUBJECT BADGES */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'visible' }}>
-                          <div style={{ position: 'relative', width: 350, height: 290, maxWidth: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: 660, position: 'relative' }}>
                             
-                            {/* Main Conic Donut Circle in exact center */}
-                            <div style={{
-                              position: 'absolute',
-                              left: '50%',
-                              top: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              width: 154, height: 154,
-                              borderRadius: '50%',
-                              background: conicStyle,
-                              boxShadow: '0 10px 28px rgba(0,0,0,0.12), inset 0 0 0 3px rgba(255,255,255,0.9)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}>
-                              {/* Inner White Cutout - Completely Clear & Unobstructed */}
-                              <div style={{
-                                width: 80, height: 80,
-                                borderRadius: '50%',
-                                background: '#ffffff',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                textAlign: 'center',
-                                zIndex: 2
-                              }}>
-                                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1.1 }}>
-                                  {subjectAnalytics.length}
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, marginTop: 2 }}>
-                                  વિષયો
-                                </div>
-                              </div>
-                            </div>
+                            <svg
+                              viewBox="0 0 640 420"
+                              style={{
+                                width: '100%',
+                                height: 'auto',
+                                maxHeight: 440,
+                                overflow: 'visible',
+                                filter: 'drop-shadow(0 14px 28px rgba(15, 23, 42, 0.08))'
+                              }}
+                            >
+                              <defs>
+                                {/* Soft Elevation Shadow for Entire Pie */}
+                                <filter id="pie-elevation-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                                  <feDropShadow dx="0" dy="10" stdDeviation="12" floodColor="#0f172a" floodOpacity="0.18" />
+                                </filter>
 
-                            {/* Direct Clean Subject Badges Around the Pie Chart */}
-                            {slices.map((s, i) => (
+                                {/* Color-specific Arrow Markers pointing outward to subject labels */}
+                                {rawSlices.map((s, i) => (
+                                  <React.Fragment key={i}>
+                                    <marker
+                                      id={`arr-r-${i}`}
+                                      viewBox="0 0 8 6"
+                                      refX="6"
+                                      refY="3"
+                                      markerWidth="6"
+                                      markerHeight="6"
+                                      orient="auto"
+                                    >
+                                      <path d="M 0 0 L 8 3 L 0 6 z" fill={s.color} />
+                                    </marker>
+                                    <marker
+                                      id={`arr-l-${i}`}
+                                      viewBox="0 0 8 6"
+                                      refX="2"
+                                      refY="3"
+                                      markerWidth="6"
+                                      markerHeight="6"
+                                      orient="auto"
+                                    >
+                                      <path d="M 8 0 L 0 3 L 8 6 z" fill={s.color} />
+                                    </marker>
+                                  </React.Fragment>
+                                ))}
+                              </defs>
+
+                              {/* 1. Main Pie Chart Slices with White Separators */}
+                              <g filter="url(#pie-elevation-shadow)">
+                                {rawSlices.map((s, i) => {
+                                  const isHovered = hoveredPieSubjectIdx === i;
+                                  const isAnyHovered = hoveredPieSubjectIdx !== null;
+
+                                  const startRad = (-90 + s.startAngle) * (Math.PI / 180);
+                                  const endRad = (-90 + s.endAngle) * (Math.PI / 180);
+                                  const x1 = cx + R * Math.cos(startRad);
+                                  const y1 = cy + R * Math.sin(startRad);
+                                  const x2 = cx + R * Math.cos(endRad);
+                                  const y2 = cy + R * Math.sin(endRad);
+                                  const largeArc = s.sliceAngle > 180 ? 1 : 0;
+
+                                  const pathD = s.sliceAngle >= 359.9
+                                    ? `M ${cx - R} ${cy} A ${R} ${R} 0 1 0 ${cx + R} ${cy} A ${R} ${R} 0 1 0 ${cx - R} ${cy} Z`
+                                    : `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+                                  // Pop-out displacement when hovered
+                                  const popDist = isHovered ? 9 : 0;
+                                  const popX = Math.cos(s.midRad) * popDist;
+                                  const popY = Math.sin(s.midRad) * popDist;
+
+                                  return (
+                                    <path
+                                      key={i}
+                                      d={pathD}
+                                      fill={s.color}
+                                      stroke="#ffffff"
+                                      strokeWidth="3.5"
+                                      strokeLinejoin="round"
+                                      style={{
+                                        cursor: 'pointer',
+                                        transition: 'all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                        transform: `translate(${popX}px, ${popY}px)`,
+                                        opacity: isAnyHovered && !isHovered ? 0.75 : 1
+                                      }}
+                                      onMouseEnter={() => setHoveredPieSubjectIdx(i)}
+                                      onMouseLeave={() => setHoveredPieSubjectIdx(null)}
+                                    >
+                                      <title>{`${s.subject}: ${s.pct}% (${s.count} કસોટી, ${s.score}/${s.max} ગુણ)`}</title>
+                                    </path>
+                                  );
+                                })}
+                              </g>
+
+                              {/* 2. Bold White Percentage Text INSIDE Each Slice */}
+                              <g pointerEvents="none">
+                                {rawSlices.map((s, i) => {
+                                  if (s.sliceAngle < 13) return null; // Don't crowd micro slices
+
+                                  const isHovered = hoveredPieSubjectIdx === i;
+                                  const popDist = isHovered ? 9 : 0;
+                                  const textR = R * 0.64;
+                                  const tx = cx + textR * Math.cos(s.midRad) + Math.cos(s.midRad) * popDist;
+                                  const ty = cy + textR * Math.sin(s.midRad) + Math.sin(s.midRad) * popDist;
+
+                                  return (
+                                    <text
+                                      key={i}
+                                      x={tx}
+                                      y={ty}
+                                      fill="#ffffff"
+                                      fontWeight="900"
+                                      fontSize={s.sliceAngle > 30 ? "13.5" : "11.5"}
+                                      textAnchor="middle"
+                                      dominantBaseline="central"
+                                      style={{
+                                        fontFamily: 'inherit',
+                                        filter: 'drop-shadow(0 1.5px 3px rgba(0,0,0,0.65))',
+                                        userSelect: 'none',
+                                        transition: 'all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                      }}
+                                    >
+                                      {s.pct}%
+                                    </text>
+                                  );
+                                })}
+                              </g>
+
+                              {/* 3. Connecting Leader Lines with Outer Dots & Directional Arrow Tips */}
+                              <g>
+                                {rawSlices.map((s, i) => {
+                                  const isHovered = hoveredPieSubjectIdx === i;
+                                  const dotR = R - 1;
+                                  const dotX = cx + dotR * Math.cos(s.midRad);
+                                  const dotY = cy + dotR * Math.sin(s.midRad);
+
+                                  const elbowR = R + 26;
+                                  const elbowX = cx + elbowR * Math.cos(s.midRad);
+                                  const elbowY = s.targetY;
+
+                                  const endX = s.isRight ? 465 : 175;
+
+                                  return (
+                                    <g key={i}>
+                                      {/* Outer perimeter starting dot */}
+                                      <circle
+                                        cx={dotX}
+                                        cy={dotY}
+                                        r={isHovered ? 4.5 : 3}
+                                        fill="#0f172a"
+                                        stroke="#ffffff"
+                                        strokeWidth="1.5"
+                                        style={{ transition: 'all 0.2s' }}
+                                      />
+                                      {/* Polyline connecting slice to label with directional arrowhead */}
+                                      <polyline
+                                        points={`${dotX},${dotY} ${elbowX},${elbowY} ${endX},${elbowY}`}
+                                        fill="none"
+                                        stroke={isHovered ? s.color : '#64748b'}
+                                        strokeWidth={isHovered ? 2.6 : 1.6}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        markerEnd={s.isRight ? `url(#arr-r-${i})` : `url(#arr-l-${i})`}
+                                        style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
+                                      />
+                                    </g>
+                                  );
+                                })}
+                              </g>
+
+                              {/* 4. External Subject Badges (Icon + Name + Large Percentage) */}
+                              {rawSlices.map((s, i) => {
+                                const isHovered = hoveredPieSubjectIdx === i;
+                                const isRight = s.isRight;
+                                const badgeWidth = 152;
+                                const badgeHeight = 36;
+                                const startX = isRight ? 472 : 168 - badgeWidth;
+                                const startY = s.targetY - badgeHeight / 2;
+
+                                const displayName = s.subject.length > 10 ? s.subject.slice(0, 9) + '…' : s.subject;
+
+                                return (
+                                  <g
+                                    key={i}
+                                    transform={`translate(${startX}, ${startY})`}
+                                    style={{ cursor: 'pointer' }}
+                                    onMouseEnter={() => setHoveredPieSubjectIdx(i)}
+                                    onMouseLeave={() => setHoveredPieSubjectIdx(null)}
+                                  >
+                                    {/* Pill Card Background */}
+                                    <rect
+                                      x="0"
+                                      y="0"
+                                      width={badgeWidth}
+                                      height={badgeHeight}
+                                      rx={badgeHeight / 2}
+                                      fill={isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.96)'}
+                                      stroke={isHovered ? s.color : '#e2e8f0'}
+                                      strokeWidth={isHovered ? 2.2 : 1.2}
+                                      filter="drop-shadow(0 2px 8px rgba(15,23,42,0.06))"
+                                      style={{ transition: 'all 0.2s ease' }}
+                                    />
+
+                                    {/* Subject Icon in Soft Circle */}
+                                    <circle
+                                      cx={isRight ? 18 : badgeWidth - 18}
+                                      cy={badgeHeight / 2}
+                                      r="13"
+                                      fill={`${s.color}18`}
+                                    />
+                                    <text
+                                      x={isRight ? 18 : badgeWidth - 18}
+                                      y={badgeHeight / 2 + 4.5}
+                                      textAnchor="middle"
+                                      fontSize="13"
+                                      style={{ userSelect: 'none' }}
+                                    >
+                                      {getSubjectIcon(s.subject)}
+                                    </text>
+
+                                    {/* Subject Name Text */}
+                                    <text
+                                      x={isRight ? 38 : badgeWidth - 38}
+                                      y="15"
+                                      textAnchor={isRight ? 'start' : 'end'}
+                                      fontSize="10.5"
+                                      fontWeight="800"
+                                      fill="#1e293b"
+                                      style={{ fontFamily: 'inherit', userSelect: 'none' }}
+                                    >
+                                      {displayName}
+                                    </text>
+
+                                    {/* Big Bold Colorful Percentage */}
+                                    <text
+                                      x={isRight ? 38 : badgeWidth - 38}
+                                      y="29"
+                                      textAnchor={isRight ? 'start' : 'end'}
+                                      fontSize="11.5"
+                                      fontWeight="900"
+                                      fill={s.color}
+                                      style={{ fontFamily: 'inherit', userSelect: 'none' }}
+                                    >
+                                      {s.pct}% હિસ્સો
+                                    </text>
+
+                                    <title>{`${s.subject}: ${s.pct}% (${s.count} કસોટીઓ, મેળવેલ ગુણ: ${s.score}/${s.max})`}</title>
+                                  </g>
+                                );
+                              })}
+                            </svg>
+
+                            {/* Floating Active Hover Info Capsule at Center Bottom */}
+                            {hoveredPieSubjectIdx !== null && (
                               <div
-                                key={i}
                                 style={{
                                   position: 'absolute',
-                                  ...s.posStyle,
-                                  background: 'rgba(255, 255, 255, 0.98)',
-                                  border: `1.5px solid ${s.color}`,
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                  padding: '3px 8px',
+                                  bottom: 8,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  background: 'rgba(15, 23, 42, 0.94)',
+                                  color: '#ffffff',
+                                  padding: '6px 16px',
                                   borderRadius: 20,
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
+                                  gap: 8,
+                                  pointerEvents: 'none',
                                   whiteSpace: 'nowrap',
-                                  zIndex: 10,
-                                  fontSize: '0.72rem',
-                                  fontWeight: 800,
-                                  color: '#0f172a'
+                                  zIndex: 20,
+                                  animation: 'fadeIn 0.2s ease'
                                 }}
                               >
-                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                                <span style={{ maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.subject}>
-                                  {s.subject}
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: rawSlices[hoveredPieSubjectIdx]?.color }} />
+                                <span>{rawSlices[hoveredPieSubjectIdx]?.subject}:</span>
+                                <span style={{ color: '#4ade80' }}>
+                                  {rawSlices[hoveredPieSubjectIdx]?.score}/{rawSlices[hoveredPieSubjectIdx]?.max} ગુણ ({rawSlices[hoveredPieSubjectIdx]?.scorePct}%)
                                 </span>
-                                <span style={{ color: s.color, fontWeight: 900, flexShrink: 0 }}>
-                                  ({s.pct}%)
-                                </span>
+                                <span style={{ color: '#94a3b8' }}>• {rawSlices[hoveredPieSubjectIdx]?.count} કસોટીઓ</span>
                               </div>
-                            ))}
+                            )}
 
                           </div>
                         </div>
@@ -4187,40 +4422,47 @@ export default function StudentDashboard() {
                           borderTop: '1px solid #f1f5f9',
                           paddingTop: 18
                         }}>
-                          {slices.map((s, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                background: '#f8fafc',
-                                border: `1.5px solid ${s.color}30`,
-                                borderLeft: `4px solid ${s.color}`,
-                                borderRadius: 10,
-                                padding: '10px 14px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color }} />
-                                  📚 {s.subject}
+                          {rawSlices.map((s, i) => {
+                            const isHovered = hoveredPieSubjectIdx === i;
+                            return (
+                              <div
+                                key={i}
+                                onMouseEnter={() => setHoveredPieSubjectIdx(i)}
+                                onMouseLeave={() => setHoveredPieSubjectIdx(null)}
+                                style={{
+                                  background: isHovered ? '#ffffff' : '#f8fafc',
+                                  border: `1.5px solid ${isHovered ? s.color : s.color + '30'}`,
+                                  borderLeft: `4.5px solid ${s.color}`,
+                                  borderRadius: 10,
+                                  padding: '10px 14px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  boxShadow: isHovered ? '0 4px 14px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.02)',
+                                  transition: 'all 0.2s ease',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <div>
+                                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>{getSubjectIcon(s.subject)}</span>
+                                    <span>{s.subject}</span>
+                                  </div>
+                                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2 }}>
+                                    {s.count} કસોટી(ઓ) • મેળવેલ ગુણ: {s.score}/{s.max}
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 2 }}>
-                                  {s.count} કસોટી(ઓ) • મેળવેલ ગુણ: {s.score}/{s.max}
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: s.color }}>
+                                    {s.pct}%
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 800 }}>
+                                    {s.scorePct}% સ્કોર
+                                  </div>
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: s.color }}>
-                                  {s.pct}%
-                                </div>
-                                <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 800 }}>
-                                  {s.scorePct}% સ્કોર
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                       </div>
