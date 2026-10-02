@@ -55,7 +55,7 @@ function validateStudentName(rawName) {
   return { isValid: true, cleanName: rawName.trim() };
 }
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -4147,7 +4147,7 @@ export default function StudentDashboard() {
 
                                 {/* Color-specific Arrow Markers pointing outward to subject labels */}
                                 {rawSlices.map((s, i) => (
-                                  <React.Fragment key={i}>
+                                  <Fragment key={i}>
                                     <marker
                                       id={`arr-r-${i}`}
                                       viewBox="0 0 8 6"
@@ -4170,7 +4170,7 @@ export default function StudentDashboard() {
                                     >
                                       <path d="M 8 0 L 0 3 L 8 6 z" fill={s.color} />
                                     </marker>
-                                  </React.Fragment>
+                                  </Fragment>
                                 ))}
                               </defs>
 
