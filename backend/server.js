@@ -565,10 +565,10 @@ setInterval(async () => {
     if (hours === 3 && minutes === 1 && lastOtpCleanupKey !== todayKey) {
       lastOtpCleanupKey = todayKey;
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const { count } = await prisma.oTP.deleteMany({
+      const { count } = await prisma.oTPSession.deleteMany({
         where: {
           createdAt: { lt: cutoff },
-          isUsed: true
+          used: true
         }
       });
       console.log(`🧹 [OTP Cleanup] Deleted ${count} expired OTP records from DB.`);
