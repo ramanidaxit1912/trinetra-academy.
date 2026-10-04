@@ -10944,48 +10944,6 @@ function StudentAnswers({ showToast }) {
             ))}
           </div>
         )}
-        {/* ── Sort & Filter Pills: Toppers, Latest, Earliest, Long Time, Fast ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>⚡ ક્રમ:</span>
-          <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 3, border: '1px solid rgba(255,255,255,0.1)', gap: 3, flexWrap: 'wrap' }}>
-            {[
-              { id: 'TOPPER', label: '🏆 ટૉપર્સ', title: 'સૌથી વધુ ગુણ મેળવનાર વિદ્યાર્થીઓ પહેલાં' },
-              { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
-              { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
-              { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },
-              { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' }
-            ].map(s => {
-              const isAct = sortBy === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSortBy(s.id)}
-                  title={s.title}
-                  style={{
-                    background: isAct ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
-                    color: isAct ? '#ffffff' : '#cbd5e1',
-                    border: isAct ? '1px solid #38bdf8' : 'none',
-                    padding: '6px 11px',
-                    borderRadius: 6,
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    transition: 'all 0.15s ease',
-                    boxShadow: isAct ? '0 2px 8px rgba(2,132,199,0.35)' : 'none',
-                    fontFamily: 'Hind Vadodara, sans-serif'
-                  }}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <button
           onClick={fetchSubs}
           style={{
@@ -11049,6 +11007,33 @@ function StudentAnswers({ showToast }) {
           >
             ☰ લિસ્ટ પટ્ટી
           </button>
+        </div>
+      </div>
+
+      {/* ── Dedicated Ultra-Modern Sort Toolbar (Segmented Capsule) ── */}
+      <div className="sa-sort-toolbar-wrap" style={{ marginBottom: 14 }}>
+        <span className="sa-sort-label">⚡ ક્રમ ફિલ્ટર:</span>
+        <div className="sa-sort-pills-bar">
+          {[
+            { id: 'TOPPER', label: '🏆 ટૉપર્સ', title: 'સૌથી વધુ ગુણ મેળવનાર વિદ્યાર્થીઓ પહેલાં' },
+            { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
+            { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
+            { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },
+            { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' }
+          ].map(s => {
+            const isAct = sortBy === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSortBy(s.id)}
+                title={s.title}
+                className={`sa-sort-pill-btn ${isAct ? 'active' : ''}`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -11536,41 +11521,35 @@ function StudentAnswers({ showToast }) {
                   `_શુભેચ્છાઓ સહ - ત્રિનેત્ર એકેડેમી_`;
 
                 return (
-                  <div key={sub.id} className="glass-card sa-stagger-card"
-                    style={{
-                      padding: '16px 18px',
-                      borderRadius: 16,
-                      border: cardBorder,
-                      background: 'linear-gradient(145deg, #0e172a 0%, #090f1d 100%)',
-                      transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      boxShadow: cardShadow,
-                      animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s`
-                    }}>
-
-                    {/* Top Row: Student info + Status Badges */}
-                    <div className="sa-card-toprow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div
+                    key={sub.id}
+                    className={`sa-student-card-item sa-stagger-card ${sortBy === 'TOPPER' ? (sIdx === 0 ? 'rank-1' : sIdx === 1 ? 'rank-2' : sIdx === 2 ? 'rank-3' : '') : ''}`}
+                    style={{ animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s` }}
+                  >
+                    {/* Modern Responsive Card Row */}
+                    <div className="sa-card-flex-row">
+                      {/* Left: Info Section */}
+                      <div className="sa-card-left-info">
                         {/* 3D Student Avatar */}
-                        <div style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: '50%',
-                          background: avatarStyle.bg,
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 900,
-                          fontSize: '1.15rem',
-                          flexShrink: 0,
-                          boxShadow: avatarStyle.shadow,
-                          border: avatarStyle.border
-                        }}>
+                        <div
+                          className="sa-card-avatar"
+                          style={{
+                            background: avatarStyle.bg,
+                            border: avatarStyle.border,
+                            boxShadow: avatarStyle.shadow
+                          }}
+                        >
                           {(sub.student?.name || 'S').trim().charAt(0).toUpperCase()}
                         </div>
 
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {/* Details Column */}
+                        <div className="sa-sub-details-col">
+                          {/* Line 1: Student Name + Rank Chip + Evaluation Status Chip */}
+                          <div className="sa-sub-header-line">
+                            <span className="sa-student-title-name">
+                              {sub.student?.name}
+                            </span>
+
                             {/* 🏆 Rank / Sort Badge */}
                             {sortBy === 'TOPPER' ? (
                               sIdx === 0 ? (
@@ -11681,7 +11660,7 @@ function StudentAnswers({ showToast }) {
                                 alignItems: 'center',
                                 gap: 3
                               }}>
-                                ⏱️ #{sIdx + 1} વધુ સમય ({formatSubDuration(getSubDurationSec(sub))})
+                                ⏱️ #{sIdx + 1} વધુ સમય
                               </span>
                             ) : (
                               <span style={{
@@ -11696,13 +11675,9 @@ function StudentAnswers({ showToast }) {
                                 alignItems: 'center',
                                 gap: 3
                               }}>
-                                ⚡ #{sIdx + 1} ઝડપી ({formatSubDuration(getSubDurationSec(sub))})
+                                ⚡ #{sIdx + 1} ઝડપી
                               </span>
                             )}
-
-                            <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
-                              {sub.student?.name}
-                            </span>
 
                             {/* Evaluation Status Chip */}
                             {sub.status === 'IN_PROGRESS' ? (
@@ -11760,125 +11735,75 @@ function StudentAnswers({ showToast }) {
                             )}
                           </div>
 
-                          {/* Subline Details (Clean, Spacious: Removed Test Name & Redundant Test ID) */}
-                          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: 4, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>📞 {sub.student?.mobile}</span>
-                            <span>•</span>
-                            <span>🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                            <span>•</span>
-                            <span style={{ color: '#fbbf24', fontWeight: 700 }}>⏱️ લીધેલ સમય: {formatSubDuration(getSubDurationSec(sub))}</span>
-
-                            {/* Anti-cheat badges if any */}
-                            {(sub.ipAddress || (sub.remarks && sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1])) && (
-                              <span style={{ color: '#38bdf8', background: 'rgba(56,189,248,0.12)', padding: '1px 7px', borderRadius: 6, fontSize: '0.72rem', border: '1px solid rgba(56,189,248,0.25)', fontWeight: 600 }}>
-                                🌐 {sub.ipAddress || sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1]}
-                              </span>
-                            )}
-                            {(() => {
-                              const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
-                              if (!tabMatch) return null;
-                              return (
-                                <span style={{
-                                  color: '#f87171',
-                                  background: 'rgba(239,68,68,0.18)',
-                                  padding: '1px 8px',
-                                  borderRadius: 6,
-                                  fontSize: '0.72rem',
-                                  border: '1px solid rgba(239,68,68,0.4)',
-                                  fontWeight: 800,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 3
-                                }}>
-                                  🚨 {tabMatch[1]} વાર સ્ક્રીન સ્વિચ
-                                </span>
-                              );
-                            })()}
-                            {(() => {
-                              const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
-                              const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
-                              if (!ssMatch) return null;
-                              return (
-                                <span
-                                  title={ssQMatch ? `વિદ્યાર્થીએ સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો: ${ssQMatch[1]}` : 'કસોટી દરમિયાન સ્ક્રીનશોટ પ્રયાસ'}
-                                  style={{
-                                    color: '#f59e0b',
-                                    background: 'rgba(245,158,11,0.18)',
-                                    padding: '1px 8px',
-                                    borderRadius: 6,
-                                    fontSize: '0.72rem',
-                                    border: '1px solid rgba(245,158,11,0.4)',
-                                    fontWeight: 800,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3
-                                  }}>
-                                  📸 {ssMatch[1]} વાર સ્ક્રીનશોટ {ssQMatch ? `(${ssQMatch[1]})` : ''}
-                                </span>
-                              );
-                            })()}
+                          {/* Line 2: Contact, Date & Duration Chips */}
+                          <div className="sa-sub-meta-line">
+                            <span className="sa-meta-chip phone">
+                              📞 {sub.student?.mobile}
+                            </span>
+                            <span className="sa-meta-chip">
+                              🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                            <span className="sa-meta-chip duration">
+                              ⏱️ લીધેલ સમય: {formatSubDuration(getSubDurationSec(sub))}
+                            </span>
                           </div>
+
+                          {/* Line 3: Anti-Cheat Badges (Dedicated Clean Strip - Prevents Overflow) */}
+                          {(() => {
+                            const ip = sub.ipAddress || (sub.remarks && sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1]);
+                            const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
+                            const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
+                            const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
+
+                            if (!ip && !tabMatch && !ssMatch) return null;
+
+                            return (
+                              <div className="sa-sub-security-line">
+                                {ip && (
+                                  <span className="sa-sec-badge ip">
+                                    🌐 {ip}
+                                  </span>
+                                )}
+                                {tabMatch && (
+                                  <span className="sa-sec-badge switch">
+                                    🚨 {tabMatch[1]} વાર સ્ક્રીન સ્વિચ
+                                  </span>
+                                )}
+                                {ssMatch && (
+                                  <span className="sa-sec-badge snap" title={ssQMatch ? `સ્ક્રીનશોટ પ્રયાસ: ${ssQMatch[1]}` : 'કસોટી દરમિયાન સ્ક્રીનશોટ પ્રયાસ'}>
+                                    📸 {ssMatch[1]} વાર સ્ક્રીનશોટ {ssQMatch ? `(${ssQMatch[1]})` : ''}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 
-                      {/* Right Side: Total Score Pill & Toggle Button (Removed MCQ 1 Guna Pill & Duplicate Status) */}
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Combined Total Score Pill */}
-                        <div style={{
-                          display: 'inline-flex',
-                          alignItems: 'baseline',
-                          gap: 6,
-                          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
-                          padding: '7px 14px',
-                          borderRadius: 10,
-                          border: sIdx === 0 ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.14)',
-                          boxShadow: sIdx === 0 ? '0 2px 10px rgba(245, 158, 11, 0.25)' : '0 2px 8px rgba(0,0,0,0.3)'
-                        }}>
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>કુલ ગુણ:</span>
-                          <span style={{
-                            fontSize: '1.2rem',
-                            fontWeight: 900,
-                            color: totalScored >= (maxMarks * 0.7) ? '#4ade80' : (totalScored >= (maxMarks * 0.4) ? '#fbbf24' : '#f87171')
-                          }}>
-                            {totalScored}
-                          </span>
-                          <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 800 }}>/ {maxMarks}</span>
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            color: '#38bdf8',
-                            background: 'rgba(56, 189, 248, 0.12)',
-                            padding: '1px 6px',
-                            borderRadius: 5,
-                            marginLeft: 2
-                          }}>
-                            {Math.round((totalScored / (maxMarks || 1)) * 100)}%
-                          </span>
-                        </div>
+                      {/* Right: Score Pill & View Answers Button */}
+                      <div className="sa-card-right-actions">
+                        {(() => {
+                          const scoreClass = totalScored >= (maxMarks * 0.7) ? 'high' : (totalScored >= (maxMarks * 0.4) ? 'med' : 'low');
+                          const pct = Math.round((totalScored / (maxMarks || 1)) * 100);
+                          return (
+                            <div className="sa-score-pill-container">
+                              <span className="sa-score-title">કુલ ગુણ:</span>
+                              <span className={`sa-score-val ${scoreClass}`}>
+                                {totalScored}
+                              </span>
+                              <span className="sa-score-total">/{maxMarks}</span>
+                              <span className={`sa-score-pct ${scoreClass}`}>
+                                {pct}%
+                              </span>
+                            </div>
+                          );
+                        })()}
 
-                        {/* Action Toggle Button */}
                         <button
+                          type="button"
                           onClick={() => handleToggleSub(sub.id)}
-                          style={{
-                            background: isSelected
-                              ? 'linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%)'
-                              : 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)',
-                            border: isSelected ? '1.5px solid #f87171' : '1.5px solid #93c5fd',
-                            color: '#ffffff',
-                            padding: '8px 16px',
-                            borderRadius: 10,
-                            fontWeight: 900,
-                            cursor: 'pointer',
-                            fontSize: '0.82rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontFamily: 'Hind Vadodara, sans-serif',
-                            boxShadow: isSelected
-                              ? '0 4px 14px rgba(239,68,68,0.45)'
-                              : '0 4px 16px rgba(37,99,235,0.45), inset 0 1px 0 rgba(255,255,255,0.3)',
-                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                          }}>
+                          className={`sa-view-btn ${isSelected ? 'open' : ''}`}
+                        >
                           <Eye size={15} />
                           <span>{isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? 'વિદ્યાર્થીના જવાબો જુઓ' : 'જવાબો & ગુણ તપાસો')}</span>
                         </button>
