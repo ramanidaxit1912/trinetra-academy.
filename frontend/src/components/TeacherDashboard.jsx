@@ -11736,16 +11736,13 @@ function StudentAnswers({ showToast }) {
                             )}
                           </div>
 
-                          {/* Line 2: Contact, Date & Duration Chips */}
+                          {/* Line 2: Contact & Date Chips */}
                           <div className="sa-sub-meta-line">
                             <span className="sa-meta-chip phone">
                               📞 {sub.student?.mobile}
                             </span>
                             <span className="sa-meta-chip">
                               🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                            </span>
-                            <span className="sa-meta-chip duration">
-                              ⏱️ લીધેલ સમય: {formatSubDuration(getSubDurationSec(sub))}
                             </span>
                           </div>
 
