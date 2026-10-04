@@ -10383,6 +10383,7 @@ function StudentAnswers({ showToast }) {
   const [masterTestModal, setMasterTestModal] = useState(null); // { testCode, testName, subject, questions: [], editedKeys: {}, subs: [], loading: boolean, savedSuccess: boolean }
   const [savingMaster, setSavingMaster] = useState(false);
   const [reviewSeqOrder, setReviewSeqOrder] = useState({}); // { [subId]: 'STUDENT' | 'MASTER' }
+  const [leaderboardOverrides, setLeaderboardOverrides] = useState([]); // Active teacher leaderboard rank/score overrides
 
   const rotatePhoto = (url, e) => {
     if (e) e.stopPropagation();
@@ -10501,7 +10502,28 @@ function StudentAnswers({ showToast }) {
     setReEvaluating(prev => ({ ...prev, [testCode]: false }));
   };
 
-  useEffect(() => { fetchSubs(); }, []);
+  const fetchLeaderboardOverridesList = async () => {
+    try {
+      const res = await getLeaderboardOverrides();
+      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      setLeaderboardOverrides(list);
+    } catch (err) {
+      console.warn('Leaderboard overrides fetch in StudentAnswers failed', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubs();
+    fetchLeaderboardOverridesList();
+
+    const handleUpdate = () => {
+      fetchSubs();
+      fetchLeaderboardOverridesList();
+    };
+
+    window.addEventListener('trinetra_leaderboard_updated', handleUpdate);
+    return () => window.removeEventListener('trinetra_leaderboard_updated', handleUpdate);
+  }, []);
 
   const fetchSubs = async () => {
     try {
@@ -10669,41 +10691,99 @@ function StudentAnswers({ showToast }) {
 
     // Dynamic Sorting inside each test based on sortBy filter
     Object.values(map).forEach(group => {
-      group.subs.sort((a, b) => {
-        if (sortBy === 'TOPPER') {
-          // 🏆 Highest marks first, earlier submission on tie
-          const diff = getScore(b) - getScore(a);
-          if (diff !== 0) return diff;
+      if (sortBy === 'LEADERBOARD') {
+        // 👑 1. Base sort: highest score first; if tie, faster time first; if tie, earlier submission
+        group.subs.sort((a, b) => {
+          const scoreA = getScore(a);
+          const scoreB = getScore(b);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          const durA = getSubDurationSec(a);
+          const durB = getSubDurationSec(b);
+          const effDurA = durA > 0 ? durA : 999999;
+          const effDurB = durB > 0 ? durB : 999999;
+          if (effDurA !== effDurB) return effDurA - effDurB;
           const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
           const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
           return timeA - timeB;
-        } else if (sortBy === 'LATEST_TIME') {
-          // 🕒 Most recent submission first
-          const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
-          const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
-          return timeB - timeA;
-        } else if (sortBy === 'EARLIEST_TIME') {
-          // 🌅 Earliest submission first
-          const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
-          const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
-          return timeA - timeB;
-        } else if (sortBy === 'TIME_LONG') {
-          // ⏱️ Longest test time taken first
-          const durA = getSubDurationSec(a);
-          const durB = getSubDurationSec(b);
-          if (durB !== durA) return durB - durA;
-          return getScore(b) - getScore(a);
-        } else if (sortBy === 'TIME_FAST') {
-          // ⚡ Fastest completion first (only non-zero durations prioritized)
-          const durA = getSubDurationSec(a);
-          const durB = getSubDurationSec(b);
-          if (durA > 0 && durB > 0 && durA !== durB) return durA - durB;
-          if (durA > 0 && durB === 0) return -1;
-          if (durB > 0 && durA === 0) return 1;
-          return getScore(b) - getScore(a);
-        }
-        return 0;
-      });
+        });
+
+        // 👑 2. Apply active teacher rank overrides for this testCode / testName
+        const currentTestKey = group.testCode;
+        const currentTestName = group.testName;
+        const testOverrides = (leaderboardOverrides || [])
+          .filter(o => {
+            if (!o.isActive) return false;
+            if (o.testCode === 'ALL') return true;
+            if (currentTestKey && (o.testCode === currentTestKey || o.testCode === `NAME_${currentTestName}`)) return true;
+            if (currentTestName && o.testCode === currentTestName) return true;
+            return false;
+          })
+          .sort((a, b) => (b.rank || 1) - (a.rank || 1)); // reverse order so higher rank numbers inserted first, lower ranks (1, 2) on top
+
+        testOverrides.forEach(ov => {
+          const cleanOvMob = ov.mobile ? String(ov.mobile).replace(/\D/g, '').slice(-10) : '';
+          const matchIdx = group.subs.findIndex(s => {
+            const cleanSubMob = s.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : '';
+            if (ov.submissionId && s.id === ov.submissionId) return true;
+            if (cleanOvMob && cleanSubMob && cleanOvMob === cleanSubMob) return true;
+            if (!cleanOvMob && s.student?.name && ov.studentName && s.student.name.trim().toLowerCase() === ov.studentName.trim().toLowerCase()) return true;
+            return false;
+          });
+
+          if (matchIdx >= 0) {
+            const item = {
+              ...group.subs[matchIdx],
+              isTeacherOverride: true,
+              overrideRank: ov.rank,
+              overrideScore: ov.score
+            };
+            group.subs.splice(matchIdx, 1);
+            const targetPos = Math.min(group.subs.length, Math.max(0, (ov.rank || 1) - 1));
+            group.subs.splice(targetPos, 0, item);
+          }
+        });
+
+        // 👑 3. Assign official leaderboardRank (respecting overrideRank)
+        group.subs.forEach((sub, idx) => {
+          sub.leaderboardRank = sub.overrideRank || (idx + 1);
+        });
+      } else {
+        group.subs.sort((a, b) => {
+          if (sortBy === 'TOPPER') {
+            // 🏆 Highest marks first, earlier submission on tie
+            const diff = getScore(b) - getScore(a);
+            if (diff !== 0) return diff;
+            const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+            const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+            return timeA - timeB;
+          } else if (sortBy === 'LATEST_TIME') {
+            // 🕒 Most recent submission first
+            const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+            const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+            return timeB - timeA;
+          } else if (sortBy === 'EARLIEST_TIME') {
+            // 🌅 Earliest submission first
+            const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+            const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+            return timeA - timeB;
+          } else if (sortBy === 'TIME_LONG') {
+            // ⏱️ Longest test time taken first
+            const durA = getSubDurationSec(a);
+            const durB = getSubDurationSec(b);
+            if (durB !== durA) return durB - durA;
+            return getScore(b) - getScore(a);
+          } else if (sortBy === 'TIME_FAST') {
+            // ⚡ Fastest completion first (only non-zero durations prioritized)
+            const durA = getSubDurationSec(a);
+            const durB = getSubDurationSec(b);
+            if (durA > 0 && durB > 0 && durA !== durB) return durA - durB;
+            if (durA > 0 && durB === 0) return -1;
+            if (durB > 0 && durA === 0) return 1;
+            return getScore(b) - getScore(a);
+          }
+          return 0;
+        });
+      }
     });
 
     // Sort groups: most recent submission first
@@ -10712,7 +10792,7 @@ function StudentAnswers({ showToast }) {
       const bTime = new Date(b.subs[0]?.submittedAt || 0).getTime();
       return bTime - aTime;
     });
-  }, [filteredSubs, mcqScores, gradeMarks, sortBy]);
+  }, [filteredSubs, mcqScores, gradeMarks, sortBy, leaderboardOverrides]);
 
   const toggleTestGroup = (testCode) =>
     setExpandedTests(prev => {
@@ -11016,6 +11096,7 @@ function StudentAnswers({ showToast }) {
         <span className="sa-sort-label">⚡ ક્રમ ફિલ્ટર:</span>
         <div className="sa-sort-pills-bar">
           {[
+            { id: 'LEADERBOARD', label: '👑 લીડરબોર્ડ', title: 'સત્તાવાર લીડરબોર્ડ રેન્ક (શિક્ષકના ફેરફારો સહિત)' },
             { id: 'TOPPER', label: '🏆 ટૉપર્સ', title: 'સૌથી વધુ ગુણ મેળવનાર વિદ્યાર્થીઓ પહેલાં' },
             { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
             { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
@@ -11029,7 +11110,7 @@ function StudentAnswers({ showToast }) {
                 type="button"
                 onClick={() => setSortBy(s.id)}
                 title={s.title}
-                className={`sa-sort-pill-btn ${isAct ? 'active' : ''}`}
+                className={`sa-sort-pill-btn ${isAct ? 'active' : ''} ${s.id === 'LEADERBOARD' ? 'leaderboard-pill' : ''}`}
               >
                 {s.label}
               </button>
@@ -11524,7 +11605,7 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div
                     key={sub.id}
-                    className={`sa-student-card-item sa-stagger-card ${sortBy === 'TOPPER' ? (sIdx === 0 ? 'rank-1' : sIdx === 1 ? 'rank-2' : sIdx === 2 ? 'rank-3' : '') : ''}`}
+                    className={`sa-student-card-item sa-stagger-card ${(sortBy === 'TOPPER' || sortBy === 'LEADERBOARD') ? (sIdx === 0 ? 'rank-1' : sIdx === 1 ? 'rank-2' : sIdx === 2 ? 'rank-3' : '') : ''}`}
                     style={{ animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s` }}
                   >
                     {/* Modern Responsive Card Row */}
@@ -11552,7 +11633,34 @@ function StudentAnswers({ showToast }) {
                             </span>
 
                             {/* 🏆 Rank / Sort Badge */}
-                            {sortBy === 'TOPPER' ? (
+                            {sortBy === 'LEADERBOARD' ? (
+                              <span style={{
+                                background: (sub.leaderboardRank === 1 || (!sub.leaderboardRank && sIdx === 0))
+                                  ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
+                                  : (sub.leaderboardRank === 2 || (!sub.leaderboardRank && sIdx === 1))
+                                  ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                                  : (sub.leaderboardRank === 3 || (!sub.leaderboardRank && sIdx === 2))
+                                  ? 'linear-gradient(135deg, #92400e 0%, #78350f 100%)'
+                                  : 'rgba(51, 65, 85, 0.65)',
+                                color: '#ffffff',
+                                fontWeight: 900,
+                                fontSize: '0.74rem',
+                                padding: '2.5px 9px',
+                                borderRadius: 20,
+                                boxShadow: (sub.leaderboardRank === 1 || (!sub.leaderboardRank && sIdx === 0)) ? '0 2px 10px rgba(217, 119, 6, 0.45)' : 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                border: (sub.leaderboardRank === 1 || (!sub.leaderboardRank && sIdx === 0))
+                                  ? '1px solid rgba(251, 191, 36, 0.6)'
+                                  : '1px solid rgba(255, 255, 255, 0.15)'
+                              }}>
+                                {(sub.leaderboardRank === 1 || (!sub.leaderboardRank && sIdx === 0)) ? '👑' : (sub.leaderboardRank === 2 || (!sub.leaderboardRank && sIdx === 1)) ? '🥈' : (sub.leaderboardRank === 3 || (!sub.leaderboardRank && sIdx === 2)) ? '🥉' : '🎖️'} લીડરબોર્ડ #{sub.leaderboardRank || (sIdx + 1)}
+                                {sub.isTeacherOverride && (
+                                  <span style={{ fontSize: '0.65rem', color: '#fef08a', marginLeft: 2, fontWeight: 700 }}>(શિક્ષક સેટિંગ)</span>
+                                )}
+                              </span>
+                            ) : sortBy === 'TOPPER' ? (
                               sIdx === 0 ? (
                                 <span style={{
                                   background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
