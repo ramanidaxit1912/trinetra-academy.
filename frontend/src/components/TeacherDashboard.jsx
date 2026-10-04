@@ -10350,7 +10350,29 @@ function StudentAnswers({ showToast }) {
   const [testTypeFilter, setTestTypeFilter] = useState('ALL'); // 'ALL' | 'DESCRIPTIVE' | 'MCQ'
   const [filterStatus, setFilterStatus]     = useState('ALL'); // 'ALL' | 'PENDING' | 'GRADED'
   const [searchQuery, setSearchQuery]       = useState('');
+  const [sortBy, setSortBy]                 = useState('TOPPER'); // 'TOPPER' | 'LATEST_TIME' | 'EARLIEST_TIME' | 'TIME_LONG' | 'TIME_FAST'
   const [viewMode, setViewMode]             = useState('GRID'); // 'GRID' | 'LIST'
+
+  const getSubDurationSec = (s) => {
+    if (s?.submittedAt && s?.startedAt) {
+      const diff = Math.round((new Date(s.submittedAt).getTime() - new Date(s.startedAt).getTime()) / 1000);
+      if (diff > 0 && diff < 86400) return diff;
+    }
+    if (Array.isArray(s?.answers)) {
+      const tot = s.answers.reduce((acc, a) => acc + (Number(a?.timeSpent) || 0), 0);
+      if (tot > 0) return tot;
+    }
+    return 0;
+  };
+
+  const formatSubDuration = (sec) => {
+    if (!sec || sec <= 0) return '—';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m === 0) return `${s} સે.`;
+    if (s === 0) return `${m} મિ.`;
+    return `${m} મિ. ${s} સે.`;
+  };
   const [previewPhoto, setPreviewPhoto]     = useState(null); // Lightbox modal for photo
   const [expandedTests, setExpandedTests]   = useState({}); // { [testCode]: boolean } — which test groups are open
   const [photoRotations, setPhotoRotations] = useState({}); // { [photoUrl]: number (0 | 90 | 180 | 270) }
@@ -10644,14 +10666,42 @@ function StudentAnswers({ showToast }) {
       return mcq + desc;
     };
 
-    // 🏆 Leaderboard Sort inside each test: Highest marks first, earlier submission on tie
+    // Dynamic Sorting inside each test based on sortBy filter
     Object.values(map).forEach(group => {
       group.subs.sort((a, b) => {
-        const diff = getScore(b) - getScore(a);
-        if (diff !== 0) return diff;
-        const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
-        const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
-        return timeA - timeB;
+        if (sortBy === 'TOPPER') {
+          // 🏆 Highest marks first, earlier submission on tie
+          const diff = getScore(b) - getScore(a);
+          if (diff !== 0) return diff;
+          const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+          const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+          return timeA - timeB;
+        } else if (sortBy === 'LATEST_TIME') {
+          // 🕒 Most recent submission first
+          const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+          const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+          return timeB - timeA;
+        } else if (sortBy === 'EARLIEST_TIME') {
+          // 🌅 Earliest submission first
+          const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+          const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+          return timeA - timeB;
+        } else if (sortBy === 'TIME_LONG') {
+          // ⏱️ Longest test time taken first
+          const durA = getSubDurationSec(a);
+          const durB = getSubDurationSec(b);
+          if (durB !== durA) return durB - durA;
+          return getScore(b) - getScore(a);
+        } else if (sortBy === 'TIME_FAST') {
+          // ⚡ Fastest completion first (only non-zero durations prioritized)
+          const durA = getSubDurationSec(a);
+          const durB = getSubDurationSec(b);
+          if (durA > 0 && durB > 0 && durA !== durB) return durA - durB;
+          if (durA > 0 && durB === 0) return -1;
+          if (durB > 0 && durA === 0) return 1;
+          return getScore(b) - getScore(a);
+        }
+        return 0;
       });
     });
 
@@ -10661,7 +10711,7 @@ function StudentAnswers({ showToast }) {
       const bTime = new Date(b.subs[0]?.submittedAt || 0).getTime();
       return bTime - aTime;
     });
-  }, [filteredSubs, mcqScores, gradeMarks]);
+  }, [filteredSubs, mcqScores, gradeMarks, sortBy]);
 
   const toggleTestGroup = (testCode) =>
     setExpandedTests(prev => {
@@ -10894,6 +10944,48 @@ function StudentAnswers({ showToast }) {
             ))}
           </div>
         )}
+        {/* ── Sort & Filter Pills: Toppers, Latest, Earliest, Long Time, Fast ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 800 }}>⚡ ક્રમ:</span>
+          <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 3, border: '1px solid rgba(255,255,255,0.1)', gap: 3, flexWrap: 'wrap' }}>
+            {[
+              { id: 'TOPPER', label: '🏆 ટૉપર્સ', title: 'સૌથી વધુ ગુણ મેળવનાર વિદ્યાર્થીઓ પહેલાં' },
+              { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
+              { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
+              { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },
+              { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' }
+            ].map(s => {
+              const isAct = sortBy === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSortBy(s.id)}
+                  title={s.title}
+                  style={{
+                    background: isAct ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+                    color: isAct ? '#ffffff' : '#cbd5e1',
+                    border: isAct ? '1px solid #38bdf8' : 'none',
+                    padding: '6px 11px',
+                    borderRadius: 6,
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'all 0.15s ease',
+                    boxShadow: isAct ? '0 2px 8px rgba(2,132,199,0.35)' : 'none',
+                    fontFamily: 'Hind Vadodara, sans-serif'
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           onClick={fetchSubs}
           style={{
@@ -11479,70 +11571,132 @@ function StudentAnswers({ showToast }) {
 
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            {/* 🏆 Rank Badge */}
-                            {sIdx === 0 ? (
+                            {/* 🏆 Rank / Sort Badge */}
+                            {sortBy === 'TOPPER' ? (
+                              sIdx === 0 ? (
+                                <span style={{
+                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  color: '#ffffff',
+                                  fontWeight: 900,
+                                  fontSize: '0.74rem',
+                                  padding: '2.5px 9px',
+                                  borderRadius: 20,
+                                  boxShadow: '0 2px 10px rgba(245, 158, 11, 0.45)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  letterSpacing: '0.02em',
+                                  border: '1px solid rgba(255, 255, 255, 0.4)'
+                                }}>
+                                  🥇 ૧લો ક્રમ (Topper)
+                                </span>
+                              ) : sIdx === 1 ? (
+                                <span style={{
+                                  background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                                  color: '#ffffff',
+                                  fontWeight: 900,
+                                  fontSize: '0.74rem',
+                                  padding: '2.5px 9px',
+                                  borderRadius: 20,
+                                  boxShadow: '0 2px 8px rgba(148, 163, 184, 0.35)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                                }}>
+                                  🥈 ૨જો ક્રમ
+                                </span>
+                              ) : sIdx === 2 ? (
+                                <span style={{
+                                  background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                                  color: '#ffffff',
+                                  fontWeight: 900,
+                                  fontSize: '0.74rem',
+                                  padding: '2.5px 9px',
+                                  borderRadius: 20,
+                                  boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                                }}>
+                                  🥉 ૩જો ક્રમ
+                                </span>
+                              ) : (
+                                <span style={{
+                                  background: 'rgba(51, 65, 85, 0.65)',
+                                  color: '#94a3b8',
+                                  fontWeight: 800,
+                                  fontSize: '0.72rem',
+                                  padding: '2px 8px',
+                                  borderRadius: 16,
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}>
+                                  #{sIdx + 1} ક્રમ
+                                </span>
+                              )
+                            ) : sortBy === 'LATEST_TIME' ? (
                               <span style={{
-                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                                 color: '#ffffff',
-                                fontWeight: 900,
-                                fontSize: '0.74rem',
-                                padding: '2.5px 9px',
-                                borderRadius: 20,
-                                boxShadow: '0 2px 10px rgba(245, 158, 11, 0.45)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                letterSpacing: '0.02em',
-                                border: '1px solid rgba(255, 255, 255, 0.4)'
-                              }}>
-                                🥇 ૧લો ક્રમ (Topper)
-                              </span>
-                            ) : sIdx === 1 ? (
-                              <span style={{
-                                background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-                                color: '#ffffff',
-                                fontWeight: 900,
-                                fontSize: '0.74rem',
-                                padding: '2.5px 9px',
-                                borderRadius: 20,
-                                boxShadow: '0 2px 8px rgba(148, 163, 184, 0.35)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                border: '1px solid rgba(255, 255, 255, 0.3)'
-                              }}>
-                                🥈 ૨જો ક્રમ
-                              </span>
-                            ) : sIdx === 2 ? (
-                              <span style={{
-                                background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
-                                color: '#ffffff',
-                                fontWeight: 900,
-                                fontSize: '0.74rem',
-                                padding: '2.5px 9px',
-                                borderRadius: 20,
-                                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                border: '1px solid rgba(255, 255, 255, 0.3)'
-                              }}>
-                                🥉 ૩જો ક્રમ
-                              </span>
-                            ) : (
-                              <span style={{
-                                background: 'rgba(51, 65, 85, 0.65)',
-                                color: '#94a3b8',
                                 fontWeight: 800,
                                 fontSize: '0.72rem',
                                 padding: '2px 8px',
                                 borderRadius: 16,
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(56, 189, 248, 0.4)',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 3
                               }}>
-                                #{sIdx + 1} ક્રમ
+                                🕒 #{sIdx + 1} તાજું પેપર
+                              </span>
+                            ) : sortBy === 'EARLIEST_TIME' ? (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+                                color: '#e2e8f0',
+                                fontWeight: 800,
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: 16,
+                                border: '1px solid rgba(148, 163, 184, 0.4)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}>
+                                🌅 #{sIdx + 1} વહેલું પેપર
+                              </span>
+                            ) : sortBy === 'TIME_LONG' ? (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
+                                color: '#fed7aa',
+                                fontWeight: 800,
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: 16,
+                                border: '1px solid rgba(245, 158, 11, 0.4)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}>
+                                ⏱️ #{sIdx + 1} વધુ સમય ({formatSubDuration(getSubDurationSec(sub))})
+                              </span>
+                            ) : (
+                              <span style={{
+                                background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+                                color: '#a7f3d0',
+                                fontWeight: 800,
+                                fontSize: '0.72rem',
+                                padding: '2px 8px',
+                                borderRadius: 16,
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}>
+                                ⚡ #{sIdx + 1} ઝડપી ({formatSubDuration(getSubDurationSec(sub))})
                               </span>
                             )}
 
@@ -11611,6 +11765,8 @@ function StudentAnswers({ showToast }) {
                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>📞 {sub.student?.mobile}</span>
                             <span>•</span>
                             <span>🗓️ {new Date(sub.submittedAt || sub.createdAt).toLocaleString('gu-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            <span>•</span>
+                            <span style={{ color: '#fbbf24', fontWeight: 700 }}>⏱️ લીધેલ સમય: {formatSubDuration(getSubDurationSec(sub))}</span>
 
                             {/* Anti-cheat badges if any */}
                             {(sub.ipAddress || (sub.remarks && sub.remarks.match(/\[IP:\s*([^\]]+)\]/)?.[1])) && (
