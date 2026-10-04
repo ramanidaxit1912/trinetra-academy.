@@ -664,9 +664,13 @@ router.get('/review/:id', async (req, res) => {
       };
     });
 
-    // ⚡ Browser Cache Header: Result is final & immutable.
-    // Cache on student's mobile browser for 24 hours (re-opens in 0.001s with 0 server load!)
-    res.set('Cache-Control', 'private, max-age=86400, stale-while-revalidate=3600');
+    // ⚡ Browser Cache Header: Result is final & immutable for submitted tests.
+    // For live/IN_PROGRESS tests, NEVER cache so teacher gets real-time student answers!
+    if (submission.status === 'IN_PROGRESS') {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    } else {
+      res.set('Cache-Control', 'private, max-age=86400, stale-while-revalidate=3600');
+    }
 
     res.json({
       submission,

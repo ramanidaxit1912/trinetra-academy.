@@ -10503,17 +10503,27 @@ function StudentAnswers({ showToast }) {
     setLoading(false);
   };
 
-  const handleToggleSub = async (subId) => {
-    if (selectedSub === subId) {
+  const handleToggleSub = async (subId, forceRefresh = false) => {
+    if (selectedSub === subId && !forceRefresh) {
       setSelectedSub(null);
       return;
     }
     setSelectedSub(subId);
-    if (!reviewsMap[subId] || !reviewsMap[subId].data) {
-      setReviewsMap(prev => ({ ...prev, [subId]: { loading: true } }));
+
+    const curSub = subs.find(s => s.id === subId);
+    const isLiveInProgress = curSub?.status === 'IN_PROGRESS';
+
+    if (forceRefresh || isLiveInProgress || !reviewsMap[subId] || !reviewsMap[subId].data) {
+      setReviewsMap(prev => ({ ...prev, [subId]: { ...(prev[subId] || {}), loading: true } }));
       try {
         const res = await getSubmissionReview(subId);
-        setReviewsMap(prev => ({ ...prev, [subId]: { loading: false, data: res.data?.review || [] } }));
+        if (res.data?.submission) {
+          setSubs(prevSubs => prevSubs.map(s => s.id === subId ? { ...s, ...res.data.submission } : s));
+        }
+        setReviewsMap(prev => ({ ...prev, [subId]: { loading: false, data: res.data?.review || [], lastUpdated: new Date() } }));
+        if (forceRefresh) {
+          showToast('🔄 તાજા લાઈવ જવાબો સફળતાપૂર્વક અપડેટ થયા!', 'info');
+        }
       } catch {
         setReviewsMap(prev => ({ ...prev, [subId]: { loading: false, error: 'જવાબો લોડ કરવામાં ક્ષતિ.', data: [] } }));
       }
@@ -11541,7 +11551,23 @@ function StudentAnswers({ showToast }) {
                             </span>
 
                             {/* Evaluation Status Chip */}
-                            {pureMcq ? (
+                            {sub.status === 'IN_PROGRESS' ? (
+                              <span style={{
+                                background: 'rgba(34, 197, 94, 0.2)',
+                                color: '#4ade80',
+                                fontSize: '0.72rem',
+                                fontWeight: 900,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(34, 197, 94, 0.45)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                                🟢 ચાલુ કસોટી (સવાલ #{((sub.currentIndex !== null && sub.currentIndex !== undefined) ? sub.currentIndex + 1 : 1)})
+                              </span>
+                            ) : pureMcq ? (
                               <span style={{
                                 background: 'rgba(59,130,246,0.14)',
                                 color: '#93c5fd',
@@ -12009,19 +12035,68 @@ function StudentAnswers({ showToast }) {
                         {/* ── QUESTION-BY-QUESTION SOLUTION REVIEW ── */}
                         <div style={{ marginBottom: 18 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                            <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <span>📋 પ્રશ્નવાર વિગતવાર ઉત્તરો અને તપાસણી ({revList.length} પ્રશ્નો):</span>
+                              {sub.status === 'IN_PROGRESS' && (
+                                <span style={{
+                                  background: 'rgba(34, 197, 94, 0.18)',
+                                  border: '1px solid rgba(34, 197, 94, 0.45)',
+                                  color: '#4ade80',
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  fontSize: '0.74rem',
+                                  fontWeight: 800,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5
+                                }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                                  હાલ સવાલ #{((sub.currentIndex !== null && sub.currentIndex !== undefined) ? sub.currentIndex + 1 : 1)} પર છે
+                                </span>
+                              )}
                             </div>
-                            {revList.length > 0 && (
-                              <div style={{ display: 'flex', gap: 8, fontSize: '0.76rem', fontWeight: 800 }}>
-                                <span style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.3)' }}>
-                                  ✓ સાચા: {revList.filter(r => r.isCorrect === true).length}
-                                </span>
-                                <span style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)' }}>
-                                  ✗ ખોટા: {revList.filter(r => r.isCorrect === false).length}
-                                </span>
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                              {sub.status === 'IN_PROGRESS' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleSub(sub.id, true);
+                                  }}
+                                  disabled={revState?.loading}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                    border: '1px solid #38bdf8',
+                                    color: '#ffffff',
+                                    padding: '5px 12px',
+                                    borderRadius: 8,
+                                    fontSize: '0.78rem',
+                                    fontWeight: 800,
+                                    cursor: revState?.loading ? 'not-allowed' : 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+                                    transition: 'all 0.2s ease',
+                                    fontFamily: 'Hind Vadodara, sans-serif'
+                                  }}
+                                  title="વિદ્યાર્થીના તાજા જવાબો અને હાલનો સવાલ રિફ્રેશ કરો"
+                                >
+                                  <RefreshCw size={13} className={revState?.loading ? 'animate-spin' : ''} />
+                                  {revState?.loading ? 'રિફ્રેશ થાય છે...' : '🔄 Live Refresh'}
+                                </button>
+                              )}
+                              {revList.length > 0 && (
+                                <div style={{ display: 'flex', gap: 8, fontSize: '0.76rem', fontWeight: 800 }}>
+                                  <span style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.3)' }}>
+                                    ✓ સાચા: {revList.filter(r => r.isCorrect === true).length}
+                                  </span>
+                                  <span style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)' }}>
+                                    ✗ ખોટા: {revList.filter(r => r.isCorrect === false).length}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
                           {/* Loading or Error State */}
