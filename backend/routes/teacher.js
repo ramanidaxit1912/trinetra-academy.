@@ -4,6 +4,13 @@ const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+function cleanIndianMobile(rawMobile) {
+  let digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
 // ─── GET /api/teacher/stats ───────────────────────────────────
 // Dashboard stats: total questions, submissions, pending grades
 router.get('/stats', authMiddleware, teacherOnly, async (req, res) => {
@@ -163,7 +170,7 @@ router.post('/student/:id/reset-session', authMiddleware, teacherOnly, async (re
       data: { currentSessionId: null }
     });
     // Also clear old OTP rate-limiting records so student can request OTP immediately
-    const cleanMob = String(updated.mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMob = cleanIndianMobile(updated.mobile);
     await prisma.oTPSession.deleteMany({
       where: { mobile: { in: [updated.mobile, cleanMob] } }
     });
@@ -185,7 +192,7 @@ router.post('/student/:id/reset-otp', authMiddleware, teacherOnly, async (req, r
     const student = await prisma.student.findUnique({ where: { id: studentId } });
     if (!student) return res.status(404).json({ error: 'વિદ્યાર્થી મળ્યો નથી.' });
 
-    const cleanMob = String(student.mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMob = cleanIndianMobile(student.mobile);
     const deleted = await prisma.oTPSession.deleteMany({
       where: { mobile: { in: [student.mobile, cleanMob] } }
     });
@@ -206,7 +213,7 @@ router.post('/reset-otp-by-mobile', authMiddleware, teacherOnly, async (req, res
   const { mobile } = req.body;
   if (!mobile) return res.status(400).json({ error: 'મોબાઈલ નંબર જરૂરી છે.' });
   try {
-    const cleanMob = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMob = cleanIndianMobile(mobile);
     const deleted = await prisma.oTPSession.deleteMany({
       where: { mobile: { in: [String(mobile).trim(), cleanMob] } }
     });
@@ -449,7 +456,7 @@ router.get('/enrolled-students-otps', authMiddleware, teacherOnly, async (req, r
     const allMobilesSet = new Set();
     enrolledList.forEach(e => {
       const raw = String(e.mobile || '').trim();
-      const clean = raw.replace(/\D/g, '').replace(/^(91|0)/, '');
+      const clean = cleanIndianMobile(raw);
       const variants = [raw, clean, `91${clean}`, `+91${clean}`, `+91 ${clean}`];
       cleanMobMap[e.id] = variants;
       variants.forEach(v => allMobilesSet.add(v));

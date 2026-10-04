@@ -16,7 +16,10 @@ export default function PragatiPage() {
         resolvedMobile = u.mobile || '';
       } catch (e) {}
     }
-    const clean = String(resolvedMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    let clean = String(resolvedMobile).replace(/\D/g, '');
+    if (clean.length === 12 && clean.startsWith('91')) clean = clean.slice(2);
+    else if (clean.length === 11 && clean.startsWith('0')) clean = clean.slice(1);
+    clean = clean.slice(0, 10);
     setMobile(clean);
     setLoading(false);
   }, [params]);

@@ -21,6 +21,13 @@ function parseScheduledTime(str) {
   return isNaN(t) ? null : t;
 }
 
+function cleanIndianMobile(rawMobile) {
+  let digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
 // Helper to check if request is authenticated by a teacher
 function isTeacherRequest(req) {
   try {
@@ -985,8 +992,8 @@ router.post('/:id/send-whatsapp', async (req, res) => {
     if (!submission) {
       return res.status(404).json({ error: 'કસોટી સબમિશન મળ્યું નથી.' });
     }
-    const cleanReqMobile = String(req.body.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
-    const cleanSubMobile = String(submission.student?.mobile || '').replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanReqMobile = cleanIndianMobile(req.body.mobile || '');
+    const cleanSubMobile = cleanIndianMobile(submission.student?.mobile || '');
     const studentMobile = (cleanReqMobile && cleanReqMobile !== '9999999999' && cleanReqMobile.length === 10)
       ? cleanReqMobile
       : (cleanSubMobile || cleanReqMobile);
@@ -1135,8 +1142,7 @@ router.post('/:id/send-whatsapp', async (req, res) => {
 // Direct HTML view matching the Pragati Report PDF exactly (0% Puppeteer, instant!)
 router.get('/pragati/:mobile/html', async (req, res) => {
   try {
-    const rawMobile = req.params.mobile || '';
-    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(req.params.mobile || '');
     if (!cleanMobile) {
       return res.status(400).send('<h2>Mobile number is required</h2>');
     }
@@ -1183,8 +1189,7 @@ router.get('/pragati/:mobile/html', async (req, res) => {
 // Direct binary PDF stream of student's Pragati Report
 router.get('/pragati/:mobile/pdf', async (req, res) => {
   try {
-    const rawMobile = req.params.mobile || '';
-    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(req.params.mobile || '');
     if (!cleanMobile) {
       return res.status(400).json({ error: 'Mobile number required' });
     }
@@ -1238,7 +1243,7 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
     const { studentId, studentName, mobile } = req.body;
 
     const rawMobile = mobile || req.user?.mobile || '';
-    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(rawMobile);
     if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
       return res.status(400).json({ error: 'માન્ય ૧૦-અંકનો WhatsApp મોબાઈલ નંબર જરૂરી છે.' });
     }

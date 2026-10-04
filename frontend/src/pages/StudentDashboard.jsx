@@ -1,9 +1,16 @@
 import { formatMathText } from '../utils/mathFormatter';
 
+function cleanIndianMobile(rawMobile) {
+  let digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
 // ─── Smart Indian Mobile & Advanced Anti-Fake Combinations Filter ──
 function validateIndianMobile(rawMobile) {
   if (!rawMobile) return { isValid: false, message: 'કૃપા કરીને ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
-  const cleaned = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleaned = cleanIndianMobile(rawMobile);
   if (cleaned.length !== 10) {
     return { isValid: false, message: 'કૃપા કરીને પૂરા ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
   }
@@ -1173,7 +1180,7 @@ export default function StudentDashboard() {
     if (!sub?.id || sendingWaSubId) return;
 
     const rawTarget = customMobile || waTargetMobile || sub.student?.mobile || user?.mobile || '';
-    const cleanMobile = String(rawTarget).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(rawTarget);
 
     if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
       alert('⚠️ કૃપા કરીને માન્ય ૧૦-અંકનો WhatsApp મોબાઈલ નંબર દાખલ કરો.');
@@ -1732,7 +1739,7 @@ export default function StudentDashboard() {
     if (sendingPragatiWa || !submissions.length) return;
 
     const rawMobile = user?.mobile || '';
-    const cleanMobile = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(rawMobile);
 
     if (!cleanMobile || cleanMobile.length !== 10 || !/^[6-9]/.test(cleanMobile)) {
       alert('⚠️ માન્ય WhatsApp નંબર ખાતામાં નોંધાયેલ નથી. Admin ને સંપર્ક કરો.');
@@ -2250,7 +2257,7 @@ export default function StudentDashboard() {
                           placeholder="9876543210"
                           value={mobile}
                           onChange={e => {
-                            const cleaned = e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10);
+                            const cleaned = cleanIndianMobile(e.target.value);
                             setMobile(cleaned);
                             if (authError) setAuthError('');
                           }}
@@ -5850,7 +5857,7 @@ export default function StudentDashboard() {
                   maxLength={10}
                   placeholder="9876543210"
                   value={waTargetMobile}
-                  onChange={e => setWaTargetMobile(e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10))}
+                  onChange={e => setWaTargetMobile(cleanIndianMobile(e.target.value))}
                   style={{
                     flex: 1,
                     background: '#0f172a',

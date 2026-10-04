@@ -1,8 +1,15 @@
 
+function cleanIndianMobile(rawMobile) {
+  let digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
 // ─── Smart Indian Mobile & Advanced Anti-Fake Combinations Filter ──
 function validateIndianMobile(rawMobile) {
   if (!rawMobile) return { isValid: false, message: 'કૃપા કરીને ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
-  const cleaned = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleaned = cleanIndianMobile(rawMobile);
   if (cleaned.length !== 10) {
     return { isValid: false, message: 'કૃપા કરીને પૂરા ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
   }
@@ -610,7 +617,7 @@ export default function ExamPage() {
                     placeholder="દા.ત. 9876543210"
                     value={form.mobile}
                     onChange={e => {
-                      const cleaned = e.target.value.replace(/\D/g, '').replace(/^(91|0)/, '').slice(0, 10);
+                      const cleaned = cleanIndianMobile(e.target.value);
                       setForm(f => ({ ...f, mobile: cleaned }));
                       if (error) setError('');
                     }}

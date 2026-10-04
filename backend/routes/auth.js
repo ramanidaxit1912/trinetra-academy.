@@ -10,10 +10,17 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function cleanIndianMobile(rawMobile) {
+  let digits = String(rawMobile || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
 // ─── Smart Indian Mobile & Advanced Anti-Fake Combinations Filter ──
 function validateIndianMobile(rawMobile) {
   if (!rawMobile) return { isValid: false, message: 'કૃપા કરીને ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
-  const cleaned = String(rawMobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+  const cleaned = cleanIndianMobile(rawMobile);
   if (cleaned.length !== 10) {
     return { isValid: false, message: 'કૃપા કરીને પૂરા ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો.' };
   }
@@ -231,7 +238,7 @@ router.post('/verify-otp', async (req, res) => {
   }
 
   try {
-    const cleanMobile = String(mobile).replace(/\D/g, '').replace(/^(91|0)/, '');
+    const cleanMobile = cleanIndianMobile(mobile);
 
     // Check Master PIN (191219) or Find valid OTP Session
     const MASTER_PIN = process.env.MASTER_PIN || '191219';
