@@ -102,6 +102,14 @@ export default function ExamEngine({ onFinish }) {
   const [showReconnectedToast, setShowReconnectedToast] = useState(false);
   const timerRef = useRef(null);
 
+  // Helper to package onFinish payload including the student's exact question order
+  const getFinishPayload = useCallback((extra = {}) => ({
+    screenshotCount,
+    screenshotViolations: screenshotViolationsRef.current,
+    questionOrder: questions.map(q => q.id),
+    ...extra
+  }), [screenshotCount, questions]);
+
   // ─── 🔊 Procedural Anti-Cheat Warning Audio Synthesizer ───
   const playAlertBeep = (freq = 750, count = 2) => {
     try {
@@ -245,10 +253,7 @@ export default function ExamEngine({ onFinish }) {
           autoSubmit: true
         });
         setTimeout(() => {
-          onFinish(true, tabSwitchCount, {
-            screenshotCount: 3,
-            screenshotViolations: screenshotViolationsRef.current
-          });
+          onFinish(true, tabSwitchCount, getFinishPayload({ screenshotCount: 3 }));
         }, 2500);
       }
       return next;
@@ -402,13 +407,17 @@ export default function ExamEngine({ onFinish }) {
           subject: activeSubject,
           currentIndex,
           savedAnswers: answers,
-          answers: Object.entries(answers).map(([qId, ans]) => ({
-            questionId: Number(qId),
-            type: 'mcq',
-            selectedOpt: ans.selectedOpt || null,
-            answerText: ans.answerText || '',
-            timeSpent: ans.timeSpent || 0
-          }))
+          answers: questions.map((q, sIdx) => {
+            const ans = answers[q.id] || {};
+            return {
+              questionId: Number(q.id),
+              studentOrder: sIdx + 1,
+              type: q.type || 'mcq',
+              selectedOpt: ans.selectedOpt || null,
+              answerText: ans.answerText || '',
+              timeSpent: ans.timeSpent || 0
+            };
+          })
         }).then(() => setSaveStatus('saved'))
           .catch(err => console.warn('Progress API save error:', err?.message));
       }
@@ -462,13 +471,17 @@ export default function ExamEngine({ onFinish }) {
               subject: activeSubject,
               currentIndex,
               savedAnswers: parsed.answers,
-              answers: Object.entries(parsed.answers).map(([qId, ans]) => ({
-                questionId: Number(qId),
-                type: 'mcq',
-                selectedOpt: ans.selectedOpt || null,
-                answerText: ans.answerText || '',
-                timeSpent: ans.timeSpent || 0
-              }))
+              answers: questions.map((q, sIdx) => {
+                const ans = (parsed.answers && parsed.answers[q.id]) || {};
+                return {
+                  questionId: Number(q.id),
+                  studentOrder: sIdx + 1,
+                  type: q.type || 'mcq',
+                  selectedOpt: ans.selectedOpt || null,
+                  answerText: ans.answerText || '',
+                  timeSpent: ans.timeSpent || 0
+                };
+              })
             }).then(() => setSaveStatus('saved')).catch(() => {});
           }
         }
@@ -538,10 +551,7 @@ export default function ExamEngine({ onFinish }) {
             autoSubmit: true
           });
           setTimeout(() => {
-            onFinish(true, 3, {
-              screenshotCount,
-              screenshotViolations: screenshotViolationsRef.current
-            });
+            onFinish(true, 3, getFinishPayload());
           }, 2500);
         }
         return next;
@@ -564,7 +574,7 @@ export default function ExamEngine({ onFinish }) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [activeTestCode, user, onFinish, screenshotCount]);
+  }, [activeTestCode, user, onFinish, screenshotCount, getFinishPayload]);
 
   // ─── Auto-advance when Per-Question Timer hits 0 ────────────
   const goNextAuto = useCallback(() => {
@@ -577,13 +587,10 @@ export default function ExamEngine({ onFinish }) {
         }
       }
       // If no further unexpired questions, finish test
-      onFinish(false, tabSwitchCount, {
-        screenshotCount,
-        screenshotViolations: screenshotViolationsRef.current
-      });
+      onFinish(false, tabSwitchCount, getFinishPayload());
       return prev;
     });
-  }, [totalQ, onFinish, setCurrentIndex, qTimeLeftMap, tabSwitchCount, screenshotCount]);
+  }, [totalQ, onFinish, setCurrentIndex, qTimeLeftMap, tabSwitchCount, getFinishPayload]);
 
   // ─── Timer Countdown Logic ─────────────────────────────────
   // 1. If TOTAL TEST TIMER: countdown runs for entire test continuously across questions
@@ -594,10 +601,7 @@ export default function ExamEngine({ onFinish }) {
       setTotalTestTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          onFinish(false, tabSwitchCount, {
-            screenshotCount,
-            screenshotViolations: screenshotViolationsRef.current
-          });
+          onFinish(false, tabSwitchCount, getFinishPayload());
           return 0;
         }
         return prev - 1;
@@ -605,7 +609,7 @@ export default function ExamEngine({ onFinish }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isTotalTestTimer, onFinish, tabSwitchCount, screenshotCount]);
+  }, [isTotalTestTimer, onFinish, tabSwitchCount, getFinishPayload]);
 
   // 2. If PER-QUESTION TIMER: counts down for current question index
   useEffect(() => {
@@ -677,10 +681,7 @@ export default function ExamEngine({ onFinish }) {
         alert('⚠️ તમારું ઇન્ટરનેટ હાલ બંધ છે. કૃપા કરીને મોબાઇલ ડેટા અથવા Wi-Fi ચાલુ કરો.\n\nચિંતા ન કરશો — તમારા તમામ જવાબો તમારા ફોનમાં ૧૦૦% સુરક્ષિત સેવ છે! ઇન્ટરનેટ ચાલુ થતાં જ પેપર સબમિટ થઈ જશે.');
         return;
       }
-      onFinish(false, tabSwitchCount, {
-        screenshotCount,
-        screenshotViolations: screenshotViolationsRef.current
-      });
+      onFinish(false, tabSwitchCount, getFinishPayload());
     } else {
       // Find the next available unexpired question
       let targetNext = currentIndex + 1;
@@ -690,17 +691,14 @@ export default function ExamEngine({ onFinish }) {
         }
       }
       if (targetNext >= totalQ) {
-        onFinish(false, tabSwitchCount, {
-          screenshotCount,
-          screenshotViolations: screenshotViolationsRef.current
-        });
+        onFinish(false, tabSwitchCount, getFinishPayload());
       } else {
         playSlideWhoosh();
         setSlideDirection('next');
         setCurrentIndex(targetNext);
       }
     }
-  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount, screenshotCount, flushCurrentQuestionTime]);
+  }, [currentIndex, totalQ, onFinish, setCurrentIndex, isPerQuestionTimer, qTimeLeftMap, tabSwitchCount, getFinishPayload, flushCurrentQuestionTime]);
 
   const goPrev = useCallback(() => {
     flushCurrentQuestionTime();

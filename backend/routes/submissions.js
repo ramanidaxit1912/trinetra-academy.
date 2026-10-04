@@ -542,8 +542,81 @@ router.get('/by-mobile/:mobile', async (req, res) => {
   }
 });
 
+// ─── HELPER: Build detailed review in student's exact sequence ────
+function buildOrderedDetailedReview(questions, answersArr, photoUrl) {
+  const qMap = new Map();
+  questions.forEach(q => {
+    qMap.set(Number(q.id), q);
+  });
+
+  let orderedItems = [];
+  const seenQIds = new Set();
+
+  // 1. Order questions by student's attempt sequence from answersArr
+  if (Array.isArray(answersArr) && answersArr.length > 0) {
+    answersArr.forEach((ans, aIdx) => {
+      const qId = Number(ans.questionId);
+      const q = qMap.get(qId);
+      if (q) {
+        seenQIds.add(q.id);
+        orderedItems.push({
+          q,
+          ans,
+          studentSeq: ans.studentOrder || ans.studentSeq || (aIdx + 1)
+        });
+      }
+    });
+  }
+
+  // 2. Append any questions from the test that weren't in answersArr (unattempted or extra)
+  questions.forEach(q => {
+    if (!seenQIds.has(q.id)) {
+      const ans = (answersArr || []).find(a => Number(a.questionId) === q.id) || {};
+      orderedItems.push({
+        q,
+        ans,
+        studentSeq: orderedItems.length + 1
+      });
+    }
+  });
+
+  // 3. Fallback if answersArr was empty or didn't match any questions
+  if (orderedItems.length === 0) {
+    orderedItems = questions.map((q, idx) => ({
+      q,
+      ans: (answersArr && answersArr[idx]) || {},
+      studentSeq: idx + 1
+    }));
+  }
+
+  return orderedItems.map(({ q, ans, studentSeq }) => {
+    const selected = ans.selectedOpt || ans.text || '';
+    let isCorrect = null;
+    if (q.type === 'mcq') {
+      if (!selected) {
+        isCorrect = null; // Unattempted
+      } else if (selected === 'E') {
+        isCorrect = false; // Skipped (Option E)
+      } else {
+        isCorrect = (selected === q.correctOpt);
+      }
+    }
+    return {
+      question: q,
+      studentSeq, // Student's question #1, #2, #3...
+      masterOrderIndex: q.orderIndex !== undefined && q.orderIndex !== null ? q.orderIndex : null, // Master original #
+      studentAnswer: selected,
+      isCorrect,
+      isSkipped: !selected || selected === 'E',
+      timeSpent: ans.timeSpent || 0,
+      screenshotAttempt: Boolean(ans.screenshotAttempt),
+      studentUploadedPhoto: photoUrl
+    };
+  });
+}
+
 // ─── GET /api/submissions/review/:id ──────────────────────────
-// Detailed submission solution review with full questions
+// Detailed submission solution review with full questions in student sequence
 router.get('/review/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
@@ -640,29 +713,7 @@ router.get('/review/:id', async (req, res) => {
       });
     }
 
-    const detailedReview = questions.map((q, idx) => {
-      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
-      const selected = ans.selectedOpt || ans.text || '';
-      let isCorrect = null;
-      if (q.type === 'mcq') {
-        if (!selected) {
-          isCorrect = null; // Unattempted
-        } else if (selected === 'E') {
-          isCorrect = false; // Skipped (Option E)
-        } else {
-          isCorrect = (selected === q.correctOpt);
-        }
-      }
-      return {
-        question: q,
-        studentAnswer: selected,
-        isCorrect,
-        isSkipped: !selected || selected === 'E',
-        timeSpent: ans.timeSpent || 0,
-        screenshotAttempt: Boolean(ans.screenshotAttempt),
-        studentUploadedPhoto: submission.photoUrl
-      };
-    });
+    const detailedReview = buildOrderedDetailedReview(questions, answersArr, submission.photoUrl);
 
     // ⚡ Browser Cache Header: Result is final & immutable for submitted tests.
     // For live/IN_PROGRESS tests, NEVER cache so teacher gets real-time student answers!
@@ -788,29 +839,7 @@ router.get('/:id/html', async (req, res) => {
       `);
     }
 
-    const detailedReview = questions.map((q, idx) => {
-      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
-      const selected = ans.selectedOpt || ans.text || '';
-      let isCorrect = null;
-      if (q.type === 'mcq') {
-        if (!selected) {
-          isCorrect = null;
-        } else if (selected === 'E') {
-          isCorrect = false;
-        } else {
-          isCorrect = (selected === q.correctOpt);
-        }
-      }
-      return {
-        question: q,
-        studentAnswer: selected,
-        isCorrect,
-        isSkipped: !selected || selected === 'E',
-        timeSpent: ans.timeSpent || 0,
-        screenshotAttempt: Boolean(ans.screenshotAttempt),
-        studentUploadedPhoto: submission.photoUrl
-      };
-    });
+    const detailedReview = buildOrderedDetailedReview(questions, answersArr, submission.photoUrl);
 
     const marketingItems = await prisma.marketingItem.findMany({
       where: { 

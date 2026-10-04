@@ -69,7 +69,7 @@ import PhotoAnswerUpload from '../components/PhotoAnswerUpload';
 import ResultCard from '../components/ResultCard';
 import { useStore } from '../store/useStore';
 import { sendOTP, verifyOTP, getQuestions, submitTest, getSubmissionReview, getActiveTestSession, discardActiveTestSession, checkStudentEnrollment } from '../services/api';
-import { clearShuffledTestCache } from '../utils/shuffleUtils';
+import { clearShuffledTestCache, getPersistentShuffledQuestions } from '../utils/shuffleUtils';
 
 const isImg = (val) => {
   if (!val || typeof val !== 'string') return false;
@@ -356,7 +356,8 @@ export default function ExamPage() {
     setTabSwitchViolations(violations);
     const ssInfo = {
       screenshotCount: ssData?.screenshotCount || 0,
-      screenshotViolations: ssData?.screenshotViolations || []
+      screenshotViolations: ssData?.screenshotViolations || [],
+      questionOrder: ssData?.questionOrder || []
     };
     setScreenshotViolationsData(ssInfo);
 
@@ -382,23 +383,47 @@ export default function ExamPage() {
     setLoading(true);
     setError('');
     try {
-      const answersArr = Object.entries(answers || {}).map(([questionId, ans]) => {
-        const qIdNum = Number(questionId);
+      const firstQ = (questions && questions.length > 0) ? questions[0] : (selectedTestQuestions && selectedTestQuestions[0]) || {};
+      const targetTestCode = firstQ.testCode || (firstQ.chapter ? `CHAPTER-${firstQ.chapter}` : 'GENERAL');
+      const targetTestName = firstQ.testName || firstQ.chapter || 'સામાન્ય કસોટી';
+      const targetSubject  = firstQ.subject  || 'General';
+
+      // 🔀 Retrieve the exact student question sequence
+      let studentQuestions = [];
+      const allQPool = (questions && questions.length > 0) ? questions : (selectedTestQuestions || []);
+      const qOrderIds = finalSsData?.questionOrder || screenshotViolationsData?.questionOrder;
+
+      if (Array.isArray(qOrderIds) && qOrderIds.length > 0) {
+        const idMap = new Map(allQPool.map(q => [Number(q.id), q]));
+        studentQuestions = qOrderIds.map(id => idMap.get(Number(id))).filter(Boolean);
+      }
+      if (studentQuestions.length === 0 && allQPool.length > 0) {
+        studentQuestions = getPersistentShuffledQuestions(
+          allQPool,
+          user?.mobile,
+          targetTestCode,
+          true
+        );
+      }
+
+      const baseQList = (studentQuestions && studentQuestions.length > 0)
+        ? studentQuestions
+        : Object.keys(answers || {}).map(id => ({ id: Number(id) }));
+
+      const answersArr = baseQList.map((q, sIdx) => {
+        const qIdNum = Number(q.id);
+        const ans = (answers && answers[qIdNum]) || {};
         const hasSsAttempt = ssViolationsList.some(v => Number(v.questionId) === qIdNum);
         return {
           questionId: qIdNum,
-          type: ans.type || 'mcq',
+          studentOrder: sIdx + 1, // Student's question #1, #2, #3...
+          type: ans.type || q.type || 'mcq',
           selectedOpt: ans.selectedOpt || null,
           answerText: ans.answerText || '',
           timeSpent: ans.timeSpent || 0,
           screenshotAttempt: hasSsAttempt
         };
       }).filter(a => !isNaN(a.questionId) && a.questionId > 0);
-
-      const firstQ = (questions && questions.length > 0) ? questions[0] : (selectedTestQuestions && selectedTestQuestions[0]) || {};
-      const targetTestCode = firstQ.testCode || (firstQ.chapter ? `CHAPTER-${firstQ.chapter}` : 'GENERAL');
-      const targetTestName = firstQ.testName || firstQ.chapter || 'સામાન્ય કસોટી';
-      const targetSubject  = firstQ.subject  || 'General';
 
       const res = await submitTest({
         answers: answersArr,

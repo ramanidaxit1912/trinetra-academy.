@@ -10382,6 +10382,7 @@ function StudentAnswers({ showToast }) {
   const [pendingKeyUpdates, setPendingKeyUpdates] = useState({}); // { [testCode]: { [questionId]: 'A'|'B'|'C'|'D' } }
   const [masterTestModal, setMasterTestModal] = useState(null); // { testCode, testName, subject, questions: [], editedKeys: {}, subs: [], loading: boolean, savedSuccess: boolean }
   const [savingMaster, setSavingMaster] = useState(false);
+  const [reviewSeqOrder, setReviewSeqOrder] = useState({}); // { [subId]: 'STUDENT' | 'MASTER' }
 
   const rotatePhoto = (url, e) => {
     if (e) e.stopPropagation();
@@ -12114,250 +12115,340 @@ function StudentAnswers({ showToast }) {
                         ) : null}
 
                         {/* ── QUESTION-BY-QUESTION SOLUTION REVIEW ── */}
-                        <div style={{ marginBottom: 18 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                            <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                              <span>📋 પ્રશ્નવાર વિગતવાર ઉત્તરો અને તપાસણી ({revList.length} પ્રશ્નો):</span>
-                              {sub.status === 'IN_PROGRESS' && (
-                                <span style={{
-                                  background: 'rgba(34, 197, 94, 0.18)',
-                                  border: '1px solid rgba(34, 197, 94, 0.45)',
-                                  color: '#4ade80',
-                                  padding: '2px 8px',
-                                  borderRadius: 6,
-                                  fontSize: '0.74rem',
-                                  fontWeight: 800,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 5
-                                }}>
-                                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-                                  હાલ સવાલ #{((sub.currentIndex !== null && sub.currentIndex !== undefined) ? sub.currentIndex + 1 : 1)} પર છે
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                              {sub.status === 'IN_PROGRESS' && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleSub(sub.id, true);
-                                  }}
-                                  disabled={revState?.loading}
-                                  style={{
-                                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                                    border: '1px solid #38bdf8',
-                                    color: '#ffffff',
-                                    padding: '5px 12px',
-                                    borderRadius: 8,
-                                    fontSize: '0.78rem',
-                                    fontWeight: 800,
-                                    cursor: revState?.loading ? 'not-allowed' : 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
-                                    transition: 'all 0.2s ease',
-                                    fontFamily: 'Hind Vadodara, sans-serif'
-                                  }}
-                                  title="વિદ્યાર્થીના તાજા જવાબો અને હાલનો સવાલ રિફ્રેશ કરો"
-                                >
-                                  <RefreshCw size={13} className={revState?.loading ? 'animate-spin' : ''} />
-                                  {revState?.loading ? 'રિફ્રેશ થાય છે...' : '🔄 Live Refresh'}
-                                </button>
-                              )}
-                              {revList.length > 0 && (
-                                <div style={{ display: 'flex', gap: 8, fontSize: '0.76rem', fontWeight: 800 }}>
-                                  <span style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.3)' }}>
-                                    ✓ સાચા: {revList.filter(r => r.isCorrect === true).length}
-                                  </span>
-                                  <span style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)' }}>
-                                    ✗ ખોટા: {revList.filter(r => r.isCorrect === false).length}
-                                  </span>
+                        {(() => {
+                          const curSeqOrder = reviewSeqOrder[sub.id] || 'STUDENT';
+                          const displayedRevList = curSeqOrder === 'MASTER'
+                            ? [...revList].sort((a, b) => {
+                                const idxA = a.masterOrderIndex !== null && a.masterOrderIndex !== undefined ? a.masterOrderIndex : (a.question?.orderIndex ?? 9999);
+                                const idxB = b.masterOrderIndex !== null && b.masterOrderIndex !== undefined ? b.masterOrderIndex : (b.question?.orderIndex ?? 9999);
+                                return idxA - idxB;
+                              })
+                            : revList;
+
+                          return (
+                            <div style={{ marginBottom: 18 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                                <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  <span>📋 પ્રશ્નવાર જવાબો અને તપાસણી ({displayedRevList.length} પ્રશ્નો):</span>
+                                  {sub.status === 'IN_PROGRESS' && (
+                                    <span style={{
+                                      background: 'rgba(34, 197, 94, 0.18)',
+                                      border: '1px solid rgba(34, 197, 94, 0.45)',
+                                      color: '#4ade80',
+                                      padding: '2px 8px',
+                                      borderRadius: 6,
+                                      fontSize: '0.74rem',
+                                      fontWeight: 800,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 5
+                                    }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                                      હાલ સવાલ #{((sub.currentIndex !== null && sub.currentIndex !== undefined) ? sub.currentIndex + 1 : 1)} પર છે
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                  {/* Sequence Order Toggle: Student Shuffled vs Master Paper */}
+                                  {revList.length > 0 && (
+                                    <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 2, border: '1px solid rgba(255,255,255,0.1)' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => setReviewSeqOrder(prev => ({ ...prev, [sub.id]: 'STUDENT' }))}
+                                        style={{
+                                          background: curSeqOrder === 'STUDENT' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+                                          color: curSeqOrder === 'STUDENT' ? '#ffffff' : '#94a3b8',
+                                          border: curSeqOrder === 'STUDENT' ? '1px solid #38bdf8' : 'none',
+                                          padding: '4px 9px',
+                                          borderRadius: 6,
+                                          fontSize: '0.74rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 4
+                                        }}
+                                        title="વિદ્યાર્થીને જે શફલ ક્રમમાં પ્રશ્નો આવ્યા હતા તે ક્રમ"
+                                      >
+                                        🔀 વિદ્યાર્થી ક્રમ
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setReviewSeqOrder(prev => ({ ...prev, [sub.id]: 'MASTER' }))}
+                                        style={{
+                                          background: curSeqOrder === 'MASTER' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+                                          color: curSeqOrder === 'MASTER' ? '#ffffff' : '#94a3b8',
+                                          border: curSeqOrder === 'MASTER' ? '1px solid #38bdf8' : 'none',
+                                          padding: '4px 9px',
+                                          borderRadius: 6,
+                                          fontSize: '0.74rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 4
+                                        }}
+                                        title="મુખ્ય પ્રશ્નપત્રનો મૂળ ક્રમ"
+                                      >
+                                        📋 મુખ્ય પેપર ક્રમ
+                                      </button>
+                                    </div>
+                                  )}
 
-                          {/* Loading or Error State */}
-                          {revState?.loading && (
-                            <div style={{ padding: '24px', textAlign: 'center', background: '#1e293b', borderRadius: 12, color: '#38bdf8', fontWeight: 800, fontSize: '0.9rem' }}>
-                              ⏳ વિદ્યાર્થીના તમામ પ્રશ્નો અને જવાબો લોડ થઈ રહ્યા છે...
-                            </div>
-                          )}
-
-                          {revState?.error && (
-                            <div style={{ padding: '14px', background: 'rgba(239,68,68,0.15)', borderRadius: 10, color: '#fca5a5', fontSize: '0.85rem' }}>
-                              ❌ {revState.error}
-                            </div>
-                          )}
-
-                          {/* Proctoring & Anti-Cheating Time Tracking Analytics Banner */}
-                          {!revState?.loading && revList.length > 0 && (() => {
-                            const totalSec = revList.reduce((acc, r) => acc + (Number(r.timeSpent) || 0), 0);
-                            const answeredItems = revList.filter(r => r.studentAnswer && r.studentAnswer !== 'E');
-                            const avgSec = answeredItems.length > 0 ? Math.round(totalSec / answeredItems.length) : (revList.length > 0 ? Math.round(totalSec / revList.length) : 0);
-                            const suspiciousFast = answeredItems.filter(r => (Number(r.timeSpent) || 0) > 0 && (Number(r.timeSpent) || 0) < 4);
-                            const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
-                            const tabSwitches = tabMatch ? parseInt(tabMatch[1], 10) : 0;
-                            const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
-                            const ssCount = ssMatch ? parseInt(ssMatch[1], 10) : 0;
-                            const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
-                            const ssQText = ssQMatch ? ssQMatch[1] : '';
-
-                            const fmtTime = (s) => {
-                              if (!s || s <= 0) return '0 સેકન્ડ';
-                              if (s < 60) return `${s} સેકન્ડ`;
-                              const m = Math.floor(s / 60);
-                              const rem = s % 60;
-                              return rem > 0 ? `${m} મિનિટ ${rem} સે.` : `${m} મિનિટ`;
-                            };
-
-                            const hasAlerts = suspiciousFast.length > 0 || tabSwitches > 0 || ssCount > 0;
-
-                            return (
-                              <div style={{
-                                background: hasAlerts
-                                  ? 'linear-gradient(135deg, rgba(239,68,68,0.14), rgba(30,41,59,0.9))'
-                                  : 'linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95))',
-                                border: hasAlerts
-                                  ? '1.5px solid rgba(239,68,68,0.45)'
-                                  : '1px solid rgba(56,189,248,0.25)',
-                                borderRadius: 12,
-                                padding: '12px 14px',
-                                marginBottom: 14,
-                                boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-                              }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.88rem', color: hasAlerts ? '#fca5a5' : '#38bdf8' }}>
-                                    <span>🛡️ એન્ટી-ચીટિંગ પ્રોક્ટરિંગ અને સુરક્ષા વિશ્લેષણ (Anti-Cheating & Proctoring)</span>
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                    {suspiciousFast.length > 0 && (
-                                      <span style={{ background: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                        🚨 {suspiciousFast.length} શંકાસ્પદ ઝડપી ઉત્તર!
+                                  {sub.status === 'IN_PROGRESS' && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleSub(sub.id, true);
+                                      }}
+                                      disabled={revState?.loading}
+                                      style={{
+                                        background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                        border: '1px solid #38bdf8',
+                                        color: '#ffffff',
+                                        padding: '5px 12px',
+                                        borderRadius: 8,
+                                        fontSize: '0.78rem',
+                                        fontWeight: 800,
+                                        cursor: revState?.loading ? 'not-allowed' : 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 5,
+                                        boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+                                        transition: 'all 0.2s ease',
+                                        fontFamily: 'Hind Vadodara, sans-serif'
+                                      }}
+                                      title="વિદ્યાર્થીના તાજા જવાબો અને હાલનો સવાલ રિફ્રેશ કરો"
+                                    >
+                                      <RefreshCw size={13} className={revState?.loading ? 'animate-spin' : ''} />
+                                      {revState?.loading ? 'રિફ્રેશ થાય છે...' : '🔄 Live Refresh'}
+                                    </button>
+                                  )}
+                                  {displayedRevList.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 8, fontSize: '0.76rem', fontWeight: 800 }}>
+                                      <span style={{ background: 'rgba(34,197,94,0.2)', color: '#4ade80', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(34,197,94,0.3)' }}>
+                                        ✓ સાચા: {displayedRevList.filter(r => r.isCorrect === true).length}
                                       </span>
-                                    )}
-                                    {ssCount > 0 && (
-                                      <span style={{ background: '#dc2626', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                        📸 {ssCount} વાર સ્ક્રીનશોટ પ્રયાસ!
+                                      <span style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)' }}>
+                                        ✗ ખોટા: {displayedRevList.filter(r => r.isCorrect === false).length}
                                       </span>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
-                                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⏱️ કુલ લીધેલ સમય:</div>
-                                    <div style={{ fontSize: '0.88rem', color: '#f8fafc', fontWeight: 900, marginTop: 2 }}>{fmtTime(totalSec)}</div>
-                                  </div>
-
-                                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⚡ સરેરાશ પ્રતિ પ્રશ્ન:</div>
-                                    <div style={{ fontSize: '0.88rem', color: '#38bdf8', fontWeight: 900, marginTop: 2 }}>{fmtTime(avgSec)}</div>
-                                  </div>
-
-                                  <div style={{
-                                    background: suspiciousFast.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
-                                    borderRadius: 8,
-                                    padding: '8px 10px',
-                                    border: suspiciousFast.length > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
-                                  }}>
-                                    <div style={{ fontSize: '0.7rem', color: suspiciousFast.length > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
-                                      🚨 શંકાસ્પદ ઝડપ (&lt; 4s):
-                                    </div>
-                                    <div style={{ fontSize: '0.88rem', color: suspiciousFast.length > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
-                                      {suspiciousFast.length > 0 ? `${suspiciousFast.length} પ્રશ્ન (અતિ ઝડપી)` : '0 (સ્વાભાવિક ગતિ)'}
-                                    </div>
-                                  </div>
-
-                                  <div style={{
-                                    background: tabSwitches > 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.12)',
-                                    borderRadius: 8,
-                                    padding: '8px 10px',
-                                    border: tabSwitches > 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
-                                  }}>
-                                    <div style={{ fontSize: '0.7rem', color: tabSwitches > 0 ? '#fde047' : '#86efac', fontWeight: 700 }}>
-                                      📱 સ્ક્રીન સ્વિચ:
-                                    </div>
-                                    <div style={{ fontSize: '0.88rem', color: tabSwitches > 0 ? '#fbbf24' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
-                                      {tabSwitches > 0 ? `${tabSwitches} વાર સ્વિચ કર્યું` : 'કોઈ સ્વિચ નહીં'}
-                                    </div>
-                                  </div>
-
-                                  <div style={{
-                                    background: ssCount > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
-                                    borderRadius: 8,
-                                    padding: '8px 10px',
-                                    border: ssCount > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
-                                  }}>
-                                    <div style={{ fontSize: '0.7rem', color: ssCount > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
-                                      📸 સ્ક્રીનશોટ પ્રયાસ:
-                                    </div>
-                                    <div style={{ fontSize: '0.88rem', color: ssCount > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
-                                      {ssCount > 0 ? `${ssCount} વાર ${ssQText ? `(${ssQText})` : ''}` : 'કોઈ પ્રયાસ નહીં'}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {suspiciousFast.length > 0 && (
-                                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span>⚠️ <strong>શિક્ષક માટે ચેતવણી:</strong> લાલ રંગથી દર્શાવેલા પ્રશ્નો વિદ્યાર્થીએ ૪ સેકન્ડથી પણ ઓછા સમયમાં ટીક કર્યા છે, જે સંભવિત ચોરી કે અંદાજ દર્શાવે છે.</span>
-                                  </div>
-                                )}
-
-                                {ssCount > 0 && (
-                                  <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span>📸 <strong>સ્ક્રીનશોટ એલર્ટ:</strong> વિદ્યાર્થીએ કસોટી દરમિયાન {ssCount} વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો {ssQText ? `(${ssQText})` : ''}. જે પ્રશ્ન પર પ્રયાસ થયો તેની વિગત નીચે પ્રશ્ન કાર્ડ પર દર્શાવેલ છે.</span>
-                                  </div>
-                                )}
                               </div>
-                            );
-                          })()}
 
-                          {/* Questions List (Multi-column responsive grid on Laptop, clean single-column on Phone) */}
-                          {!revState?.loading && revList.length > 0 && (
-                            <div className="sa-review-questions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
-                              {revList.map((item, qIdx) => {
-                                const q = item.question || {};
-                                const isMCQ = q.type === 'mcq';
-                                const studentAns = item.studentAnswer;
-                                const isCorrect = item.isCorrect;
-                                const qKey = q.id !== undefined && q.id !== null ? q.id : qIdx;
-                                const hasOverride = questionOverrides[sub.id]?.[qKey] !== undefined;
-                                const effectiveCorrect = hasOverride ? questionOverrides[sub.id][qKey] : isCorrect;
+                              {/* Sequence info banner */}
+                              {curSeqOrder === 'STUDENT' && (
+                                <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.22)', borderRadius: 8, padding: '6px 12px', color: '#7dd3fc', fontSize: '0.76rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span>🔀 <strong>વિદ્યાર્થી શફલ ક્રમ:</strong> વિદ્યાર્થીએ પરીક્ષા આપતી વખતે જે ક્રમમાં પ્રશ્નો જોયા હતા, તે જ લાઈવ સિક્વન્સમાં અહીં દર્શાવવામાં આવ્યા છે.</span>
+                                </div>
+                              )}
+
+                              {/* Loading or Error State */}
+                              {revState?.loading && (
+                                <div style={{ padding: '24px', textAlign: 'center', background: '#1e293b', borderRadius: 12, color: '#38bdf8', fontWeight: 800, fontSize: '0.9rem' }}>
+                                  ⏳ વિદ્યાર્થીના તમામ પ્રશ્નો અને જવાબો લોડ થઈ રહ્યા છે...
+                                </div>
+                              )}
+
+                              {revState?.error && (
+                                <div style={{ padding: '14px', background: 'rgba(239,68,68,0.15)', borderRadius: 10, color: '#fca5a5', fontSize: '0.85rem' }}>
+                                  ❌ {revState.error}
+                                </div>
+                              )}
+
+                              {/* Proctoring & Anti-Cheating Time Tracking Analytics Banner */}
+                              {!revState?.loading && displayedRevList.length > 0 && (() => {
+                                const totalSec = displayedRevList.reduce((acc, r) => acc + (Number(r.timeSpent) || 0), 0);
+                                const answeredItems = displayedRevList.filter(r => r.studentAnswer && r.studentAnswer !== 'E');
+                                const avgSec = answeredItems.length > 0 ? Math.round(totalSec / answeredItems.length) : (displayedRevList.length > 0 ? Math.round(totalSec / displayedRevList.length) : 0);
+                                const suspiciousFast = answeredItems.filter(r => (Number(r.timeSpent) || 0) > 0 && (Number(r.timeSpent) || 0) < 4);
+                                const tabMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીન સ્વિચ/);
+                                const tabSwitches = tabMatch ? parseInt(tabMatch[1], 10) : 0;
+                                const ssMatch = (sub.remarks || '').match(/(\d+)\s*વાર સ્ક્રીનશોટ/);
+                                const ssCount = ssMatch ? parseInt(ssMatch[1], 10) : 0;
+                                const ssQMatch = (sub.remarks || '').match(/સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો \((પ્રશ્ન નં\.[^)]+)\)/);
+                                const ssQText = ssQMatch ? ssQMatch[1] : '';
+
+                                const fmtTime = (s) => {
+                                  if (!s || s <= 0) return '0 સેકન્ડ';
+                                  if (s < 60) return `${s} સેકન્ડ`;
+                                  const m = Math.floor(s / 60);
+                                  const rem = s % 60;
+                                  return rem > 0 ? `${m} મિનિટ ${rem} સે.` : `${m} મિનિટ`;
+                                };
+
+                                const hasAlerts = suspiciousFast.length > 0 || tabSwitches > 0 || ssCount > 0;
 
                                 return (
-                                  <div key={q.id || qIdx}
-                                    className="sa-review-q-card"
-                                    style={{
-                                      background: '#1e293b',
-                                      borderRadius: 12,
-                                      padding: '14px 14px',
-                                      border: isMCQ
-                                        ? (effectiveCorrect ? '1.5px solid rgba(34,197,94,0.5)' : (studentAns ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)'))
-                                        : '1px solid rgba(245,158,11,0.3)',
-                                      boxShadow: hasOverride ? '0 0 14px rgba(234,179,8,0.15)' : 'none',
-                                      minWidth: 0,
-                                      overflow: 'hidden'
-                                    }}>
-                                    
-                                    {/* Question Header Line */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                        <span style={{
-                                          width: 26, height: 26, borderRadius: '50%',
-                                          background: isMCQ ? (effectiveCorrect ? '#15803d' : (studentAns ? '#b91c1c' : '#475569')) : '#b45309',
-                                          color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                          fontSize: '0.78rem', fontWeight: 900, flexShrink: 0
-                                        }}>
-                                          {qIdx + 1}
-                                        </span>
-                                        <span style={{ color: '#93c5fd', fontSize: '0.82rem', fontWeight: 800 }}>
-                                          પ્રશ્ન {qIdx + 1} • {isMCQ ? 'MCQ' : 'વર્ણાત્મક'} <span style={{ color: '#64748b' }}>({q.marks || 1} ગુણ)</span>
-                                        </span>
+                                  <div style={{
+                                    background: hasAlerts
+                                      ? 'linear-gradient(135deg, rgba(239,68,68,0.14), rgba(30,41,59,0.9))'
+                                      : 'linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95))',
+                                    border: hasAlerts
+                                      ? '1.5px solid rgba(239,68,68,0.45)'
+                                      : '1px solid rgba(56,189,248,0.25)',
+                                    borderRadius: 12,
+                                    padding: '12px 14px',
+                                    marginBottom: 14,
+                                    boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                                  }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.88rem', color: hasAlerts ? '#fca5a5' : '#38bdf8' }}>
+                                        <span>🛡️ એન્ટી-ચીટિંગ પ્રોક્ટરિંગ અને સુરક્ષા વિશ્લેષણ (Anti-Cheating & Proctoring)</span>
                                       </div>
+                                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        {suspiciousFast.length > 0 && (
+                                          <span style={{ background: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                            🚨 {suspiciousFast.length} શંકાસ્પદ ઝડપી ઉત્તર!
+                                          </span>
+                                        )}
+                                        {ssCount > 0 && (
+                                          <span style={{ background: '#dc2626', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                            📸 {ssCount} વાર સ્ક્રીનશોટ પ્રયાસ!
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⏱️ કુલ લીધેલ સમય:</div>
+                                        <div style={{ fontSize: '0.88rem', color: '#f8fafc', fontWeight: 900, marginTop: 2 }}>{fmtTime(totalSec)}</div>
+                                      </div>
+
+                                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>⚡ સરેરાશ પ્રતિ પ્રશ્ન:</div>
+                                        <div style={{ fontSize: '0.88rem', color: '#38bdf8', fontWeight: 900, marginTop: 2 }}>{fmtTime(avgSec)}</div>
+                                      </div>
+
+                                      <div style={{
+                                        background: suspiciousFast.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        border: suspiciousFast.length > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                      }}>
+                                        <div style={{ fontSize: '0.7rem', color: suspiciousFast.length > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
+                                          🚨 શંકાસ્પદ ઝડપ (&lt; 4s):
+                                        </div>
+                                        <div style={{ fontSize: '0.88rem', color: suspiciousFast.length > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                          {suspiciousFast.length > 0 ? `${suspiciousFast.length} પ્રશ્ન (અતિ ઝડપી)` : '0 (સ્વાભાવિક ગતિ)'}
+                                        </div>
+                                      </div>
+
+                                      <div style={{
+                                        background: tabSwitches > 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        border: tabSwitches > 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                      }}>
+                                        <div style={{ fontSize: '0.7rem', color: tabSwitches > 0 ? '#fde047' : '#86efac', fontWeight: 700 }}>
+                                          📱 સ્ક્રીન સ્વિચ:
+                                        </div>
+                                        <div style={{ fontSize: '0.88rem', color: tabSwitches > 0 ? '#fbbf24' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                          {tabSwitches > 0 ? `${tabSwitches} વાર સ્વિચ કર્યું` : 'કોઈ સ્વિચ નહીં'}
+                                        </div>
+                                      </div>
+
+                                      <div style={{
+                                        background: ssCount > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.12)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        border: ssCount > 0 ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(34, 197, 94, 0.3)'
+                                      }}>
+                                        <div style={{ fontSize: '0.7rem', color: ssCount > 0 ? '#fca5a5' : '#86efac', fontWeight: 700 }}>
+                                          📸 સ્ક્રીનશોટ પ્રયાસ:
+                                        </div>
+                                        <div style={{ fontSize: '0.88rem', color: ssCount > 0 ? '#ef4444' : '#4ade80', fontWeight: 900, marginTop: 2 }}>
+                                          {ssCount > 0 ? `${ssCount} વાર ${ssQText ? `(${ssQText})` : ''}` : 'કોઈ પ્રયાસ નહીં'}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {suspiciousFast.length > 0 && (
+                                      <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span>⚠️ <strong>શિક્ષક માટે ચેતવણી:</strong> લાલ રંગથી દર્શાવેલા પ્રશ્નો વિદ્યાર્થીએ ૪ સેકન્ડથી પણ ઓછા સમયમાં ટીક કર્યા છે, જે સંભવિત ચોરી કે અંદાજ દર્શાવે છે.</span>
+                                      </div>
+                                    )}
+
+                                    {ssCount > 0 && (
+                                      <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.15)', padding: '6px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span>📸 <strong>સ્ક્રીનશોટ એલર્ટ:</strong> વિદ્યાર્થીએ કસોટી દરમિયાન {ssCount} વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો {ssQText ? `(${ssQText})` : ''}. જે પ્રશ્ન પર પ્રયાસ થયો તેની વિગત નીચે પ્રશ્ન કાર્ડ પર દર્શાવેલ છે.</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Questions List (Multi-column responsive grid on Laptop, clean single-column on Phone) */}
+                              {!revState?.loading && displayedRevList.length > 0 && (
+                                <div className="sa-review-questions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
+                                  {displayedRevList.map((item, qIdx) => {
+                                    const q = item.question || {};
+                                    const isMCQ = q.type === 'mcq';
+                                    const studentAns = item.studentAnswer;
+                                    const isCorrect = item.isCorrect;
+                                    const qKey = q.id !== undefined && q.id !== null ? q.id : qIdx;
+                                    const hasOverride = questionOverrides[sub.id]?.[qKey] !== undefined;
+                                    const effectiveCorrect = hasOverride ? questionOverrides[sub.id][qKey] : isCorrect;
+
+                                    return (
+                                      <div key={q.id || qIdx}
+                                        className="sa-review-q-card"
+                                        style={{
+                                          background: '#1e293b',
+                                          borderRadius: 12,
+                                          padding: '14px 14px',
+                                          border: isMCQ
+                                            ? (effectiveCorrect ? '1.5px solid rgba(34,197,94,0.5)' : (studentAns ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)'))
+                                            : '1px solid rgba(245,158,11,0.3)',
+                                          boxShadow: hasOverride ? '0 0 14px rgba(234,179,8,0.15)' : 'none',
+                                          minWidth: 0,
+                                          overflow: 'hidden'
+                                        }}>
+                                        
+                                        {/* Question Header Line */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                            <span style={{
+                                              width: 26, height: 26, borderRadius: '50%',
+                                              background: isMCQ ? (effectiveCorrect ? '#15803d' : (studentAns ? '#b91c1c' : '#475569')) : '#b45309',
+                                              color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                              fontSize: '0.78rem', fontWeight: 900, flexShrink: 0
+                                            }}>
+                                              {curSeqOrder === 'STUDENT' ? (item.studentSeq || (qIdx + 1)) : ((item.masterOrderIndex !== null && item.masterOrderIndex !== undefined) ? item.masterOrderIndex + 1 : (qIdx + 1))}
+                                            </span>
+                                            <span style={{ color: '#93c5fd', fontSize: '0.82rem', fontWeight: 800 }}>
+                                              {curSeqOrder === 'STUDENT' ? (
+                                                <>
+                                                  સવાલ #{item.studentSeq || (qIdx + 1)}
+                                                  <span style={{ color: '#fbbf24', fontSize: '0.72rem', marginLeft: 5, fontWeight: 700 }}>
+                                                    (વિદ્યાર્થીનો ક્રમ)
+                                                  </span>
+                                                  {item.masterOrderIndex !== undefined && item.masterOrderIndex !== null && (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.72rem', marginLeft: 5, fontWeight: 600 }}>
+                                                      [મુખ્ય પેપર: #{item.masterOrderIndex + 1}]
+                                                    </span>
+                                                  )}
+                                                </>
+                                              ) : (
+                                                <>
+                                                  સવાલ #{item.masterOrderIndex !== undefined && item.masterOrderIndex !== null ? item.masterOrderIndex + 1 : (qIdx + 1)}
+                                                  <span style={{ color: '#38bdf8', fontSize: '0.72rem', marginLeft: 5, fontWeight: 700 }}>
+                                                    (મુખ્ય પેપર)
+                                                  </span>
+                                                  {item.studentSeq && (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.72rem', marginLeft: 5, fontWeight: 600 }}>
+                                                      [વિદ્યાર્થી ક્રમ: #{item.studentSeq}]
+                                                    </span>
+                                                  )}
+                                                </>
+                                              )}
+                                              {' • '}
+                                              {isMCQ ? 'MCQ' : 'વર્ણાત્મક'} <span style={{ color: '#64748b' }}>({q.marks || 1} ગુણ)</span>
+                                            </span>
+                                          </div>
 
                                       {/* Correct/Wrong Status Badge & Teacher Override Toggle */}
                                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -12700,6 +12791,8 @@ function StudentAnswers({ showToast }) {
                             </div>
                           )}
                         </div>
+                      );
+                    })()}
 
                       </div>
                     )}
