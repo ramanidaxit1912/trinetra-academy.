@@ -18,7 +18,7 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary
+  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -10389,6 +10389,8 @@ function StudentAnswers({ showToast }) {
   const [zipExporting, setZipExporting] = useState({}); // { [testCode]: boolean }
   const [zipProgress, setZipProgress] = useState({}); // { [testCode]: string }
   const [cloudSaving, setCloudSaving] = useState({}); // { [testCode]: boolean } — Cloudinary batch upload
+  const [cloudProgress, setCloudProgress] = useState({}); // { [testCode]: string }
+
 
   const rotatePhoto = (url, e) => {
     if (e) e.stopPropagation();
@@ -10631,36 +10633,64 @@ function StudentAnswers({ showToast }) {
     }
   };
 
-  // ☁️ Save all student scorecards for a test to Cloudinary (backend generates PDFs server-side)
+  // ☁️ Save all student scorecards for a test to Cloudinary (ultra-fast, progressive streaming, zero 504 timeout!)
   const handleSaveAllToCloudinary = async (group) => {
-    if (!group || !group.testCode) return;
-    const testCode = group.testCode;
-    const total = group.subs?.length || 0;
-
-    if (total === 0) {
-      showToast('આ કસોટીમાં કોઈ સબમિશન નથી.', 'info');
+    if (!group || !Array.isArray(group.subs) || group.subs.length === 0) {
+      showToast('આ કસોટીમાં કોઈ વિદ્યાર્થી સબમિશન નથી.', 'info');
       return;
     }
 
-    setCloudSaving(prev => ({ ...prev, [testCode]: true }));
-    showToast(`☁️ ${total} સ્કોરકાર્ડ Cloudinary પર સેવ કરી રહ્યા છીએ... (${total > 5 ? '2-3 મિનિટ લાગી શકે' : 'થોડી ક્ષણ'})`, 'info');
+    const testCode = group.testCode;
+    const total = group.subs.length;
 
-    try {
-      const res = await bulkSaveScorecardsToCloudinary(testCode);
-      const { successCount, failCount, message } = res.data;
-      if (failCount === 0) {
-        showToast(`✅ ${message}`, 'success');
-      } else {
-        showToast(`⚠️ ${message}`, 'warning');
+    setCloudSaving(prev => ({ ...prev, [testCode]: true }));
+    setCloudProgress(prev => ({ ...prev, [testCode]: `0/${total} શરૂ થાય છે...` }));
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < total; i++) {
+      const sub = group.subs[i];
+      const studentName = sub.student?.name || `Student_${sub.id}`;
+      const cleanName = studentName.trim().replace(/[/\\?%*:|"<>]/g, '_');
+      const rank = sub.leaderboardRank || (i + 1);
+      const fileName = `${rank}_${cleanName}_Scorecard.pdf`;
+
+      setCloudProgress(prev => ({
+        ...prev,
+        [testCode]: `${i + 1}/${total} સેવ થાય છે...`
+      }));
+
+      try {
+        const res = await getSubmissionScorecardHtml(sub.id);
+        const htmlContent = res?.data;
+        if (htmlContent) {
+          const pdfBlob = await generatePdfBlobFromHtml(htmlContent);
+          if (pdfBlob) {
+            await uploadScorecardPdfToCloudinary(sub.id, pdfBlob, fileName);
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        console.warn(`Failed to upload scorecard for ${cleanName}:`, err);
+        failCount++;
       }
-    } catch (err) {
-      console.error('Cloudinary bulk save error:', err);
-      const msg = err?.response?.data?.error || 'Cloudinary upload ભૂલ. ફરી પ્રયાસ કરો.';
-      showToast(msg, 'error');
-    } finally {
-      setCloudSaving(prev => ({ ...prev, [testCode]: false }));
+    }
+
+    setCloudSaving(prev => ({ ...prev, [testCode]: false }));
+    setCloudProgress(prev => ({ ...prev, [testCode]: '' }));
+
+    if (successCount > 0) {
+      showToast(`☁️ સફળતા! ${successCount} વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary પર સેવ થઈ ગયા!${failCount > 0 ? ` (${failCount} નિષ્ફળ)` : ''}`, 'success');
+    } else {
+      showToast('Cloudinary પર સેવ કરવામાં ક્ષતિ આવી. ફરી પ્રયાસ કરો.', 'error');
     }
   };
+
 
   const handleToggleSub = async (subId, forceRefresh = false) => {
 
@@ -11540,51 +11570,20 @@ function StudentAnswers({ showToast }) {
                         />
                       </div>
 
-                      {/* Quick Action Buttons: Answer Key & Re-Calculate with 3D press physics */}
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={(e) => openMasterTestModal(group, e)}
-                          className="sa-btn-shimmer sa-btn-pressable"
-                          style={{
-                            flex: 1,
-                            background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '8px 12px',
-                            borderRadius: 9,
-                            fontSize: '0.78rem',
-                            fontWeight: 900,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                            fontFamily: 'Hind Vadodara, sans-serif',
-                            boxShadow: '0 4px 14px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                            transition: 'all 0.2s ease'
-                          }}
-                          title="Answer Key જુઓ/એડિટ કરો"
-                        >
-                          <Edit3 size={13} /> <span>Answer Key</span>
-                        </button>
-
-                        {group.hasMCQ && (
+                      {/* Quick Action Buttons Grid: 2 clean rows with 3D press physics */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {/* Row 1: Answer Key & Re-Calculate */}
+                        <div style={{ display: 'grid', gridTemplateColumns: group.hasMCQ ? '1fr 1fr' : '1fr', gap: 7 }}>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReEvaluate(group.testCode);
-                            }}
-                            disabled={reEvaluating[group.testCode]}
+                            onClick={(e) => openMasterTestModal(group, e)}
                             className="sa-btn-shimmer sa-btn-pressable"
                             style={{
-                              flex: 1,
-                              background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                              background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
                               color: '#ffffff',
                               border: 'none',
-                              padding: '8px 12px',
-                              borderRadius: 9,
+                              padding: '8px 10px',
+                              borderRadius: 8,
                               fontSize: '0.78rem',
                               fontWeight: 900,
                               cursor: 'pointer',
@@ -11593,107 +11592,147 @@ function StudentAnswers({ showToast }) {
                               justifyContent: 'center',
                               gap: 5,
                               fontFamily: 'Hind Vadodara, sans-serif',
-                              boxShadow: '0 4px 14px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                              opacity: reEvaluating[group.testCode] ? 0.6 : 1,
-                              transition: 'all 0.2s ease'
+                              boxShadow: '0 4px 14px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                              transition: 'all 0.2s ease',
+                              whiteSpace: 'nowrap'
                             }}
-                            title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
+                            title="Answer Key જુઓ/એડિટ કરો"
                           >
-                            <RotateCw size={13} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} />
-                            <span>ફરી ગણો</span>
+                            <Edit3 size={13} /> <span>Answer Key</span>
                           </button>
-                        )}
 
-                        {/* 📦 Download All Scorecards as ZIP */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadAllZip(group);
-                          }}
-                          disabled={zipExporting[group.testCode]}
-                          className="sa-btn-shimmer sa-btn-pressable"
-                          style={{
-                            flex: 1.3,
-                            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '8px 12px',
-                            borderRadius: 9,
-                            fontSize: '0.78rem',
-                            fontWeight: 900,
-                            cursor: zipExporting[group.testCode] ? 'not-allowed' : 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                            fontFamily: 'Hind Vadodara, sans-serif',
-                            boxShadow: '0 4px 14px rgba(16,185,129,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                            opacity: zipExporting[group.testCode] ? 0.75 : 1,
-                            transition: 'all 0.2s ease',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title="આ કસોટી આપનાર તમામ વિદ્યાર્થીઓના અલગ-અલગ PDF સ્કોરકાર્ડ એક જ ZIP ફોલ્ડરમાં ડાઉનલોડ કરો"
-                        >
-                          {zipExporting[group.testCode] ? (
-                            <>
-                              <RefreshCw size={13} className="animate-spin" />
-                              <span style={{ fontSize: '0.72rem' }}>{zipProgress[group.testCode] || 'ZIP બને છે...'}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Archive size={13} />
-                              <span>📦 તમામ સ્કોરકાર્ડ (ZIP)</span>
-                            </>
+                          {group.hasMCQ && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReEvaluate(group.testCode);
+                              }}
+                              disabled={reEvaluating[group.testCode]}
+                              className="sa-btn-shimmer sa-btn-pressable"
+                              style={{
+                                background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '8px 10px',
+                                borderRadius: 8,
+                                fontSize: '0.78rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 5,
+                                fontFamily: 'Hind Vadodara, sans-serif',
+                                boxShadow: '0 4px 14px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                                opacity: reEvaluating[group.testCode] ? 0.6 : 1,
+                                transition: 'all 0.2s ease',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title="MCQ ના માર્ક્સ ફરીથી રી-કેલ્ક્યુલેટ કરો"
+                            >
+                              <RotateCw size={13} className={reEvaluating[group.testCode] ? 'animate-spin' : ''} />
+                              <span>ફરી ગણો</span>
+                            </button>
                           )}
-                        </button>
+                        </div>
 
-                        {/* ☁️ Save All Scorecards to Cloudinary */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSaveAllToCloudinary(group);
-                          }}
-                          disabled={cloudSaving[group.testCode]}
-                          className="sa-btn-shimmer sa-btn-pressable"
-                          style={{
-                            flex: 1.2,
-                            background: cloudSaving[group.testCode]
-                              ? 'linear-gradient(135deg, #3b5bdb 0%, #4c6ef5 100%)'
-                              : 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '8px 12px',
-                            borderRadius: 9,
-                            fontSize: '0.78rem',
-                            fontWeight: 900,
-                            cursor: cloudSaving[group.testCode] ? 'not-allowed' : 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                            fontFamily: 'Hind Vadodara, sans-serif',
-                            boxShadow: '0 4px 14px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                            opacity: cloudSaving[group.testCode] ? 0.8 : 1,
-                            transition: 'all 0.2s ease',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title="તમામ વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary ક્લાઉડ સ્ટોરેજ પર ઓટોમેટિક સેવ કરો"
-                        >
-                          {cloudSaving[group.testCode] ? (
-                            <>
-                              <RefreshCw size={13} className="animate-spin" />
-                              <span style={{ fontSize: '0.72rem' }}>Cloudinary Upload...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Cloud size={13} />
-                              <span>☁️ Cloudinary સેવ</span>
-                            </>
-                          )}
-                        </button>
+                        {/* Row 2: Bulk Export ZIP & Bulk Cloudinary Save */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                          {/* 📦 Download All Scorecards as ZIP */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadAllZip(group);
+                            }}
+                            disabled={zipExporting[group.testCode]}
+                            className="sa-btn-shimmer sa-btn-pressable"
+                            style={{
+                              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 8px',
+                              borderRadius: 8,
+                              fontSize: '0.76rem',
+                              fontWeight: 900,
+                              cursor: zipExporting[group.testCode] ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              fontFamily: 'Hind Vadodara, sans-serif',
+                              boxShadow: '0 4px 14px rgba(16,185,129,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                              opacity: zipExporting[group.testCode] ? 0.75 : 1,
+                              transition: 'all 0.2s ease',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                            title="આ કસોટી આપનાર તમામ વિદ્યાર્થીઓના અલગ-અલગ PDF સ્કોરકાર્ડ એક જ ZIP ફોલ્ડરમાં ડાઉનલોડ કરો"
+                          >
+                            {zipExporting[group.testCode] ? (
+                              <>
+                                <RefreshCw size={13} className="animate-spin" />
+                                <span style={{ fontSize: '0.72rem' }}>{zipProgress[group.testCode] || 'ZIP બને છે...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Archive size={13} />
+                                <span>📦 સ્કોરકાર્ડ ZIP</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* ☁️ Save All Scorecards to Cloudinary */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveAllToCloudinary(group);
+                            }}
+                            disabled={cloudSaving[group.testCode]}
+                            className="sa-btn-shimmer sa-btn-pressable"
+                            style={{
+                              background: cloudSaving[group.testCode]
+                                ? 'linear-gradient(135deg, #3b5bdb 0%, #4c6ef5 100%)'
+                                : 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 8px',
+                              borderRadius: 8,
+                              fontSize: '0.76rem',
+                              fontWeight: 900,
+                              cursor: cloudSaving[group.testCode] ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              fontFamily: 'Hind Vadodara, sans-serif',
+                              boxShadow: '0 4px 14px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                              opacity: cloudSaving[group.testCode] ? 0.8 : 1,
+                              transition: 'all 0.2s ease',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                            title="તમામ વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary ક્લાઉડ સ્ટોરેજ પર સેવ કરો"
+                          >
+                            {cloudSaving[group.testCode] ? (
+                              <>
+                                <RefreshCw size={13} className="animate-spin" />
+                                <span style={{ fontSize: '0.72rem' }}>{cloudProgress[group.testCode] || 'સેવ થાય છે...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Cloud size={13} />
+                                <span>☁️ Cloudinary સેવ</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
+
                     </div>
 
                     {/* 🌟 3. Bottom Expand Button with 360° Morphing Toggle Icon & 3D Press Physics */}

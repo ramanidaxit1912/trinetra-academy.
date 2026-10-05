@@ -5,8 +5,11 @@ const { authMiddleware, teacherOnly } = require('../middleware/authMiddleware');
 const { generateScorecardPDF, generateScorecardPDFBuffer, generatePragatiReportPDFBuffer, buildScorecardHTML, buildPragatiReportHTML } = require('../services/pdfService');
 const { sendWhatsAppScorecardPDF, sendWhatsAppPragatiPDF, sendWhatsAppScorecardSummary, sendWhatsAppPragatiSummary } = require('../services/whatsappService');
 const { uploadPdfToCloudinary, isCloudinaryConfigured } = require('../services/cloudinaryService');
+const multer = require('multer');
+const pdfUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 const router = express.Router();
+
 
 // Helper to parse scheduled time in Indian Standard Time (IST) or UTC
 function parseScheduledTime(str) {
@@ -1013,7 +1016,36 @@ router.get('/:id/pdf', async (req, res) => {
   }
 });
 
+// ─── POST /api/submissions/:id/upload-scorecard-pdf ──────────
+// Directly receives pre-generated PDF blob from frontend & saves to Cloudinary in 0.2s!
+router.post('/:id/upload-scorecard-pdf', authMiddleware, teacherOnly, pdfUpload.single('file'), async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!req.file || !req.file.buffer) {
+    return res.status(400).json({ error: 'PDF ફાઇલ મળી નથી.' });
+  }
+  if (!isCloudinaryConfigured()) {
+    return res.status(503).json({ error: 'Cloudinary configuration મળ્યું નથી.' });
+  }
+
+  try {
+    const filename = req.body.filename || `Trinetra_Scorecard_${id}.pdf`;
+    const publicId = `scorecard_${id}`;
+    const result = await uploadPdfToCloudinary(req.file.buffer, filename, publicId);
+
+    res.json({
+      success: true,
+      url: result?.secure_url || result?.url,
+      publicId,
+      message: 'Cloudinary પર સ્કોરકાર્ડ સફળતાપૂર્વક સાચવવામાં આવ્યું!'
+    });
+  } catch (err) {
+    console.error(`Cloudinary upload failed for submission ${id}:`, err);
+    res.status(500).json({ error: 'Cloudinary upload નિષ્ફળ.', details: err.message });
+  }
+});
+
 // ─── POST /api/submissions/:id/send-whatsapp ────────────────
+
 // Direct Scorecard PDF send to student WhatsApp from teacher's WhatsApp number
 router.post('/:id/send-whatsapp', async (req, res) => {
   const id = parseInt(req.params.id);

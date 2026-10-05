@@ -167,14 +167,24 @@ export const deleteEnrolledStudent      = (id)     => api.delete(`/teacher/enrol
 export const clearAllEnrolledStudents   = ()       => api.delete('/teacher/enrolled-students');
 export const checkStudentEnrollment     = (mobile) => api.get(`/auth/check-enrollment/${mobile}`);
 
-// ─── Cloudinary Bulk Scorecard Save ─────────────────────────
+// ─── Cloudinary Bulk & Individual Scorecard Save ────────────
+export const uploadScorecardPdfToCloudinary = (id, pdfBlob, filename) => {
+  const formData = new FormData();
+  formData.append('file', pdfBlob, filename || `Scorecard_${id}.pdf`);
+  if (filename) formData.append('filename', filename);
+  return api.post(`/submissions/${id}/upload-scorecard-pdf`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+
 export const bulkSaveScorecardsToCloudinary = (testCode) =>
   api.post('/submissions/bulk-save-cloudinary', { testCode }, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    timeout: 300000 // 5 min — many students = long wait
+    timeout: 300000 // 5 min
   });
 
 export default api;
+
 
 
 
