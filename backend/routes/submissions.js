@@ -2024,8 +2024,9 @@ router.post('/bulk-save-cloudinary', authMiddleware, teacherOnly, async (req, re
     const submissions = await prisma.submission.findMany({
       where: { testCode },
       include: { student: true },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { submittedAt: 'asc' }
     });
+
 
     if (submissions.length === 0) {
       return res.status(404).json({ error: 'આ testCode ના કોઈ submission મળ્યા નહિ.' });
