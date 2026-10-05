@@ -201,7 +201,23 @@ router.post('/send-otp', async (req, res) => {
       })
     ]);
 
-    // 🟢 100% Automated Free WhatsApp OTP Delivery (dispatches immediately)
+    // Check Teacher Dashboard OTP Delivery Setting ('WHATSAPP' vs 'SCREEN')
+    const { getSetting } = require('../services/settingsService');
+    const otpMode = await getSetting('student_otp_mode', 'WHATSAPP');
+
+    if (otpMode === 'SCREEN') {
+      // ⚡ Direct Screen Display Mode: 0s waiting, no WhatsApp quota consumed
+      await dbPromise;
+      return res.json({ 
+        success: true, 
+        message: '🔑 તમારો લૉગિન OTP નીચે સ્ક્રીન પર દર્શાવવામાં આવ્યો છે.',
+        whatsappSent: false,
+        devOtp: otp,
+        otpMode: 'SCREEN'
+      });
+    }
+
+    // 🟢 WhatsApp Mode: 100% Automated Free WhatsApp OTP Delivery (dispatches immediately)
     const { sendWhatsAppOTP } = require('../services/whatsappService');
     const waPromise = sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી').catch(err => {
       console.warn('WhatsApp service trigger note:', err.message);
@@ -220,7 +236,8 @@ router.post('/send-otp', async (req, res) => {
         ? `તમારા WhatsApp નંબર (+91 ${cleanMobile}) પર OTP સફળતાપૂર્વક મોકલાયો છે.`
         : `WhatsApp હાલ ઑફલાઇન હોવાથી સ્ક્રીન પર સુરક્ષિત OTP દર્શાવવામાં આવ્યો છે.`,
       whatsappSent: isDeliveredViaWhatsApp,
-      devOtp: shouldProvideScreenOtp ? otp : undefined
+      devOtp: shouldProvideScreenOtp ? otp : undefined,
+      otpMode: 'WHATSAPP'
     });
   } catch (err) {
     console.error('Send OTP Error:', err);

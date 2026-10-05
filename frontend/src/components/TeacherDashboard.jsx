@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, deleteTest, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
   overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
@@ -13697,6 +13697,31 @@ function StudentLogins({ showToast }) {
   const [waBridge, setWaBridge] = useState({ status: 'DISCONNECTED', qrCode: null, phone: null });
   const [showWaModal, setShowWaModal] = useState(false);
 
+  // 🔐 Student Login OTP Delivery Mode ('WHATSAPP' | 'SCREEN')
+  const [studentOtpMode, setStudentOtpMode] = useState('WHATSAPP');
+  const [isUpdatingOtpMode, setIsUpdatingOtpMode] = useState(false);
+
+  const fetchOtpMode = async () => {
+    try {
+      const res = await getOtpMode();
+      if (res.data?.otpMode) setStudentOtpMode(res.data.otpMode);
+    } catch {}
+  };
+
+  const handleToggleOtpMode = async (newMode) => {
+    if (newMode === studentOtpMode || isUpdatingOtpMode) return;
+    setIsUpdatingOtpMode(true);
+    try {
+      const res = await setOtpMode({ otpMode: newMode });
+      setStudentOtpMode(newMode);
+      showToast(res.data?.message || '✅ OTP મોડ સફળતાપૂર્વક અપડેટ થયો!', 'success');
+    } catch (err) {
+      showToast('OTP મોડ બદલવામાં ભૂલ આવી.', 'error');
+    } finally {
+      setIsUpdatingOtpMode(false);
+    }
+  };
+
   const checkWaStatus = async () => {
     try {
       const res = await getWhatsAppBridgeStatus();
@@ -13706,6 +13731,7 @@ function StudentLogins({ showToast }) {
 
   useEffect(() => {
     checkWaStatus();
+    fetchOtpMode();
     const interval = setInterval(checkWaStatus, 6000);
     return () => clearInterval(interval);
   }, []);
@@ -14128,6 +14154,89 @@ function StudentLogins({ showToast }) {
                 >
                   <Smartphone size={14} /> 📱 ૫-નંબર પુલ મેનેજર ({waBridge.connectedCount || 0}/5)
                 </button>
+              </div>
+
+              {/* ── ⚙️ Student Login OTP Mode Setting (WhatsApp vs Screen) ── */}
+              <div style={{
+                marginTop: 10,
+                paddingTop: 8,
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.72rem', color: '#93c5fd', fontWeight: 800 }}>
+                    🔐 વિદ્યાર્થી લૉગિન OTP મોડ:
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: studentOtpMode === 'SCREEN' ? '#fbbf24' : '#34d399',
+                    background: studentOtpMode === 'SCREEN' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    padding: '2px 6px',
+                    borderRadius: 4
+                  }}>
+                    {studentOtpMode === 'SCREEN' ? '🖥️ સ્ક્રીન પર દર્શાવો' : '📱 WhatsApp પર મોકલો'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOtpMode('WHATSAPP')}
+                    disabled={isUpdatingOtpMode}
+                    style={{
+                      background: studentOtpMode === 'WHATSAPP' 
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: studentOtpMode === 'WHATSAPP' ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: studentOtpMode === 'WHATSAPP' ? '#ffffff' : '#94a3b8',
+                      borderRadius: 6,
+                      padding: '6px 6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s',
+                      boxShadow: studentOtpMode === 'WHATSAPP' ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none'
+                    }}
+                  >
+                    <span>📱</span> WhatsApp પર
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOtpMode('SCREEN')}
+                    disabled={isUpdatingOtpMode}
+                    style={{
+                      background: studentOtpMode === 'SCREEN' 
+                        ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: studentOtpMode === 'SCREEN' ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: studentOtpMode === 'SCREEN' ? '#ffffff' : '#94a3b8',
+                      borderRadius: 6,
+                      padding: '6px 6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s',
+                      boxShadow: studentOtpMode === 'SCREEN' ? '0 2px 8px rgba(245, 158, 11, 0.4)' : 'none'
+                    }}
+                  >
+                    <span>🖥️</span> લૉગિન સ્ક્રીન પર
+                  </button>
+                </div>
+
+                <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4, textAlign: 'center' }}>
+                  {studentOtpMode === 'SCREEN' 
+                    ? '⚡ વિદ્યાર્થીને સીધો તેમની સ્ક્રીન પર જ OTP દેખાશે (તત્કાલ ૧-સેકન્ડ લૉગિન).'
+                    : '📲 વિદ્યાર્થીના WhatsApp નંબર પર ૬-અંકનો સુરક્ષિત OTP જશે.'}
+                </div>
               </div>
             </div>
           </div>

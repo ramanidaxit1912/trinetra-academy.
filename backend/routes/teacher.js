@@ -653,5 +653,39 @@ router.delete('/enrolled-students', authMiddleware, teacherOnly, async (req, res
   }
 });
 
+// ─── GET /api/teacher/settings/otp-mode ─────────────────────────
+// Fetch current student login OTP delivery mode ('WHATSAPP' | 'SCREEN')
+router.get('/settings/otp-mode', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { getSetting } = require('../services/settingsService');
+    const otpMode = await getSetting('student_otp_mode', 'WHATSAPP');
+    res.json({ success: true, otpMode });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch OTP mode' });
+  }
+});
+
+// ─── POST /api/teacher/settings/otp-mode ────────────────────────
+// Update student login OTP delivery mode ('WHATSAPP' | 'SCREEN')
+router.post('/settings/otp-mode', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { otpMode } = req.body;
+    if (!['WHATSAPP', 'SCREEN'].includes(otpMode)) {
+      return res.status(400).json({ error: 'અમાન્ય OTP મોડ. માત્ર WHATSAPP અથવા SCREEN માન્ય છે.' });
+    }
+    const { setSetting } = require('../services/settingsService');
+    await setSetting('student_otp_mode', otpMode);
+    res.json({
+      success: true,
+      otpMode,
+      message: otpMode === 'WHATSAPP'
+        ? '✅ વિદ્યાર્થીઓને લૉગિન OTP WhatsApp પર મોકલવાનું સેટ થઈ ગયું છે.'
+        : '✅ વિદ્યાર્થીઓને લૉગિન OTP સીધો સ્ક્રીન પર દર્શાવવાનું સેટ થઈ ગયું છે.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update OTP mode: ' + err.message });
+  }
+});
+
 module.exports = router;
 

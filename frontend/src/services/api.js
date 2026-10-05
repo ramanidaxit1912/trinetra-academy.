@@ -132,6 +132,8 @@ export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-wha
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
 export const cleanTestData          = (data) => api.post('/teacher/clean-test-data', data);
 export const sendDailyReport        = (data) => api.post('/teacher/send-daily-report', data);
+export const getOtpMode             = ()   => api.get('/teacher/settings/otp-mode');
+export const setOtpMode             = (data) => api.post('/teacher/settings/otp-mode', data);
 
 // ─── Materials ────────────────────────────────────────────────
 export const getMaterials    = (params) => api.get('/materials', { params });

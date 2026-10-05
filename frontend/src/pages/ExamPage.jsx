@@ -716,8 +716,21 @@ export default function ExamPage() {
               {form.mobile} પર OTP send થઈ ગઈ છે
             </p>
             {devOtp && (
-              <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: '0.88rem', color: '#92400e', fontWeight: 700 }}>
-                🔧 Dev Mode OTP: <strong>{devOtp}</strong>
+              <div style={{ 
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', 
+                border: '2px dashed #f59e0b', 
+                borderRadius: 12, 
+                padding: '12px 14px', 
+                marginBottom: 18, 
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)'
+              }}>
+                <div style={{ fontSize: '0.82rem', color: '#92400e', fontWeight: 800, marginBottom: 4 }}>
+                  ⚡ લૉગિન OTP (સુરક્ષિત પ્રવેશ):
+                </div>
+                <div style={{ letterSpacing: '4px', fontSize: '1.4rem', color: '#b45309', fontWeight: 900, fontFamily: 'monospace' }}>
+                  {devOtp}
+                </div>
               </div>
             )}
             <form onSubmit={handleVerifyOTP}>
