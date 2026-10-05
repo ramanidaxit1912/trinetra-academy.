@@ -18,7 +18,7 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
+  overrideLeaderboard, getLeaderboardOverrides, updateStudentName, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -14880,6 +14880,11 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
   const [savingOverride, setSavingOverride] = useState(false);
   const [customRankInputs, setCustomRankInputs] = useState({});
 
+  // ✏️ Edit Student Name State
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editNameInput, setEditNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
   const fetchOverrides = async () => {
     try {
       const res = await getLeaderboardOverrides();
@@ -15078,6 +15083,49 @@ function TeacherLeaderboardSection({ testGroups = [], displayedSubs = [], showTo
       showToast?.(err.response?.data?.error || 'લીડર અપડેટ કરવામાં ક્ષતિ.', 'error');
     } finally {
       setSavingOverride(false);
+    }
+  };
+
+  // ✏️ Open Edit Student Name Modal
+  const handleOpenEditName = (student) => {
+    if (!student) return;
+    const currentName = student.student?.name || student.studentName || '';
+    setEditingStudent(student);
+    setEditNameInput(currentName);
+  };
+
+  // 💾 Save Corrected Student Name across all leaderboards & database
+  const handleSaveStudentName = async () => {
+    if (!editingStudent) return;
+    const cleanName = (editNameInput || '').trim();
+    if (!cleanName) {
+      showToast?.('કૃપા કરીને માન્ય નામ દાખલ કરો.', 'error');
+      return;
+    }
+
+    try {
+      setSavingName(true);
+      const payload = {
+        studentId: editingStudent.studentId || editingStudent.student?.id,
+        submissionId: editingStudent.id,
+        mobile: editingStudent.student?.mobile || editingStudent.mobile,
+        newName: cleanName
+      };
+
+      const res = await updateStudentName(payload);
+      showToast?.(res.data?.message || `✅ નામ સુધારીને "${cleanName}" કરવામાં આવ્યું!`, 'success');
+      setEditingStudent(null);
+      setEditNameInput('');
+
+      // Refresh overrides & dispatch global update events
+      await fetchOverrides();
+      window.dispatchEvent(new CustomEvent('trinetra_leaderboard_updated'));
+      window.dispatchEvent(new CustomEvent('trinetra_refresh_submissions'));
+    } catch (err) {
+      console.error('Error updating student name:', err);
+      showToast?.(err.response?.data?.error || 'નામ સુધારવામાં ક્ષતિ આવી.', 'error');
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -15559,8 +15607,20 @@ ${topperList}
                     <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: '1.4rem' }}>🥈</span>
                     <Avatar name={top2.student?.name} size={50} />
                   </div>
-                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.86rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {top2.student?.name}
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.86rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <span title={top2.student?.name}>{top2.student?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditName(top2)}
+                      title="આ વિદ્યાર્થીનું નામ સુધારો"
+                      style={{
+                        background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#cbd5e1',
+                        borderRadius: 6, width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', cursor: 'pointer', padding: 0
+                      }}
+                    >
+                      ✏️
+                    </button>
                   </div>
                   <div style={{ color: '#38bdf8', fontWeight: 900, fontSize: '1.1rem', margin: '2px 0' }}>
                     {top2.score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{top2.totalMarks}</span>
@@ -15630,8 +15690,20 @@ ${topperList}
                       <Avatar name={top1.student?.name} size={64} />
                     </div>
                   </div>
-                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.96rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {top1.student?.name}
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.96rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <span title={top1.student?.name}>{top1.student?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditName(top1)}
+                      title="ટોપર / વિદ્યાર્થીનું નામ સુધારો"
+                      style={{
+                        background: 'rgba(245,158,11,0.25)', border: '1px solid #f59e0b', color: '#fef08a',
+                        borderRadius: 6, width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.72rem', cursor: 'pointer', padding: 0
+                      }}
+                    >
+                      ✏️
+                    </button>
                   </div>
                   <div style={{ color: '#4ade80', fontWeight: 900, fontSize: '1.35rem', margin: '2px 0' }}>
                     {top1.score} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/{top1.totalMarks}</span>
@@ -15695,8 +15767,20 @@ ${topperList}
                     <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: '1.4rem' }}>🥉</span>
                     <Avatar name={top3.student?.name} size={46} />
                   </div>
-                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.84rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {top3.student?.name}
+                  <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.84rem', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <span title={top3.student?.name}>{top3.student?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditName(top3)}
+                      title="આ વિદ્યાર્થીનું નામ સુધારો"
+                      style={{
+                        background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#cbd5e1',
+                        borderRadius: 6, width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', cursor: 'pointer', padding: 0
+                      }}
+                    >
+                      ✏️
+                    </button>
                   </div>
                   <div style={{ color: '#fb923c', fontWeight: 900, fontSize: '1.05rem', margin: '2px 0' }}>
                     {top3.score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{top3.totalMarks}</span>
@@ -15865,8 +15949,29 @@ ${topperList}
                   <Avatar name={s.student?.name} size={36} />
 
                   <div style={{ flex: 1, minWidth: 120 }}>
-                    <div style={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span>{s.student?.name || 'વિદ્યાર્થી'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditName(s)}
+                        title="વિદ્યાર્થીનું નામ સુધારો (તમામ લીડરબોર્ડ પર બદલાશે)"
+                        style={{
+                          background: 'rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#38bdf8',
+                          borderRadius: 6,
+                          padding: '1px 6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        ✏️ નામ સુધારો
+                      </button>
                       {s.isTied && (
                         <span style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 800, padding: '1px 5px', borderRadius: 4 }}>
                           🤝 Tied
@@ -16204,6 +16309,98 @@ ${topperList}
                   <CheckCircle size={15} /> {savingOverride ? 'સાચવી રહ્યા છીએ...' : '💾 લીડર સાચવો'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── ✏️ EDIT STUDENT NAME MODAL (PORTALED TO BODY) ── */}
+      {editingStudent && typeof document !== 'undefined' && createPortal(
+        <div className="schedule-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !savingName) setEditingStudent(null); }}>
+          <div className="glass-card animate-fade-in" onClick={e => e.stopPropagation()} style={{
+            maxWidth: 440, width: '92%', background: '#0f172a', border: '1.5px solid #38bdf8',
+            borderRadius: 18, padding: 0, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 35px rgba(56,189,248,0.25)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(56,189,248,0.25) 0%, rgba(37,99,235,0.3) 100%)',
+              padding: '16px 20px', borderBottom: '1px solid rgba(56,189,248,0.3)', display: 'flex',
+              alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div>
+                <h3 style={{ color: '#38bdf8', margin: 0, fontWeight: 900, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>✏️</span> વિદ્યાર્થીનું સાચું નામ સુધારો
+                </h3>
+                <div style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: 3 }}>
+                  📞 {editingStudent.student?.mobile || editingStudent.mobile || 'મોબાઈલ નંબર'}
+                </div>
+              </div>
+              <button
+                disabled={savingName}
+                onClick={() => setEditingStudent(null)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: 30, height: 30, borderRadius: 8, cursor: 'pointer', fontWeight: 900 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>
+                અહીંથી વિદ્યાર્થીનું નામ સુધારવાથી તે <strong>તમામ લીડરબોર્ડ, પરિણામ પત્રક (PDF), સર્ટિફિકેટ અને સ્ટુડન્ટ ડેશબોર્ડ</strong> પર તાત્કાલિક સાચું થઈ જશે.
+              </p>
+
+              <div>
+                <label style={{ display: 'block', color: '#e2e8f0', fontSize: '0.82rem', fontWeight: 800, marginBottom: 6 }}>
+                  વિદ્યાર્થીનું પૂરું સાચું નામ:
+                </label>
+                <input
+                  className="input-dark"
+                  autoFocus
+                  placeholder="દા.ત. રમેશભાઈ પટેલ..."
+                  value={editNameInput}
+                  onChange={e => setEditNameInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveStudentName();
+                    }
+                  }}
+                  style={{ width: '100%', padding: '11px 14px', fontSize: '0.92rem', borderRadius: 9, border: '1.5px solid #38bdf8' }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 20px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10
+            }}>
+              <button
+                type="button"
+                disabled={savingName}
+                onClick={() => setEditingStudent(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.15)',
+                  padding: '9px 16px', borderRadius: 9, cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem'
+                }}
+              >
+                રદ કરો
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveStudentName}
+                disabled={savingName}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: 'white', border: 'none',
+                  padding: '9px 20px', borderRadius: 9, cursor: 'pointer', fontWeight: 900, fontSize: '0.86rem',
+                  boxShadow: '0 4px 14px rgba(2,132,199,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6
+                }}
+              >
+                <CheckCircle size={15} /> {savingName ? 'સાચવી રહ્યા છીએ...' : '💾 નામ સાચવો'}
+              </button>
             </div>
           </div>
         </div>,

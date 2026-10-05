@@ -1992,6 +1992,99 @@ router.get('/leaderboard/overrides', authMiddleware, teacherOnly, async (req, re
   }
 });
 
+// ─── POST /api/submissions/student/update-name ───────────────
+// Teacher updates a student/topper's name across all leaderboards & database
+router.post('/student/update-name', authMiddleware, teacherOnly, async (req, res) => {
+  const { studentId, submissionId, mobile, newName } = req.body;
+
+  if (!newName || !String(newName).trim()) {
+    return res.status(400).json({ error: 'કૃપા કરીને માન્ય નામ દાખલ કરો.' });
+  }
+  const cleanNewName = String(newName).trim();
+
+  try {
+    let targetStudentId = studentId ? parseInt(studentId, 10) : null;
+    let targetMobile = mobile ? String(mobile).trim() : null;
+
+    if (!targetStudentId && submissionId) {
+      const sub = await prisma.submission.findUnique({
+        where: { id: parseInt(submissionId, 10) },
+        select: { studentId: true, student: { select: { mobile: true } } }
+      });
+      if (sub) {
+        targetStudentId = sub.studentId;
+        if (!targetMobile && sub.student?.mobile) {
+          targetMobile = sub.student.mobile;
+        }
+      }
+    }
+
+    if (!targetStudentId && targetMobile) {
+      const cleanDigits = targetMobile.replace(/\D/g, '').slice(-10);
+      const studentByMob = await prisma.student.findFirst({
+        where: {
+          OR: [
+            { mobile: targetMobile },
+            { mobile: cleanDigits },
+            { mobile: `91${cleanDigits}` }
+          ]
+        }
+      });
+      if (studentByMob) {
+        targetStudentId = studentByMob.id;
+      }
+    }
+
+    if (!targetStudentId) {
+      return res.status(404).json({ error: 'વિદ્યાર્થી રેકોર્ડ મળ્યો નથી.' });
+    }
+
+    // 1. Update Student record in database
+    const updatedStudent = await prisma.student.update({
+      where: { id: targetStudentId },
+      data: { name: cleanNewName }
+    });
+
+    // 2. Also update any active LeaderboardOverride entries for this student
+    if (submissionId) {
+      await prisma.leaderboardOverride.updateMany({
+        where: { submissionId: parseInt(submissionId, 10) },
+        data: { studentName: cleanNewName }
+      });
+    }
+    if (updatedStudent.mobile) {
+      const mobDigits = updatedStudent.mobile.replace(/\D/g, '').slice(-10);
+      await prisma.leaderboardOverride.updateMany({
+        where: {
+          OR: [
+            { mobile: updatedStudent.mobile },
+            { mobile: mobDigits },
+            { mobile: `91${mobDigits}` }
+          ]
+        },
+        data: { studentName: cleanNewName }
+      });
+    }
+
+    // 3. Invalidate in-memory leaderboard caches so all users see the new name instantly
+    leaderboardCache = null;
+    leaderboardCacheTime = 0;
+    testWiseLeaderboardCache = null;
+    testWiseLeaderboardCacheTime = 0;
+
+    console.log(`✅ [Student Name Updated] ID: ${updatedStudent.id} -> "${updatedStudent.name}"`);
+    res.json({
+      success: true,
+      studentId: updatedStudent.id,
+      name: updatedStudent.name,
+      message: `✅ વિદ્યાર્થીનું નામ સફળતાપૂર્વક સુધારીને "${updatedStudent.name}" કરવામાં આવ્યું અને તમામ લીડરબોર્ડ પર અપડેટ થયું!`
+    });
+  } catch (err) {
+    console.error('Update student name error:', err);
+    res.status(500).json({ error: 'નામ અપડેટ કરવામાં સર્વર ક્ષતિ: ' + (err.message || '') });
+  }
+});
+
 
 
 // ─── PUT /api/submissions/:id/grade ──────────────────────────
