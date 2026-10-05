@@ -14099,24 +14099,24 @@ function StudentLogins({ showToast }) {
                   background: waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
                   color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.7rem'
                 }}>
-                  {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.phone || 'Active'})` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
+                  {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.connectedCount || 1}/5 પુલ)` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.4, margin: '4px 0' }}>
-                {waBridge.status === 'CONNECTED' ? '🚀 ૧૦૦% સક્રિય: વિદ્યાર્થીઓને WhatsApp OTP ઓટોમેટિક જઈ રહ્યા છે.' : 'તમારો WhatsApp નંબર લિંક કરીને ફ્રી ઓટોમેટિક OTP ચાલુ કરો.'}
+                {waBridge.status === 'CONNECTED' ? `🚀 ૧૦૦% સક્રિય: ${waBridge.connectedCount || 1}/5 નંબરોથી વિદ્યાર્થીઓને OTP & સ્કોરકાર્ડ જઈ રહ્યા છે.` : 'તમારા ૫ WhatsApp નંબરો લિંક કરીને ફ્રી ઓટોમેટિક OTP અને સ્કોરકાર્ડ વિતરણ ચાલુ કરો.'}
               </div>
-              {waBridge.status !== 'CONNECTED' ? (
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 <button
-                  onClick={() => setShowWaModal(true)}
+                  onClick={() => window.open('/whatsapp', '_blank')}
                   className="sa-btn-pressable"
                   style={{
-                    marginTop: 6,
-                    background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
                     border: 'none',
                     color: 'white',
-                    padding: '7px 12px',
+                    padding: '7px 10px',
                     borderRadius: 8,
-                    fontSize: '0.75rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
@@ -14126,43 +14126,9 @@ function StudentLogins({ showToast }) {
                     fontFamily: 'Hind Vadodara, sans-serif'
                   }}
                 >
-                  <Smartphone size={14} /> 📱 QR Code સ્કેન કરો
+                  <Smartphone size={14} /> 📱 ૫-નંબર પુલ મેનેજર ({waBridge.connectedCount || 0}/5)
                 </button>
-              ) : (
-                <button
-                  onClick={async () => {
-                    if (window.confirm('શું તમે હાલનો WhatsApp નંબર ડિસ્કનેક્ટ કરીને બીજો નવો નંબર જોડવા માંગો છો?')) {
-                      try {
-                        await disconnectWhatsAppBridge();
-                        showToast('WhatsApp ડિસ્કનેક્ટ થયું. નવો નંબર લિંક કરો.', 'info');
-                        checkWaStatus();
-                        setShowWaModal(true);
-                      } catch {
-                        showToast('ડિસ્કનેક્ટ કરવામાં ભૂલ આવી.', 'error');
-                      }
-                    }
-                  }}
-                  className="sa-btn-pressable"
-                  style={{
-                    marginTop: 6,
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.5)',
-                    color: '#ffffff',
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                    fontFamily: 'Hind Vadodara, sans-serif'
-                  }}
-                >
-                  <RefreshCw size={12} /> 🔄 નંબર બદલો (Switch Number)
-                </button>
-              )}
+              </div>
             </div>
           </div>
 
