@@ -51,15 +51,31 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       position: fixed;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 58px;
-      font-weight: 900;
-      color: rgba(30, 58, 138, 0.035);
-      white-space: nowrap;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       pointer-events: none;
       z-index: 0;
-      text-transform: uppercase;
+      opacity: 0.045;
+      user-select: none;
+    }
+    .watermark-logo {
+      width: 260px;
+      height: 260px;
+      object-fit: contain;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .watermark-text {
+      font-size: 26px;
+      font-weight: 900;
+      color: #1e3a8a;
       letter-spacing: 4px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      font-family: 'Hind Vadodara', sans-serif;
     }
 
     .header-box {
@@ -507,6 +523,17 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
         page-break-inside: avoid !important;
         box-shadow: none !important;
       }
+      .watermark {
+        opacity: 0.04 !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 0 !important;
+      }
+      .watermark-logo {
+        opacity: 0.04 !important;
+      }
       .brochure-page {
         page-break-before: always !important;
         break-before: always !important;
@@ -515,7 +542,10 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
   </style>
 </head>
 <body>
-  <div class="watermark">🏛️ TRINETRA ACADEMY</div>
+  <div class="watermark">
+    <img src="${logoUrl}" class="watermark-logo" alt="Trinetra Watermark" onerror="this.style.display='none'" />
+    <div class="watermark-text">TRINETRA ACADEMY</div>
+  </div>
 
   <div class="no-print-bar">
     <div style="display: flex; align-items: center; gap: 8px;">
@@ -535,7 +565,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       <img src="${logoUrl}" class="logo-img" alt="Trinetra Logo" onerror="this.src='https://ui-avatars.com/api/?name=TA&background=1e3a8a&color=fff&size=128'" />
     </div>
     <div class="header-center">
-      <h1 class="academy-title">🏛️ ${academy}</h1>
+      <h1 class="academy-title">${academy}</h1>
       <div class="academy-tagline">✨ ${slogan}</div>
       <div class="teacher-sub">શિક્ષક: <strong>${teacher}</strong> • TET-1 / TET-2 / TAT-S / TAT-HS સ્પર્ધાત્મક પરીક્ષા મંચ</div>
     </div>
@@ -691,7 +721,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
 
   <!-- Intermediate Footer -->
   <div style="margin-top: 20px; border-top: 1.5px solid #cbd5e1; padding-top: 10px; text-align: center; font-size: 11px; color: #64748b; page-break-inside: avoid;">
-    🏛️ ${academy} • TET-1 / TET-2 / TAT-S / TAT-HS / HTAT સ્પર્ધાત્મક પરીક્ષા પ્રશ્નપત્ર • સંપર્ક: ${helpline}
+    ${academy} • TET-1 / TET-2 / TAT-S / TAT-HS / HTAT સ્પર્ધાત્મક પરીક્ષા પ્રશ્નપત્ર • સંપર્ક: ${helpline}
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
