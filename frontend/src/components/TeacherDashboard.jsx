@@ -18,7 +18,7 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml
+  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -26,7 +26,7 @@ import {
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
   Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle,
-  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall, Archive
+  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall, Archive, Cloud
 } from 'lucide-react';
 
 const darkLbl = { display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8', marginBottom: 6 };
@@ -10388,6 +10388,7 @@ function StudentAnswers({ showToast }) {
   const [leaderboardOverrides, setLeaderboardOverrides] = useState([]); // Active teacher leaderboard rank/score overrides
   const [zipExporting, setZipExporting] = useState({}); // { [testCode]: boolean }
   const [zipProgress, setZipProgress] = useState({}); // { [testCode]: string }
+  const [cloudSaving, setCloudSaving] = useState({}); // { [testCode]: boolean } — Cloudinary batch upload
 
   const rotatePhoto = (url, e) => {
     if (e) e.stopPropagation();
@@ -10630,7 +10631,39 @@ function StudentAnswers({ showToast }) {
     }
   };
 
+  // ☁️ Save all student scorecards for a test to Cloudinary (backend generates PDFs server-side)
+  const handleSaveAllToCloudinary = async (group) => {
+    if (!group || !group.testCode) return;
+    const testCode = group.testCode;
+    const total = group.subs?.length || 0;
+
+    if (total === 0) {
+      showToast('આ કસોટીમાં કોઈ સબમિશન નથી.', 'info');
+      return;
+    }
+
+    setCloudSaving(prev => ({ ...prev, [testCode]: true }));
+    showToast(`☁️ ${total} સ્કોરકાર્ડ Cloudinary પર સેવ કરી રહ્યા છીએ... (${total > 5 ? '2-3 મિનિટ લાગી શકે' : 'થોડી ક્ષણ'})`, 'info');
+
+    try {
+      const res = await bulkSaveScorecardsToCloudinary(testCode);
+      const { successCount, failCount, message } = res.data;
+      if (failCount === 0) {
+        showToast(`✅ ${message}`, 'success');
+      } else {
+        showToast(`⚠️ ${message}`, 'warning');
+      }
+    } catch (err) {
+      console.error('Cloudinary bulk save error:', err);
+      const msg = err?.response?.data?.error || 'Cloudinary upload ભૂલ. ફરી પ્રયાસ કરો.';
+      showToast(msg, 'error');
+    } finally {
+      setCloudSaving(prev => ({ ...prev, [testCode]: false }));
+    }
+  };
+
   const handleToggleSub = async (subId, forceRefresh = false) => {
+
     if (selectedSub === subId && !forceRefresh) {
       setSelectedSub(null);
       return;
@@ -11611,6 +11644,52 @@ function StudentAnswers({ showToast }) {
                             <>
                               <Archive size={13} />
                               <span>📦 તમામ સ્કોરકાર્ડ (ZIP)</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* ☁️ Save All Scorecards to Cloudinary */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveAllToCloudinary(group);
+                          }}
+                          disabled={cloudSaving[group.testCode]}
+                          className="sa-btn-shimmer sa-btn-pressable"
+                          style={{
+                            flex: 1.2,
+                            background: cloudSaving[group.testCode]
+                              ? 'linear-gradient(135deg, #3b5bdb 0%, #4c6ef5 100%)'
+                              : 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: 9,
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: cloudSaving[group.testCode] ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            fontFamily: 'Hind Vadodara, sans-serif',
+                            boxShadow: '0 4px 14px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                            opacity: cloudSaving[group.testCode] ? 0.8 : 1,
+                            transition: 'all 0.2s ease',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title="તમામ વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary ક્લાઉડ સ્ટોરેજ પર ઓટોમેટિક સેવ કરો"
+                        >
+                          {cloudSaving[group.testCode] ? (
+                            <>
+                              <RefreshCw size={13} className="animate-spin" />
+                              <span style={{ fontSize: '0.72rem' }}>Cloudinary Upload...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Cloud size={13} />
+                              <span>☁️ Cloudinary સેવ</span>
                             </>
                           )}
                         </button>

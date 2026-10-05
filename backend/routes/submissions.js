@@ -1977,4 +1977,122 @@ router.post('/re-evaluate', authMiddleware, teacherOnly, async (req, res) => {
   }
 });
 
+// ─── POST /api/submissions/bulk-save-cloudinary ──────────────
+// Teacher triggers batch upload of ALL student scorecards for a test to Cloudinary
+router.post('/bulk-save-cloudinary', authMiddleware, teacherOnly, async (req, res) => {
+  const { testCode } = req.body;
+  if (!testCode) return res.status(400).json({ error: 'testCode જરૂરી છે.' });
+
+  if (!isCloudinaryConfigured()) {
+    return res.status(503).json({ error: 'Cloudinary configured નથી. .env ચેક કરો.' });
+  }
+
+  try {
+    // Fetch all submissions for this test
+    const submissions = await prisma.submission.findMany({
+      where: { testCode },
+      include: { student: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (submissions.length === 0) {
+      return res.status(404).json({ error: 'આ testCode ના કોઈ submission મળ્યા નહિ.' });
+    }
+
+    // Load questions once (shared across all submissions)
+    let questions = getCachedReviewQuestions(testCode);
+    if (!questions || questions.length === 0) {
+      questions = await prisma.question.findMany({
+        where: { testCode },
+        orderBy: { orderIndex: 'asc' }
+      });
+      if (questions.length > 0) setCachedReviewQuestions(testCode, questions);
+    }
+
+    // Load marketing items once
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { isActive: true, showInPdf: true },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process each submission sequentially to avoid overwhelming Puppeteer/Cloudinary
+    for (const submission of submissions) {
+      try {
+        const answersArr = Array.isArray(submission.answers) ? submission.answers : [];
+
+        const detailedReview = questions.map((q, idx) => {
+          const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
+          const selected = ans.selectedOpt || ans.text || '';
+          let isCorrect = null;
+          if (q.type === 'mcq') {
+            if (!selected) isCorrect = null;
+            else if (selected === 'E') isCorrect = false;
+            else isCorrect = (selected === q.correctOpt);
+          }
+          return {
+            question: q,
+            studentAnswer: selected,
+            isCorrect,
+            isSkipped: !selected || selected === 'E',
+            timeSpent: ans.timeSpent || 0,
+            screenshotAttempt: Boolean(ans.screenshotAttempt),
+            studentUploadedPhoto: submission.photoUrl
+          };
+        });
+
+        const safeTestName = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+        const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+        const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+        const publicId = `scorecard_${submission.id}`;
+
+        const pdfBuffer = await generateScorecardPDFBuffer({
+          submission,
+          review: detailedReview,
+          student: submission.student || {},
+          marketingItems
+        });
+
+        // Cache in RAM for re-downloads
+        setCachedPdfBuffer(submission.id, pdfBuffer, filename);
+
+        const cloudinaryResult = await uploadPdfToCloudinary(pdfBuffer, filename, publicId);
+
+        results.push({
+          submissionId: submission.id,
+          studentName: submission.student?.name || 'Unknown',
+          filename,
+          cloudinaryUrl: cloudinaryResult?.secure_url || cloudinaryResult?.url || null,
+          status: 'success'
+        });
+        successCount++;
+      } catch (subErr) {
+        console.error(`Cloudinary upload failed for submission ${submission.id}:`, subErr.message);
+        results.push({
+          submissionId: submission.id,
+          studentName: submission.student?.name || 'Unknown',
+          status: 'failed',
+          error: subErr.message
+        });
+        failCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      total: submissions.length,
+      successCount,
+      failCount,
+      message: `${successCount} સ્કોરકાર્ડ Cloudinary પર સફળતાપૂર્વક સેવ કર્યા! ${failCount > 0 ? `(${failCount} નિષ્ફળ)` : ''}`,
+      results
+    });
+  } catch (err) {
+    console.error('Bulk Cloudinary save error:', err);
+    res.status(500).json({ error: 'Cloudinary batch upload ભૂલ.', details: err.message });
+  }
+});
+
 module.exports = router;
