@@ -217,7 +217,13 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
   const page1SummaryRows = topList.slice(0, 10).map((s, idx) => {
     const rawName = s.student?.name || 'વિદ્યાર્થી';
     const sName = formatStudentNameForCertificate(rawName);
-    const sRoll = s.student?.mobile || s.student?.rollNo || `TR-${1000 + idx + 1}`;
+    const rawMobile = s.student?.mobile || '';
+    const cleanDigits = String(rawMobile).replace(/\D/g, '').slice(-10);
+    const sRoll = cleanDigits.length === 10
+      ? `${cleanDigits.slice(0, 5)}*****`
+      : (cleanDigits.length > 5
+          ? `${cleanDigits.slice(0, 5)}${'*'.repeat(cleanDigits.length - 5)}`
+          : (s.student?.rollNo || `TR-${1000 + idx + 1}`));
     const sPhoto = s.photoUrl || s.student?.photoUrl || s.student?.photo || null;
     const score = Number(s.mcqScore ?? s.score ?? s.marks ?? 0);
     const total = metaTotal > 0 ? metaTotal : Number(s.totalMarks || s.totalMCQ || (s.test?.questionsCount ? Number(s.test.questionsCount) : 0));
@@ -226,52 +232,54 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
     const timeInfo = getSubmissionTimeInfo(s);
 
     const medalPill = rankNum === 1 
-      ? '<span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #f59e0b; font-weight: 900; font-size: 12.5px;">👑 ૧</span>'
+      ? '<span style="background: #fef3c7; color: #b45309; padding: 1.5px 7px; border-radius: 10px; border: 1.5px solid #f59e0b; font-weight: 900; font-size: 11px; white-space: nowrap;">👑 ૧</span>'
       : rankNum === 2 
-        ? '<span style="background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #94a3b8; font-weight: 900; font-size: 12.5px;">🥈 ૨</span>'
+        ? '<span style="background: #f1f5f9; color: #334155; padding: 1.5px 7px; border-radius: 10px; border: 1.5px solid #94a3b8; font-weight: 900; font-size: 11px; white-space: nowrap;">🥈 ૨</span>'
         : rankNum === 3 
-          ? '<span style="background: #ffedd5; color: #c2410c; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #ea580c; font-weight: 900; font-size: 12.5px;">🥉 ૩</span>'
-          : `<span style="background: #eff6ff; color: #1e3a8a; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #bfdbfe; font-weight: 800; font-size: 11.5px;">#${rankNum}</span>`;
+          ? '<span style="background: #ffedd5; color: #c2410c; padding: 1.5px 7px; border-radius: 10px; border: 1.5px solid #ea580c; font-weight: 900; font-size: 11px; white-space: nowrap;">🥉 ૩</span>'
+          : `<span style="background: #eff6ff; color: #1e3a8a; padding: 1.5px 6px; border-radius: 10px; border: 1px solid #bfdbfe; font-weight: 800; font-size: 10.5px; white-space: nowrap;">#${rankNum}</span>`;
 
-    const grade = pct >= 80 ? 'A+ (ઉત્કૃષ્ટ)' : pct >= 60 ? 'A (પ્રથમ)' : pct >= 40 ? 'B (સફળ)' : 'પ્રયાસ';
+    const grade = pct >= 80 ? 'A+' : pct >= 60 ? 'A' : pct >= 40 ? 'B' : 'પ્રયાસ';
     const initial = (sName.trim()[0] || 'V').toUpperCase();
 
     return `
       <tr style="border-bottom: 1px solid #e2e8f0; background: ${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};">
-        <td style="padding: 6px; text-align: center;">
+        <td style="padding: 2.5px 4px; text-align: center; width: 48px;">
           ${medalPill}
         </td>
-        <td style="padding: 6px 12px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 28px; height: 32px; border-radius: 5px; border: 1.5px solid ${rankNum === 1 ? '#d97706' : '#cbd5e1'}; overflow: hidden; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center;">
-              ${sPhoto ? `<img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<span style="color: #38bdf8; font-size: 12px; font-weight: 900;">${initial}</span>`}
+        <td style="padding: 2.5px 8px;">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 22px; height: 24px; border-radius: 4px; border: 1px solid ${rankNum === 1 ? '#d97706' : '#cbd5e1'}; overflow: hidden; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center;">
+              ${sPhoto ? `<img src="${sPhoto}" alt="${sName}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<span style="color: #38bdf8; font-size: 11px; font-weight: 900;">${initial}</span>`}
             </div>
-            <div>
-              <div style="font-weight: 800; color: #0f172a; font-size: 13px; line-height: 1.2;">${sName}</div>
-              <div style="font-size: 10px; color: #64748b;">મેરિટ ટોપર #${rankNum}</div>
+            <div style="min-width: 0; text-align: left;">
+              <div style="font-weight: 800; color: #0f172a; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;" title="${sName}">
+                ${sName}
+              </div>
+              <div style="font-size: 9px; color: #64748b; font-weight: 600; line-height: 1;">મેરિટ ટોપર #${rankNum}</div>
             </div>
           </div>
         </td>
-        <td style="padding: 6px 10px; color: #475569; font-size: 11.5px; font-family: monospace; font-weight: 700;">
+        <td style="padding: 2.5px 6px; color: #334155; font-size: 11px; font-family: monospace; font-weight: 800; text-align: center; white-space: nowrap; width: 105px;">
           ${sRoll}
         </td>
-        <td style="padding: 6px; text-align: center;">
-          <div style="font-size: 11px; font-weight: 800; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 2px 6px; border-radius: 6px; display: inline-block;">
+        <td style="padding: 2.5px 4px; text-align: center; width: 75px;">
+          <div style="font-size: 9.5px; font-weight: 800; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 1px 5px; border-radius: 4px; display: inline-block; white-space: nowrap;">
             ⏱️ ${timeInfo.durationStr || '-'}
           </div>
         </td>
-        <td style="padding: 6px; text-align: center;">
-          <div style="font-weight: 900; color: #0f274a; font-size: 13px;">${score}</div>
-          ${total > 0 ? `<div style="font-size: 9.5px; color: #64748b;">કુલ: ${total}</div>` : ''}
+        <td style="padding: 2.5px 4px; text-align: center; width: 70px;">
+          <div style="font-weight: 900; color: #0f274a; font-size: 11.5px; line-height: 1.1;">${score}</div>
+          ${total > 0 ? `<div style="font-size: 8.5px; color: #64748b; line-height: 1;">કુલ: ${total}</div>` : ''}
         </td>
-        <td style="padding: 6px 10px; text-align: center;">
-          <div style="font-weight: 900; color: #059669; font-size: 12.5px;">${pct}%</div>
-          <div style="background: #e2e8f0; height: 3px; border-radius: 2px; overflow: hidden; margin-top: 2px; width: 60px; margin-left: auto; margin-right: auto;">
+        <td style="padding: 2.5px 6px; text-align: center; width: 85px;">
+          <div style="font-weight: 900; color: #059669; font-size: 11px; line-height: 1.1;">${pct}%</div>
+          <div style="background: #e2e8f0; height: 3px; border-radius: 2px; overflow: hidden; margin-top: 1.5px; width: 48px; margin-left: auto; margin-right: auto;">
             <div style="background: ${pct >= 70 ? '#059669' : '#0284c7'}; width: ${pct}%; height: 100%;"></div>
           </div>
         </td>
-        <td style="padding: 6px; text-align: center;">
-          <span style="font-weight: 800; color: #1e40af; font-size: 11px; background: #eff6ff; padding: 2px 7px; border-radius: 6px; border: 1px solid #dbeafe;">
+        <td style="padding: 2.5px 4px; text-align: center; width: 60px;">
+          <span style="font-weight: 800; color: #1e40af; font-size: 10px; background: #eff6ff; padding: 1px 6px; border-radius: 4px; border: 1px solid #dbeafe; display: inline-block;">
             ${grade.split(' ')[0]}
           </span>
         </td>
@@ -574,66 +582,66 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
   <!-- ═══════════════════════════════════════════════════════════════
        PAGE 1: OFFICIAL TOP 10 MERIT SUMMARY TABLE (LANDSCAPE A4)
   ═══════════════════════════════════════════════════════════════ -->
-  <div style="padding: 8px;">
+  <div style="padding: 6px;">
     
-    <div style="width: 100%; height: 650px; border-radius: 16px; border: 3px solid #0b1736; outline: 1.5px solid #d97706; outline-offset: -7px; background: #ffffff; padding: 14px 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+    <div style="width: 100%; min-height: 645px; height: 645px; border-radius: 14px; border: 2.5px solid #0b1736; outline: 1.5px solid #d97706; outline-offset: -6px; background: #ffffff; padding: 10px 18px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
       
-      <!-- Top Branding with Logo (Enlarged as requested) -->
+      <!-- Top Branding with Logo -->
       <div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; border-bottom: 2px solid #0b1736; padding-bottom: 8px; margin-bottom: 8px;">
-          <div style="width: 58px; height: 58px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 2.5px solid #f59e0b; overflow: hidden; padding: 3px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; border-bottom: 1.5px solid #0b1736; padding-bottom: 5px; margin-bottom: 5px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.2); border: 2px solid #f59e0b; overflow: hidden; padding: 2px; flex-shrink: 0;">
             <img src="${logoUrl}" alt="Trinetra Logo" onerror="this.onerror=null; this.src='/trinetra-logo.png';" style="width: 100%; height: 100%; object-fit: contain;" />
           </div>
           <div style="text-align: left;">
-            <div style="color: #0b1736; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; line-height: 1.2;">
+            <div style="color: #0b1736; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.15;">
               ${academy}
             </div>
-            <div style="color: #1e3a8a; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
+            <div style="color: #1e3a8a; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 1px;">
               TET / TAT પરીક્ષાની તૈયારી કરાવતી વિશ્વાસુ સંસ્થા
             </div>
           </div>
         </div>
 
-        <div style="text-align: center; margin-bottom: 8px;">
-          <div style="display: inline-block; background: linear-gradient(135deg, #0b1736 0%, #1e3a8a 100%); color: #ffffff; padding: 4px 22px; border-radius: 20px; font-weight: 900; font-size: 12.5px; border: 1.5px solid #d97706; box-shadow: 0 2px 6px rgba(11,23,54,0.25);">
+        <div style="text-align: center; margin-bottom: 5px;">
+          <div style="display: inline-block; background: linear-gradient(135deg, #0b1736 0%, #1e3a8a 100%); color: #ffffff; padding: 3px 18px; border-radius: 16px; font-weight: 900; font-size: 11.5px; border: 1.2px solid #d97706; box-shadow: 0 2px 4px rgba(11,23,54,0.2);">
             🏆 અધિકૃત ટોપ ૧૦ સ્ટેટ મેરિટ પરિણામ પુસ્તિકા (STATE MERIT BOOKLET) 🏆
           </div>
         </div>
 
         <!-- 4-Grid Test Metadata & Highlights -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 12px;">
-            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">કસોટી & વિષય:</div>
-            <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px; margin-bottom: 5px;">
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px;">
+            <div style="font-size: 8px; color: #64748b; font-weight: 800; text-transform: uppercase;">કસોટી & વિષય:</div>
+            <div style="font-size: 11.5px; font-weight: 900; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               📝 ${testTitle}
             </div>
-            ${testSubject ? `<div style="font-size: 10px; color: #0284c7; font-weight: 700;">વિષય: ${testSubject}</div>` : ''}
+            ${testSubject ? `<div style="font-size: 9px; color: #0284c7; font-weight: 700;">વિષય: ${testSubject}</div>` : ''}
           </div>
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; text-align: center;">
-            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">કુલ ગુણ</div>
-            <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${metaTotal || highestScore}</div>
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 6px; text-align: center;">
+            <div style="font-size: 8px; color: #64748b; font-weight: 800; text-transform: uppercase;">કુલ ગુણ</div>
+            <div style="font-size: 13px; font-weight: 900; color: #0f172a;">${metaTotal || highestScore}</div>
           </div>
-          <div style="background: #fefce8; border: 1.5px solid #fde047; border-radius: 8px; padding: 6px 10px; text-align: center;">
-            <div style="font-size: 9px; color: #854d0e; font-weight: 800; text-transform: uppercase;">સર્વોચ્ચ સ્કોર</div>
-            <div style="font-size: 15px; font-weight: 900; color: #b45309; margin-top: 1px;">${highestScore} (${highestPct}%)</div>
+          <div style="background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 4px 6px; text-align: center;">
+            <div style="font-size: 8px; color: #854d0e; font-weight: 800; text-transform: uppercase;">સર્વોચ્ચ સ્કોર</div>
+            <div style="font-size: 13px; font-weight: 900; color: #b45309;">${highestScore} (${highestPct}%)</div>
           </div>
-          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; text-align: center;">
-            <div style="font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase;">જાહેરાત તારીખ</div>
-            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 2px;">📅 ${dateStr}</div>
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 6px; text-align: center;">
+            <div style="font-size: 8px; color: #64748b; font-weight: 800; text-transform: uppercase;">જાહેરાત તારીખ</div>
+            <div style="font-size: 10px; font-weight: 800; color: #0f172a; margin-top: 1px;">📅 ${dateStr}</div>
           </div>
         </div>
 
         <!-- Summary Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
           <thead>
             <tr style="background: linear-gradient(135deg, #0b1736, #1e3a8a); color: white;">
-              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; border-top-left-radius: 6px; width: 55px;">ક્રમ</th>
-              <th style="padding: 6px 8px; text-align: left; font-size: 11px; font-weight: 900;">વિદ્યાર્થીનું નામ</th>
-              <th style="padding: 6px 8px; text-align: left; font-size: 11px; font-weight: 900; width: 110px;">રોલ / સંપર્ક</th>
-              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; width: 85px;">સમયગાળો</th>
-              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; width: 85px;">મેળવેલ ગુણ</th>
-              <th style="padding: 6px 6px; text-align: center; font-size: 11px; font-weight: 900; width: 100px;">ટકાવારી દર</th>
-              <th style="padding: 6px 5px; text-align: center; font-size: 11px; font-weight: 900; border-top-right-radius: 6px; width: 75px;">શ્રેણી</th>
+              <th style="padding: 4px 4px; text-align: center; font-size: 10.5px; font-weight: 900; border-top-left-radius: 6px; width: 48px;">ક્રમ</th>
+              <th style="padding: 4px 8px; text-align: left; font-size: 10.5px; font-weight: 900;">વિદ્યાર્થીનું નામ</th>
+              <th style="padding: 4px 6px; text-align: center; font-size: 10.5px; font-weight: 900; width: 105px;">રોલ / સંપર્ક</th>
+              <th style="padding: 4px 4px; text-align: center; font-size: 10.5px; font-weight: 900; width: 75px;">સમયગાળો</th>
+              <th style="padding: 4px 4px; text-align: center; font-size: 10.5px; font-weight: 900; width: 70px;">મેળવેલ ગુણ</th>
+              <th style="padding: 4px 6px; text-align: center; font-size: 10.5px; font-weight: 900; width: 85px;">ટકાવારી દર</th>
+              <th style="padding: 4px 4px; text-align: center; font-size: 10.5px; font-weight: 900; border-top-right-radius: 6px; width: 60px;">શ્રેણી</th>
             </tr>
           </thead>
           <tbody>
@@ -643,41 +651,41 @@ export function exportTop10BookletPDF(topList = [], teacherProfile = {}, testMet
       </div>
 
       <!-- Official Signature Line with Stamp and QR (All in ONE single flex line!) -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 6px; border-top: 1.5px solid #e2e8f0; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 4px; border-top: 1px solid #e2e8f0; width: 100%;">
         
         <!-- Left: Exam Convener Dixit Ramani -->
-        <div style="text-align: center; width: 165px;">
-          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 24px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+        <div style="text-align: center; width: 150px;">
+          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 20px; color: #0b1736; font-weight: 700; margin-bottom: 1px;">
             ${convenerName}
           </div>
-          <div style="border-top: 1.5px solid #0f172a; width: 150px; margin: 0 auto; padding-top: 2px;">
-            <div style="font-size: 11.5px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
-            <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">દિક્ષિત રામાણી (${convenerName})</div>
+          <div style="border-top: 1.2px solid #0f172a; width: 135px; margin: 0 auto; padding-top: 1px;">
+            <div style="font-size: 10px; font-weight: 900; color: #0f172a;">પરીક્ષા કન્વીનર</div>
+            <div style="font-size: 8.5px; color: #0284c7; font-weight: 800;">દિક્ષિત રામાણી (${convenerName})</div>
           </div>
         </div>
 
         <!-- Center: Official Red APPROVED Rubber Stamp & QR Verification -->
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
           <img 
             src="${approvedStampUrl}" 
             alt="Official Approved Stamp" 
             onerror="this.onerror=null; this.src=APPROVED_STAMP_BASE64;" 
-            style="width: 58px; height: 58px; object-fit: contain; transform: rotate(-10deg); filter: drop-shadow(0 2px 4px rgba(220,38,38,0.3));" 
+            style="width: 48px; height: 48px; object-fit: contain; transform: rotate(-10deg); filter: drop-shadow(0 2px 4px rgba(220,38,38,0.3));" 
           />
           <div style="text-align: center;">
-            ${getSvgQrCode(46)}
-            <div style="font-size: 8.5px; color: #0284c7; font-weight: 800; margin-top: 2px;">સ્કેન કરીને પરિણામ ચકાસો</div>
+            ${getSvgQrCode(38)}
+            <div style="font-size: 7.5px; color: #0284c7; font-weight: 800; margin-top: 1px;">સ્કેન કરીને પરિણામ ચકાસો</div>
           </div>
         </div>
 
         <!-- Right: Principal Sunil Sir -->
-        <div style="text-align: center; width: 165px;">
-          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 26px; color: #0b1736; font-weight: 700; margin-bottom: 2px;">
+        <div style="text-align: center; width: 150px;">
+          <div style="font-family: 'Brush Script MT', cursive, sans-serif; font-size: 22px; color: #0b1736; font-weight: 700; margin-bottom: 1px;">
             ${principalName}
           </div>
-          <div style="border-top: 1.5px solid #0f172a; width: 150px; margin: 0 auto; padding-top: 2px;">
-            <div style="font-size: 11.5px; font-weight: 900; color: #0f172a;">આચાર્યશ્રી / સંચાલક</div>
-            <div style="font-size: 9.5px; color: #0284c7; font-weight: 800;">સુનિલ સર (${principalName})</div>
+          <div style="border-top: 1.2px solid #0f172a; width: 135px; margin: 0 auto; padding-top: 1px;">
+            <div style="font-size: 10px; font-weight: 900; color: #0f172a;">આચાર્યશ્રી / સંચાલક</div>
+            <div style="font-size: 8.5px; color: #0284c7; font-weight: 800;">સુનિલ સર (${principalName})</div>
           </div>
         </div>
 
