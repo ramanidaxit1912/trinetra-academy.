@@ -10633,25 +10633,28 @@ function StudentAnswers({ showToast }) {
     }
   };
 
-  // ☁️ Save all student scorecards for a test to Cloudinary (ultra-fast, progressive streaming, zero 504 timeout!)
-  const handleSaveAllToCloudinary = async (group) => {
+  // ☁️ Save student scorecards for a test to Cloudinary (supports Top 5 test or All)
+  const handleSaveAllToCloudinary = async (group, limit = null) => {
     if (!group || !Array.isArray(group.subs) || group.subs.length === 0) {
       showToast('આ કસોટીમાં કોઈ વિદ્યાર્થી સબમિશન નથી.', 'info');
       return;
     }
 
     const testCode = group.testCode;
-    const total = group.subs.length;
+    const subsToProcess = (limit && limit > 0) ? group.subs.slice(0, limit) : group.subs;
+    const total = subsToProcess.length;
 
     setCloudSaving(prev => ({ ...prev, [testCode]: true }));
     setCloudProgress(prev => ({ ...prev, [testCode]: `0/${total} શરૂ થાય છે...` }));
+
 
     let successCount = 0;
     let failCount = 0;
 
     for (let i = 0; i < total; i++) {
-      const sub = group.subs[i];
+      const sub = subsToProcess[i];
       const studentName = sub.student?.name || `Student_${sub.id}`;
+
       const cleanName = studentName.trim().replace(/[/\\?%*:|"<>]/g, '_');
       const rank = sub.leaderboardRank || (i + 1);
       const fileName = `${rank}_${cleanName}_Scorecard.pdf`;
@@ -11646,9 +11649,8 @@ function StudentAnswers({ showToast }) {
                           )}
                         </div>
 
-                        {/* Row 2: Bulk Export ZIP & Bulk Cloudinary Save */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                          {/* 📦 Download All Scorecards as ZIP */}
+                        {/* Row 2: Bulk Export ZIP */}
+                        <div>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -11658,37 +11660,82 @@ function StudentAnswers({ showToast }) {
                             disabled={zipExporting[group.testCode]}
                             className="sa-btn-shimmer sa-btn-pressable"
                             style={{
+                              width: '100%',
                               background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
                               color: '#ffffff',
                               border: 'none',
-                              padding: '8px 8px',
+                              padding: '8px 12px',
                               borderRadius: 8,
-                              fontSize: '0.76rem',
+                              fontSize: '0.78rem',
                               fontWeight: 900,
                               cursor: zipExporting[group.testCode] ? 'not-allowed' : 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 5,
+                              gap: 6,
                               fontFamily: 'Hind Vadodara, sans-serif',
                               boxShadow: '0 4px 14px rgba(16,185,129,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
                               opacity: zipExporting[group.testCode] ? 0.75 : 1,
                               transition: 'all 0.2s ease',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
+                              whiteSpace: 'nowrap'
                             }}
                             title="આ કસોટી આપનાર તમામ વિદ્યાર્થીઓના અલગ-અલગ PDF સ્કોરકાર્ડ એક જ ZIP ફોલ્ડરમાં ડાઉનલોડ કરો"
                           >
                             {zipExporting[group.testCode] ? (
                               <>
                                 <RefreshCw size={13} className="animate-spin" />
-                                <span style={{ fontSize: '0.72rem' }}>{zipProgress[group.testCode] || 'ZIP બને છે...'}</span>
+                                <span style={{ fontSize: '0.74rem' }}>{zipProgress[group.testCode] || 'ZIP બને છે...'}</span>
                               </>
                             ) : (
                               <>
-                                <Archive size={13} />
-                                <span>📦 સ્કોરકાર્ડ ZIP</span>
+                                <Archive size={14} />
+                                <span>📦 તમામ સ્કોરકાર્ડ ડાઉનલોડ (ZIP)</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Row 3: Cloudinary Upload (Top 5 Test & All) */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                          {/* ☁️ Save Top 5 to Cloudinary */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveAllToCloudinary(group, 5);
+                            }}
+                            disabled={cloudSaving[group.testCode]}
+                            className="sa-btn-shimmer sa-btn-pressable"
+                            style={{
+                              background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 8px',
+                              borderRadius: 8,
+                              fontSize: '0.76rem',
+                              fontWeight: 900,
+                              cursor: cloudSaving[group.testCode] ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              fontFamily: 'Hind Vadodara, sans-serif',
+                              boxShadow: '0 4px 14px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                              opacity: cloudSaving[group.testCode] ? 0.8 : 1,
+                              transition: 'all 0.2s ease',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="ચકાસણી માટે ફક્ત પ્રથમ ૫ વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary પર સેવ કરો"
+                          >
+                            {cloudSaving[group.testCode] ? (
+                              <>
+                                <RefreshCw size={13} className="animate-spin" />
+                                <span style={{ fontSize: '0.72rem' }}>{cloudProgress[group.testCode] || 'સેવ થાય છે...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Cloud size={13} />
+                                <span>☁️ પ્રથમ ૫ (ટેસ્ટ)</span>
                               </>
                             )}
                           </button>
@@ -11698,7 +11745,7 @@ function StudentAnswers({ showToast }) {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSaveAllToCloudinary(group);
+                              handleSaveAllToCloudinary(group, null);
                             }}
                             disabled={cloudSaving[group.testCode]}
                             className="sa-btn-shimmer sa-btn-pressable"
@@ -11721,11 +11768,9 @@ function StudentAnswers({ showToast }) {
                               boxShadow: '0 4px 14px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
                               opacity: cloudSaving[group.testCode] ? 0.8 : 1,
                               transition: 'all 0.2s ease',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
+                              whiteSpace: 'nowrap'
                             }}
-                            title="તમામ વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary ક્લાઉડ સ્ટોરેજ પર સેવ કરો"
+                            title={`તમામ ${group.subs?.length || 0} વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary પર સેવ કરો`}
                           >
                             {cloudSaving[group.testCode] ? (
                               <>
@@ -11735,7 +11780,7 @@ function StudentAnswers({ showToast }) {
                             ) : (
                               <>
                                 <Cloud size={13} />
-                                <span>☁️ Cloudinary સેવ</span>
+                                <span>☁️ તમામ Cloudinary</span>
                               </>
                             )}
                           </button>
