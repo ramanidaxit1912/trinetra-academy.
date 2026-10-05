@@ -177,7 +177,11 @@ export const uploadScorecardPdfToCloudinary = (id, pdfBlob, filename) => {
   });
 };
 
+export const saveScorecardToCloudinary = (id) =>
+  api.post(`/submissions/${id}/save-to-cloudinary`);
+
 export const bulkSaveScorecardsToCloudinary = (testCode) =>
+
   api.post('/submissions/bulk-save-cloudinary', { testCode }, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     timeout: 300000 // 5 min

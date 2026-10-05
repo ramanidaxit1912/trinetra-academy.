@@ -18,7 +18,7 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary
+  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -10662,22 +10662,30 @@ function StudentAnswers({ showToast }) {
       }));
 
       try {
-        const res = await getSubmissionScorecardHtml(sub.id);
-        const htmlContent = res?.data;
-        if (htmlContent) {
-          const pdfBlob = await generatePdfBlobFromHtml(htmlContent);
-          if (pdfBlob) {
-            await uploadScorecardPdfToCloudinary(sub.id, pdfBlob, fileName);
-            successCount++;
+        // Priority 1: Official server-side vector PDF generation (100% genuine vector, never blank!)
+        await saveScorecardToCloudinary(sub.id);
+        successCount++;
+      } catch (srvErr) {
+        console.warn(`Server PDF save failed for ${cleanName}, trying client fallback:`, srvErr);
+        try {
+          // Priority 2: Client-side generated high-res PDF blob upload
+          const res = await getSubmissionScorecardHtml(sub.id);
+          const htmlContent = res?.data;
+          if (htmlContent) {
+            const pdfBlob = await generatePdfBlobFromHtml(htmlContent);
+            if (pdfBlob) {
+              await uploadScorecardPdfToCloudinary(sub.id, pdfBlob, fileName);
+              successCount++;
+            } else {
+              failCount++;
+            }
           } else {
             failCount++;
           }
-        } else {
+        } catch (subErr) {
+          console.warn(`Both methods failed for ${cleanName}:`, subErr);
           failCount++;
         }
-      } catch (err) {
-        console.warn(`Failed to upload scorecard for ${cleanName}:`, err);
-        failCount++;
       }
     }
 
@@ -10685,11 +10693,12 @@ function StudentAnswers({ showToast }) {
     setCloudProgress(prev => ({ ...prev, [testCode]: '' }));
 
     if (successCount > 0) {
-      showToast(`☁️ સફળતા! ${successCount} વિદ્યાર્થીઓના સ્કોરકાર્ડ Cloudinary પર સેવ થઈ ગયા!${failCount > 0 ? ` (${failCount} નિષ્ફળ)` : ''}`, 'success');
+      showToast(`☁️ સફળતા! ${successCount} વિદ્યાર્થીઓના સત્તાવાર સ્કોરકાર્ડ Cloudinary પર સેવ થઈ ગયા!${failCount > 0 ? ` (${failCount} નિષ્ફળ)` : ''}`, 'success');
     } else {
       showToast('Cloudinary પર સેવ કરવામાં ક્ષતિ આવી. ફરી પ્રયાસ કરો.', 'error');
     }
   };
+
 
 
   const handleToggleSub = async (subId, forceRefresh = false) => {

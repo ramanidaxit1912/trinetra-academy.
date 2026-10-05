@@ -1044,6 +1044,99 @@ router.post('/:id/upload-scorecard-pdf', authMiddleware, teacherOnly, pdfUpload.
   }
 });
 
+// ─── POST /api/submissions/:id/save-to-cloudinary ────────────
+// Server-side generates the official high-definition Puppeteer PDF and uploads to Cloudinary!
+router.post('/:id/save-to-cloudinary', authMiddleware, teacherOnly, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!isCloudinaryConfigured()) {
+    return res.status(503).json({ error: 'Cloudinary configuration મળ્યું નથી.' });
+  }
+
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id },
+      include: { student: true }
+    });
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission મળ્યું નથી.' });
+    }
+
+    const answersArr = Array.isArray(submission.answers) ? submission.answers : [];
+    const questionIds = answersArr.map(a => a.questionId).filter(Boolean);
+
+    let questions = [];
+    if (submission.testCode) {
+      questions = getCachedReviewQuestions(submission.testCode) || [];
+      if (questions.length === 0) {
+        questions = await prisma.question.findMany({
+          where: { testCode: submission.testCode },
+          orderBy: { orderIndex: 'asc' }
+        });
+        if (questions.length > 0) setCachedReviewQuestions(submission.testCode, questions);
+      }
+    }
+    if (questions.length === 0 && questionIds.length > 0) {
+      questions = await prisma.question.findMany({
+        where: { id: { in: questionIds } },
+        orderBy: { orderIndex: 'asc' }
+      });
+    }
+
+    const detailedReview = questions.map((q, idx) => {
+      const ans = answersArr.find(a => a.questionId === q.id) || answersArr[idx] || {};
+      const selected = ans.selectedOpt || ans.text || '';
+      let isCorrect = null;
+      if (q.type === 'mcq') {
+        if (!selected) isCorrect = null;
+        else if (selected === 'E') isCorrect = false;
+        else isCorrect = (selected === q.correctOpt);
+      }
+      return {
+        question: q,
+        studentAnswer: selected,
+        isCorrect,
+        isSkipped: !selected || selected === 'E',
+        timeSpent: ans.timeSpent || 0,
+        screenshotAttempt: Boolean(ans.screenshotAttempt),
+        studentUploadedPhoto: submission.photoUrl
+      };
+    });
+
+    const marketingItems = await prisma.marketingItem.findMany({
+      where: { isActive: true, showInPdf: true },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'desc' }]
+    });
+
+    const safeTestName = (submission.testName || 'Scorecard').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const safeStudentName = (submission.student?.name || 'Student').replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    const filename = `Trinetra_${safeTestName}_${safeStudentName}.pdf`;
+
+    const pdfBuffer = await generateScorecardPDFBuffer({
+      submission,
+      review: detailedReview,
+      student: submission.student || {},
+      marketingItems
+    });
+
+    setCachedPdfBuffer(id, pdfBuffer, filename);
+
+    const publicId = `scorecard_${id}`;
+    const result = await uploadPdfToCloudinary(pdfBuffer, filename, publicId);
+
+    res.json({
+      success: true,
+      url: result?.secure_url || result?.url,
+      publicId,
+      filename,
+      message: 'સત્તાવાર સ્કોરકાર્ડ Cloudinary પર સફળતાપૂર્વક સાચવવામાં આવ્યું!'
+    });
+  } catch (err) {
+    console.error(`Save to Cloudinary error for submission ${id}:`, err);
+    res.status(500).json({ error: 'Cloudinary સેવ ભૂલ: ' + err.message });
+  }
+});
+
+
 // ─── POST /api/submissions/:id/send-whatsapp ────────────────
 
 // Direct Scorecard PDF send to student WhatsApp from teacher's WhatsApp number
