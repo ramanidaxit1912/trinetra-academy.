@@ -111,3 +111,78 @@ export async function downloadHtmlAsPdf(htmlContent, filename = 'document.pdf') 
   }
 }
 
+/**
+ * Converts an HTML string into a PDF Blob (used for batch ZIP packaging)
+ * @param {string} htmlContent - Complete or partial HTML string
+ * @returns {Promise<Blob|null>}
+ */
+export async function generatePdfBlobFromHtml(htmlContent) {
+  if (!htmlContent) return null;
+
+  const container = document.createElement('div');
+  container.id = 'pdf-render-temp-container-' + Math.random().toString(36).slice(2, 7);
+  container.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: -9999px;
+    width: 794px;
+    min-width: 794px;
+    max-width: 794px;
+    background: #ffffff;
+    color: #0f172a;
+    z-index: -9999;
+    opacity: 0.01;
+    pointer-events: none;
+    padding: 10px;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Hind Vadodara', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  const sanitizedHtml = htmlContent
+    .replace(/<div class="no-print-bar"[\s\S]*?<\/div>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/@import\s+url\([^)]+\);?/gi, '')
+    .replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+
+  container.innerHTML = sanitizedHtml;
+  document.body.appendChild(container);
+
+  await new Promise(resolve => setTimeout(resolve, 80));
+
+  try {
+    const opt = {
+      margin: [6, 6, 6, 6],
+      image: { type: 'jpeg', quality: 0.90 },
+      html2canvas: {
+        scale: 1.4,
+        useCORS: false,
+        allowTaint: false,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 794
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      },
+      pagebreak: {
+        mode: ['avoid-all', 'css', 'legacy']
+      }
+    };
+
+    const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+    return blob;
+  } catch (err) {
+    console.warn('generatePdfBlobFromHtml error:', err);
+    return null;
+  } finally {
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
+  }
+}
+
+

@@ -135,6 +135,7 @@ export const sendDailyReport        = (data) => api.post('/teacher/send-daily-re
 
 // ─── Materials ────────────────────────────────────────────────
 export const getMaterials    = (params) => api.get('/materials', { params });
+export const getSubmissionScorecardHtml = (id) => api.get(`/submissions/${id}/html`, { responseType: 'text' });
 export const createMaterial  = (formDataOrData) => {
   const isFormData = formDataOrData instanceof FormData;
   return api.post('/materials', formDataOrData, isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {});

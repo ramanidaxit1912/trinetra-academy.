@@ -1,12 +1,14 @@
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { formatMathText, formatQuestionText, stripQuestionNumber } from '../utils/mathFormatter';
 import PdfExportModal, { exportTestPDF as executeExportPDF } from './PdfExportModal';
 import Top10ScorecardExportModal from './Top10ScorecardExportModal';
 import ExcelBulkUploadPanel from './ExcelBulkUploadPanel';
 import EnrolledStudentsManager from './EnrolledStudentsManager';
 import EnrolledStudentsOtpManager from './EnrolledStudentsOtpManager';
+import { downloadHtmlAsPdf, generatePdfBlobFromHtml } from '../utils/pdfDownloader';
 import { Camera, Zap } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -16,7 +18,7 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides
+  overrideLeaderboard, getLeaderboardOverrides, getSubmissionScorecardHtml
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -24,7 +26,7 @@ import {
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
   Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle,
-  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall
+  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall, Archive
 } from 'lucide-react';
 
 const darkLbl = { display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8', marginBottom: 6 };
@@ -10384,6 +10386,8 @@ function StudentAnswers({ showToast }) {
   const [savingMaster, setSavingMaster] = useState(false);
   const [reviewSeqOrder, setReviewSeqOrder] = useState({}); // { [subId]: 'STUDENT' | 'MASTER' }
   const [leaderboardOverrides, setLeaderboardOverrides] = useState([]); // Active teacher leaderboard rank/score overrides
+  const [zipExporting, setZipExporting] = useState({}); // { [testCode]: boolean }
+  const [zipProgress, setZipProgress] = useState({}); // { [testCode]: string }
 
   const rotatePhoto = (url, e) => {
     if (e) e.stopPropagation();
@@ -10546,6 +10550,84 @@ function StudentAnswers({ showToast }) {
       showToast('જવાબો લોડ કરવામાં ક્ષતિ.', 'error');
     }
     setLoading(false);
+  };
+
+  // 📦 Batch Export: Download all students' individual PDF scorecards packed in a single ZIP
+  const handleDownloadAllZip = async (group) => {
+    if (!group || !Array.isArray(group.subs) || group.subs.length === 0) {
+      showToast('આ કસોટીમાં કોઈ વિદ્યાર્થી સબમિશન નથી.', 'info');
+      return;
+    }
+
+    const testCode = group.testCode;
+    const testTitle = group.testName || group.subject || testCode;
+    setZipExporting(prev => ({ ...prev, [testCode]: true }));
+    setZipProgress(prev => ({ ...prev, [testCode]: 'શરૂ થઈ રહ્યું છે...' }));
+
+    try {
+      const zip = new JSZip();
+      const total = group.subs.length;
+      let successCount = 0;
+
+      for (let i = 0; i < total; i++) {
+        const sub = group.subs[i];
+        const studentName = sub.student?.name || `Student_${sub.id}`;
+        const cleanName = studentName.trim().replace(/[/\\?%*:|"<>]/g, '_');
+        const rank = sub.leaderboardRank || (i + 1);
+        const fileName = `${rank}_${cleanName}_Scorecard.pdf`;
+
+        setZipProgress(prev => ({
+          ...prev,
+          [testCode]: `${i + 1}/${total} PDF બની રહી છે...`
+        }));
+
+        try {
+          const res = await getSubmissionScorecardHtml(sub.id);
+          const htmlContent = res?.data;
+          if (htmlContent) {
+            const pdfBlob = await generatePdfBlobFromHtml(htmlContent);
+            if (pdfBlob) {
+              zip.file(fileName, pdfBlob);
+              successCount++;
+            }
+          }
+        } catch (subErr) {
+          console.warn(`Error generating PDF for student ${cleanName}:`, subErr);
+        }
+      }
+
+      if (successCount === 0) {
+        showToast('કોઈપણ સ્કોરકાર્ડ PDF બનાવી શકાઈ નહીં. કૃપા કરીને ફરી પ્રયાસ કરો.', 'error');
+        return;
+      }
+
+      setZipProgress(prev => ({ ...prev, [testCode]: 'ZIP પેક થાય છે...' }));
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+
+      const safeTestName = testTitle.trim().replace(/[/\\?%*:|"<>]/g, '_');
+      const zipFileName = `Trinetra_${safeTestName}_All_Scorecards.zip`;
+
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = zipFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
+
+      showToast(`🎉 તમામ ${successCount} વિદ્યાર્થીઓના સ્કોરકાર્ડવાળી ZIP ફાઇલ સફળતાપૂર્વક ડાઉનલોડ થઈ ગઈ!`, 'success');
+    } catch (err) {
+      console.error('ZIP export error:', err);
+      showToast('ZIP ફાઇલ બનાવવામાં ક્ષતિ આવી. ફરી પ્રયાસ કરો.', 'error');
+    } finally {
+      setZipExporting(prev => ({ ...prev, [testCode]: false }));
+      setZipProgress(prev => ({ ...prev, [testCode]: '' }));
+    }
   };
 
   const handleToggleSub = async (subId, forceRefresh = false) => {
@@ -11488,6 +11570,50 @@ function StudentAnswers({ showToast }) {
                             <span>ફરી ગણો</span>
                           </button>
                         )}
+
+                        {/* 📦 Download All Scorecards as ZIP */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadAllZip(group);
+                          }}
+                          disabled={zipExporting[group.testCode]}
+                          className="sa-btn-shimmer sa-btn-pressable"
+                          style={{
+                            flex: 1.3,
+                            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: 9,
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            cursor: zipExporting[group.testCode] ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            fontFamily: 'Hind Vadodara, sans-serif',
+                            boxShadow: '0 4px 14px rgba(16,185,129,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+                            opacity: zipExporting[group.testCode] ? 0.75 : 1,
+                            transition: 'all 0.2s ease',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title="આ કસોટી આપનાર તમામ વિદ્યાર્થીઓના અલગ-અલગ PDF સ્કોરકાર્ડ એક જ ZIP ફોલ્ડરમાં ડાઉનલોડ કરો"
+                        >
+                          {zipExporting[group.testCode] ? (
+                            <>
+                              <RefreshCw size={13} className="animate-spin" />
+                              <span style={{ fontSize: '0.72rem' }}>{zipProgress[group.testCode] || 'ZIP બને છે...'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Archive size={13} />
+                              <span>📦 તમામ સ્કોરકાર્ડ (ZIP)</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
 
@@ -12213,6 +12339,40 @@ function StudentAnswers({ showToast }) {
                                     <Share2 size={14} /> 📲 WhatsApp
                                   </a>
                                 )}
+
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      showToast('સ્કોરકાર્ડ PDF ડાઉનલોડ થાય છે...', 'info');
+                                      const res = await getSubmissionScorecardHtml(sub.id);
+                                      const rawName = sub.student?.name || 'Student';
+                                      const cleanName = rawName.trim().replace(/[/\\?%*:|"<>]/g, '_');
+                                      await downloadHtmlAsPdf(res.data, `${cleanName}_Scorecard.pdf`);
+                                    } catch {
+                                      showToast('સ્કોરકાર્ડ ડાઉનલોડ કરવામાં ક્ષતિ.', 'error');
+                                    }
+                                  }}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 18px',
+                                    borderRadius: 8,
+                                    fontWeight: 800,
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontFamily: 'Hind Vadodara, sans-serif',
+                                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
+                                  }}
+                                  title="આ વિદ્યાર્થીનું સત્તાવાર સ્કોરકાર્ડ PDF ડાઉનલોડ કરો"
+                                >
+                                  <Download size={14} /> 📥 સ્કોરકાર્ડ PDF
+                                </button>
                               </div>
                             </div>
 
