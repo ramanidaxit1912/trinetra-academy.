@@ -387,7 +387,11 @@ function getWhatsAppPortalHtml() {
         if (status === 'CONNECTED') {
           cardClass += ' connected';
           badgeHtml = '<span class="badge badge-connected">🟢 જોડાયેલ છે</span>';
-          bodyHtml = '<div class="phone-text">+91 ' + (phone || 'Active') + '</div>' +
+          let displayPhone = phone || 'Active';
+          if (String(displayPhone).startsWith('91') && String(displayPhone).length === 12) {
+            displayPhone = String(displayPhone).slice(2);
+          }
+          bodyHtml = '<div class="phone-text">+91 ' + displayPhone + '</div>' +
             '<div class="stat-pill">✉️ આ સત્રમાં મોકલેલ: <strong>' + sentCount + '</strong> મેસેજ</div>' +
             '<p class="slot-desc">✅ આ નંબર ઓટોમેટિક OTP અને સ્કોરકાર્ડ લિંક વહેંચવા માટે સક્રિય છે.</p>';
           footerHtml = '<button class="btn btn-disconnect" onclick="disconnectSlot(' + sid + ')">🚪 ડિસ્કનેક્ટ / નંબર બદલો</button>';

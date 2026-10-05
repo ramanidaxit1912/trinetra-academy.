@@ -570,13 +570,28 @@ function hasAnyConnectedSlot() {
   return getConnectedSlots().length > 0;
 }
 
-// Round-robin selection for instant single actions (e.g. OTP)
-let roundRobinIndex = 0;
+// ─── Record Message Sent Metric per Slot ──────────────────────
+function recordMessageSent(slotId) {
+  const sid = Number(slotId);
+  if (slotWorkers[sid]) {
+    slotWorkers[sid].sentCount = (slotWorkers[sid].sentCount || 0) + 1;
+  }
+}
+
+// ─── Fair Load-Balanced Selection (Least-Loaded First) ─────────
+let roundRobinCounter = 0;
 function getNextConnectedSlot() {
   const active = getConnectedSlots();
   if (active.length === 0) return null;
-  const chosen = active[roundRobinIndex % active.length];
-  roundRobinIndex = (roundRobinIndex + 1) % active.length;
+
+  // Find minimum sentCount among all active slots
+  const minSent = Math.min(...active.map(s => slotWorkers[s.id]?.sentCount || 0));
+  // Filter candidate slots that currently have the lowest message count
+  const candidateSlots = active.filter(s => (slotWorkers[s.id]?.sentCount || 0) === minSent);
+
+  // Round-robin among candidate slots
+  const chosen = candidateSlots[roundRobinCounter % candidateSlots.length];
+  roundRobinCounter = (roundRobinCounter + 1) % candidateSlots.length;
   return chosen;
 }
 
@@ -586,28 +601,38 @@ function dispatchWAQueue() {
   const connected = getConnectedSlots();
   if (connected.length === 0) return;
 
-  // Find all idle slots
-  for (const slot of connected) {
-    const worker = slotWorkers[slot.id];
-    if (!worker.busy && waMessageQueue.length > 0) {
-      const task = waMessageQueue.shift();
-      worker.busy = true;
+  // Find all idle slots, sorted by least-used first (sentCount ascending)
+  const idleSlots = connected
+    .filter(s => !slotWorkers[s.id]?.busy)
+    .sort((a, b) => {
+      const countA = slotWorkers[a.id]?.sentCount || 0;
+      const countB = slotWorkers[b.id]?.sentCount || 0;
+      if (countA !== countB) return countA - countB;
+      return a.id - b.id;
+    });
 
-      (async () => {
-        try {
-          await task(slot.socket, slot);
-          worker.sentCount = (worker.sentCount || 0) + 1;
-        } catch (e) {
-          console.warn(`[WA Pool Slot ${slot.id}] Task execution error:`, e.message);
-        } finally {
-          // 🛡️ ANTI-BAN JITTER: 2.5s to 4.2s delay between messages per phone number
-          const jitter = 2500 + Math.floor(Math.random() * 1700);
-          await new Promise(r => setTimeout(r, jitter));
-          worker.busy = false;
-          dispatchWAQueue(); // Continue processing next message in queue
-        }
-      })();
-    }
+  for (const slot of idleSlots) {
+    if (waMessageQueue.length === 0) break;
+    const worker = slotWorkers[slot.id];
+    if (worker.busy) continue; // safety guard
+
+    const task = waMessageQueue.shift();
+    worker.busy = true;
+
+    (async () => {
+      try {
+        await task(slot.socket, slot);
+        recordMessageSent(slot.id);
+      } catch (e) {
+        console.warn(`[WA Pool Slot ${slot.id}] Task execution error:`, e.message);
+      } finally {
+        // 🛡️ ANTI-BAN JITTER: 2.5s to 4.2s delay between messages per phone number
+        const jitter = 2500 + Math.floor(Math.random() * 1700);
+        await new Promise(r => setTimeout(r, jitter));
+        worker.busy = false;
+        dispatchWAQueue(); // Continue processing next message in queue
+      }
+    })();
   }
 }
 
@@ -654,6 +679,7 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
   if (slot && slot.socket) {
     try {
       await slot.socket.sendMessage(jid, { text: textMessage });
+      recordMessageSent(slot.id);
       console.log(`✅ [OTP] Sent via WhatsApp Slot #${slot.id} to +91${cleanMobile}`);
       return { success: true, slotId: slot.id, method: 'BAILEYS_WHATSAPP' };
     } catch (err) {
@@ -663,6 +689,7 @@ async function sendWhatsAppOTP(mobile, otp, studentName = 'વિદ્યાર
       if (fallbackSlot && fallbackSlot.id !== slot.id) {
         try {
           await fallbackSlot.socket.sendMessage(jid, { text: textMessage });
+          recordMessageSent(fallbackSlot.id);
           console.log(`✅ [OTP Fallback] Sent via WhatsApp Slot #${fallbackSlot.id} to +91${cleanMobile}`);
           return { success: true, slotId: fallbackSlot.id, method: 'BAILEYS_WHATSAPP' };
         } catch (e2) {}
@@ -836,6 +863,7 @@ async function sendWhatsAppDailyReport(targetMobile = '8200405300') {
     const message = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી - દૈનિક અહેવાલ* 📊\n━━━━━━━━━━━━━━━━━━━━━━\n📅 *તારીખ:* ${istDate} (${istTime})\n👨‍🏫 *ડિરેક્ટર:* સુનિલ સર\n📱 *WhatsApp પુલ:* ${activeCount}/${NUM_SLOTS} નંબર્સ સક્રિય\n\n📈 *છેલ્લા ૨૪ કલાક:*\n👥 *વિદ્યાર્થીઓ:* ${uniqueStudents}\n📝 *કસોટીઓ:* ${totalSubs}\n🎯 *સરેરાશ:* ${avgScore} ગુણ\n${cheatingCount > 0 ? `⚠️ *ઉલ્લંઘન:* ${cheatingCount}\n` : ''}${topScorers ? `🏆 *ટોપ:*\n${topScorers}\n` : 'ℹ️ આજે કોઈ કસોટી નથી.\n'}\n━━━━━━━━━━━━━━━━━━━━━━\n✅ Render & DB Active\n🌐 https://www.trinetraonline.in/teacher`;
 
     await slot.socket.sendMessage(jid, { text: message });
+    recordMessageSent(slot.id);
     console.log(`✅ [Daily Report] Sent via Slot #${slot.id} to +91${cleanMobile}`);
     return { success: true, slotId: slot.id, message: `અહેવાલ (+91${cleanMobile}) WhatsApp પર મોકલાયો!` };
   } catch (err) {
@@ -880,6 +908,7 @@ async function sendWhatsAppTestCompletionSummary(testCode, targetMobile = '82004
     const summaryMsg = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી — ટેસ્ટ પરિણામ સમરી* 📝\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *ટેસ્ટ:* ${testName}\n⏰ *પૂર્ણ સમય:* ${timeStr}\n\n👥 *કુલ સબમિશન:* ${totalStudents} વિદ્યાર્થીઓ\n🎯 *સરેરાશ સ્કોર:* ${avgScore} / ${totalMarks}\n\n🏆 *ટોપ ૩ વિદ્યાર્થીઓ:*\n${top3}\n━━━━━━━━━━━━━━━━━━━━━━\nસંપૂર્ણ પરિણામ ટીચર પોર્ટલ પર ઉપલબ્ધ છે.\n🌐 https://www.trinetraonline.in/teacher`;
 
     await slot.socket.sendMessage(jid, { text: summaryMsg });
+    recordMessageSent(slot.id);
     console.log(`✅ [Test Summary] WhatsApp sent to +91${cleanMobile} for test: ${testCode}`);
     return { success: true, slotId: slot.id };
   } catch (err) {
