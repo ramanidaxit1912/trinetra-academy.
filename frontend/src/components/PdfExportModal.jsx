@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Printer, Download, CheckCircle2, Image as ImageIcon, Tag, Phone, Sparkles, FileText, Check, ShieldCheck, UploadCloud, Trash2, Plus } from 'lucide-react';
 import { getMarketingItems } from '../services/api';
-import { formatMathText } from '../utils/mathFormatter';
+import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 
 /* ─── Export Test to High-End PDF / Print Function ─── */
 export function exportTestPDF(test, teacherProfile = {}, options = {}) {
@@ -163,16 +163,18 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       z-index: 1;
     }
     .q-card {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       page-break-inside: avoid;
+      break-inside: avoid;
       background: #ffffff;
-      border: 1.5px solid #e2e8f0;
+      border: 1.5px solid #cbd5e1;
       border-left: 4.5px solid #1e3a8a;
-      border-radius: 10px;
-      padding: 12px 16px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-      position: relative;
-      z-index: 1;
+      border-radius: 8px;
+      padding: 11px 15px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+      position: static;
+      overflow: visible;
+      box-sizing: border-box;
     }
     .q-head {
       display: flex;
@@ -187,7 +189,6 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       font-weight: 900;
       padding: 3px 10px;
       border-radius: 20px;
-      box-shadow: 0 2px 4px rgba(30,58,138,0.25);
       letter-spacing: 0.3px;
       display: inline-flex;
       align-items: center;
@@ -223,26 +224,36 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
     .q-text {
       color: #0f172a;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       font-size: 13.5px;
-      line-height: 1.55;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
     .mcq-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px 14px;
+      gap: 8px 12px;
       font-size: 12.5px;
+    }
+    .mcq-grid.single-col {
+      grid-template-columns: 1fr !important;
     }
     .mcq-opt {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
-      padding: 7px 12px;
+      padding: 8px 12px;
       border-radius: 8px;
       background: #f8fafc;
       border: 1.5px solid #e2e8f0;
       color: #334155;
       font-size: 12.5px;
+      min-height: 38px;
+      box-sizing: border-box;
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
     .opt-circle-badge {
       display: inline-flex;
@@ -256,13 +267,20 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       font-weight: 900;
       font-size: 11px;
       flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .opt-text {
+      flex: 1;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+      line-height: 1.45;
     }
     .mcq-opt.correct-opt {
       background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
       border: 1.5px solid #22c55e !important;
       color: #14532d !important;
       font-weight: 800;
-      box-shadow: 0 2px 6px rgba(34,197,94,0.15);
     }
     .mcq-opt.correct-opt .opt-circle-badge {
       background: #15803d !important;
@@ -278,17 +296,20 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       margin-left: auto;
       letter-spacing: 0.2px;
       flex-shrink: 0;
+      align-self: center;
     }
     .solution-box {
       margin-top: 10px;
-      background: linear-gradient(180deg, #f0f7ff 0%, #e0f2fe 100%);
+      background: #f0f9ff;
       border: 1.5px solid #bae6fd;
       border-left: 5px solid #0284c7;
-      padding: 9px 13px;
+      padding: 10px 14px;
       border-radius: 8px;
       font-size: 12px;
       color: #0f172a;
-      box-shadow: 0 2px 8px rgba(2,132,199,0.06);
+      box-sizing: border-box;
+      break-inside: auto;
+      page-break-inside: auto;
     }
     .solution-title {
       display: flex;
@@ -298,6 +319,78 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       color: #0369a1;
       font-size: 11.5px;
       margin-bottom: 5px;
+    }
+    .solution-text {
+      line-height: 1.6;
+      color: #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    .statements-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 8px 0 10px 0;
+      width: 100%;
+    }
+    .statement-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-left: 4px solid #2563eb;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .statement-badge {
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 800;
+      font-size: 12px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      border: 1px solid #bfdbfe;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .statement-text {
+      flex: 1;
+      color: #1e293b;
+      font-weight: 600;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    .jodka-box {
+      width: 100% !important;
+      margin: 8px 0 12px 0 !important;
+      border: 1.5px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      background: #ffffff !important;
+      overflow: visible !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .jodka-header-row {
+      display: flex !important;
+      background: #f1f5f9 !important;
+      border-bottom: 1.5px solid #cbd5e1 !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      color: #1e3a8a !important;
+    }
+    .jodka-data-row {
+      display: flex !important;
+      font-size: 12.5px !important;
+      line-height: 1.45 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .desc-box {
       margin-top: 8px;
@@ -372,9 +465,52 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
       }
     }
     @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       .no-print-bar { display: none !important; }
-      body { padding: 0; }
-      .brochure-page { page-break-before: always; }
+      body {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #ffffff !important;
+      }
+      .q-card {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+        position: static !important;
+        overflow: visible !important;
+        margin-bottom: 12px !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-left: 4.5px solid #1e3a8a !important;
+      }
+      .solution-box {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+        box-shadow: none !important;
+        position: static !important;
+        border: 1.5px solid #bae6fd !important;
+        border-left: 5px solid #0284c7 !important;
+      }
+      .mcq-grid {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      .mcq-opt {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+      }
+      .statements-list, .statement-card, .jodka-box, .jodka-header-row, .jodka-data-row {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        box-shadow: none !important;
+      }
+      .brochure-page {
+        page-break-before: always !important;
+        break-before: always !important;
+      }
     }
   </style>
 </head>
@@ -445,44 +581,54 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
               ${test.negativeMarking && Number(test.negativeMarking) > 0 ? `<span class="q-neg-badge">-${test.negativeMarking} ઋણ</span>` : ''}
             </div>
           </div>
-          <div class="q-text">${formatMathText(q.text)}</div>
+          <div class="q-text">${formatQuestionText(q.text)}</div>
           ${(q.image || q.imageUrl) ? `
             <div style="margin: 8px 0 12px 0; text-align: center;">
               <img src="${q.image || q.imageUrl}" style="max-height: 180px; max-width: 90%; border-radius: 6px; border: 1px solid #cbd5e1;" />
             </div>
           ` : ''}
-          ${q.type === 'mcq' ? `
-            <div class="mcq-grid">
-              ${['A', 'B', 'C', 'D'].map(opt => {
-                const optVal = q[`option${opt}`];
-                if (!optVal) return '';
-                const isCorrect = includeSolutions && (correctOpt === opt);
-                return `
-                  <div class="mcq-opt ${isCorrect ? 'correct-opt' : ''}">
-                    <span class="opt-circle-badge">${opt}</span>
-                    <span style="flex: 1; word-break: break-word;">${formatMathText(optVal)}</span>
-                    ${isCorrect ? '<span class="correct-tag">✓ સાચો ઉત્તર</span>' : ''}
+          ${q.type === 'mcq' ? (() => {
+            const availableOpts = ['A', 'B', 'C', 'D', 'E'].filter(opt => {
+              const v = q[`option${opt}`];
+              return v !== undefined && v !== null && String(v).trim() !== '';
+            });
+            const isSingleCol = availableOpts.some(opt => {
+              const val = String(q[`option${opt}`] || '');
+              return val.length > 36 || val.includes('\n');
+            });
+            return `
+              <div class="mcq-grid ${isSingleCol ? 'single-col' : ''}">
+                ${availableOpts.map(opt => {
+                  let optVal = String(q[`option${opt}`] || '').trim();
+                  optVal = optVal.replace(new RegExp(`^\\(?${opt}\\)?[.:\\-]?\\s*`, 'i'), '');
+                  const isCorrect = includeSolutions && (correctOpt === opt);
+                  return `
+                    <div class="mcq-opt ${isCorrect ? 'correct-opt' : ''}">
+                      <span class="opt-circle-badge">${opt}</span>
+                      <span class="opt-text">${formatMathText(optVal)}</span>
+                      ${isCorrect ? '<span class="correct-tag">✓ સાચો ઉત્તર</span>' : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              ${(includeSolutions && correctOpt) ? `
+                <div style="margin-top: 8px; padding: 4px 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #166534; font-weight: 800;">
+                  <span>🎯 સાચો વિકલ્પ: <strong>(${correctOpt})</strong></span>
+                </div>
+              ` : ''}
+              ${(includeSolutions && q.explanation) ? `
+                <div class="solution-box">
+                  <div class="solution-title">
+                    <span>💡</span>
+                    <span>વિષય નિષ્ણાત સમજૂતી / Solution:</span>
                   </div>
-                `;
-              }).join('')}
-            </div>
-            ${(includeSolutions && correctOpt) ? `
-              <div style="margin-top: 8px; padding: 4px 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: #166534; font-weight: 800;">
-                <span>🎯 સાચો વિકલ્પ: <strong>(${correctOpt})</strong></span>
-              </div>
-            ` : ''}
-            ${(includeSolutions && q.explanation) ? `
-              <div class="solution-box">
-                <div class="solution-title">
-                  <span>💡</span>
-                  <span>વિષય નિષ્ણાત સમજૂતી / Solution:</span>
+                  <div class="solution-text">
+                    ${formatMathText(q.explanation)}
+                  </div>
                 </div>
-                <div style="line-height: 1.5; color: #1e293b;">
-                  ${formatMathText(q.explanation)}
-                </div>
-              </div>
-            ` : ''}
-          ` : `
+              ` : ''}
+            `;
+          })() : `
             <div class="desc-box">
               <div class="desc-line"></div>
               <div class="desc-line"></div>
@@ -494,7 +640,7 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
                   <span>💡</span>
                   <span>મોડેલ ઉત્તર / Model Solution:</span>
                 </div>
-                <div style="line-height: 1.5; color: #1e293b;">
+                <div class="solution-text">
                   ${formatMathText(q.sampleAnswer || q.solution || q.answer)}
                 </div>
               </div>
@@ -885,9 +1031,20 @@ export function exportTestPDF(test, teacherProfile = {}, options = {}) {
     </div>
   ` : ''}
   <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 400);
-    };
+    function triggerPrint() {
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function() {
+          setTimeout(function() { window.print(); }, 350);
+        });
+      } else {
+        setTimeout(function() { window.print(); }, 500);
+      }
+    }
+    if (document.readyState === 'complete') {
+      triggerPrint();
+    } else {
+      window.addEventListener('load', triggerPrint);
+    }
   </script>
 </body>
 </html>`;

@@ -514,11 +514,11 @@ export function formatQuestionStructure(text) {
     }
   }
 
-  // 2. Detect Statements (વિધાનવાળા પ્રશ્નો): (૧) ... (૨) ... (૩) ...
-  if (/(\([૧-૯1-9iIvVxX]+\)\s*)/.test(str)) {
+  // 2. Detect Statements (વિધાનવાળા પ્રશ્નો): (૧) ... (૨) ... (૩) ... or ૧. ... ૨. ... ૩. ...
+  if (/(\([૧-૯1-9iIvVxX]+\)\s*|^[૧-૯1-9ivxIVX]+\.\s+)/m.test(str) || /(\([૧-૯1-9iIvVxX]+\)\s*)/.test(str)) {
     let normalized = str;
     if ((str.match(/\n/g) || []).length < 2) {
-      normalized = str.replace(/([^\n])\s+(?=\([૧-૯1-9iIvVxX]+\)\s*)/g, '$1\n');
+      normalized = str.replace(/([^\n])\s+(?=(\([૧-૯1-9iIvVxX]+\)|[૧-૯1-9ivxIVX]+\.)\s*)/g, '$1\n');
     }
     const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
     const stItems = [];
@@ -528,7 +528,7 @@ export function formatQuestionStructure(text) {
     let finishedSt = false;
 
     for (const line of lines) {
-      const match = line.match(/^(\([૧-૯1-9iIvVxX]+\))\s*(.*)$/);
+      const match = line.match(/^(\([૧-૯1-9iIvVxX]+\)|[૧-૯1-9ivxIVX]+\.)\s*(.*)$/);
       if (match) {
         if (!finishedSt) {
           foundSt = true;
