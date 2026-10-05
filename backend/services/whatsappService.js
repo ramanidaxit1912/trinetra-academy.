@@ -578,61 +578,55 @@ function recordMessageSent(slotId) {
   }
 }
 
-// ─── Fair Load-Balanced Selection (Least-Loaded First) ─────────
-let roundRobinCounter = 0;
+// ─── Strict Sequential Round-Robin (૧ ➔ ૨ ➔ ૩ ➔ ૪ ➔ ૫ ➔ ૧ ➔ ...) ─
+let globalSequencePointer = 0;
+
 function getNextConnectedSlot() {
-  const active = getConnectedSlots();
+  const active = getConnectedSlots().sort((a, b) => a.id - b.id);
   if (active.length === 0) return null;
 
-  // Find minimum sentCount among all active slots
-  const minSent = Math.min(...active.map(s => slotWorkers[s.id]?.sentCount || 0));
-  // Filter candidate slots that currently have the lowest message count
-  const candidateSlots = active.filter(s => (slotWorkers[s.id]?.sentCount || 0) === minSent);
-
-  // Round-robin among candidate slots
-  const chosen = candidateSlots[roundRobinCounter % candidateSlots.length];
-  roundRobinCounter = (roundRobinCounter + 1) % candidateSlots.length;
+  const chosen = active[globalSequencePointer % active.length];
+  globalSequencePointer = (globalSequencePointer + 1) % active.length;
   return chosen;
 }
 
 function dispatchWAQueue() {
   if (waMessageQueue.length === 0) return;
 
-  const connected = getConnectedSlots();
+  const connected = getConnectedSlots().sort((a, b) => a.id - b.id);
   if (connected.length === 0) return;
 
-  // Find all idle slots, sorted by least-used first (sentCount ascending)
-  const idleSlots = connected
-    .filter(s => !slotWorkers[s.id]?.busy)
-    .sort((a, b) => {
-      const countA = slotWorkers[a.id]?.sentCount || 0;
-      const countB = slotWorkers[b.id]?.sentCount || 0;
-      if (countA !== countB) return countA - countB;
-      return a.id - b.id;
-    });
-
-  for (const slot of idleSlots) {
+  // Dispatch to slots in strict sequence (1 -> 2 -> 3 -> 4 -> 5 -> 1...)
+  for (let attempt = 0; attempt < connected.length; attempt++) {
     if (waMessageQueue.length === 0) break;
+
+    const slotIndex = globalSequencePointer % connected.length;
+    const slot = connected[slotIndex];
     const worker = slotWorkers[slot.id];
-    if (worker.busy) continue; // safety guard
 
-    const task = waMessageQueue.shift();
-    worker.busy = true;
+    if (!worker.busy) {
+      const task = waMessageQueue.shift();
+      worker.busy = true;
+      globalSequencePointer = (globalSequencePointer + 1) % connected.length;
 
-    (async () => {
-      try {
-        await task(slot.socket, slot);
-        recordMessageSent(slot.id);
-      } catch (e) {
-        console.warn(`[WA Pool Slot ${slot.id}] Task execution error:`, e.message);
-      } finally {
-        // 🛡️ ANTI-BAN JITTER: 2.5s to 4.2s delay between messages per phone number
-        const jitter = 2500 + Math.floor(Math.random() * 1700);
-        await new Promise(r => setTimeout(r, jitter));
-        worker.busy = false;
-        dispatchWAQueue(); // Continue processing next message in queue
-      }
-    })();
+      (async () => {
+        try {
+          await task(slot.socket, slot);
+          recordMessageSent(slot.id);
+        } catch (e) {
+          console.warn(`[WA Pool Slot ${slot.id}] Task execution error:`, e.message);
+        } finally {
+          // 🛡️ ANTI-BAN JITTER: 2.5s to 4.2s delay between messages per phone number
+          const jitter = 2500 + Math.floor(Math.random() * 1700);
+          await new Promise(r => setTimeout(r, jitter));
+          worker.busy = false;
+          dispatchWAQueue(); // Continue processing next message in queue
+        }
+      })();
+    } else {
+      // If this slot is currently busy with jitter, rotate to next slot so queue does not stall
+      globalSequencePointer = (globalSequencePointer + 1) % connected.length;
+    }
   }
 }
 
