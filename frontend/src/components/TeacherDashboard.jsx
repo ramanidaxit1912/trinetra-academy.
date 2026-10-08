@@ -14150,15 +14150,15 @@ function StudentLogins({ showToast }) {
                   background: waBridge.isPaused ? '#64748b' : waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
                   color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.7rem'
                 }}>
-                  {waBridge.isPaused ? '⏸️ PAUSED (OFF)' : waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.connectedCount || 1}/5 પુલ)` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
+                  {waBridge.isPaused ? '⏸️ PAUSED (OFF)' : waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.connectedCount || 1}/${waBridge.totalSlots || 3} પુલ)` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.4, margin: '4px 0' }}>
                 {waBridge.isPaused
                   ? '⏸️ સોકેટ્સ બંધ (Paused) છે. બેકગ્રાઉન્ડ ડેટા 0% વપરાશે. ટેસ્ટ ગ્રાફ & સ્કોરબોર્ડ સંપૂર્ણ ચાલુ રહેશે.'
                   : waBridge.status === 'CONNECTED'
-                  ? `🚀 ૧૦૦% સક્રિય: ${waBridge.connectedCount || 1}/5 નંબરોથી વિદ્યાર્થીઓને OTP & સ્કોરકાર્ડ જઈ રહ્યા છે.`
-                  : 'તમારા ૫ WhatsApp નંબરો લિંક કરીને ફ્રી ઓટોમેટિક OTP અને સ્કોરકાર્ડ વિતરણ ચાલુ કરો.'}
+                  ? `🚀 ૧૦૦% સક્રિય: ${waBridge.connectedCount || 1}/${waBridge.totalSlots || 3} નંબરોથી વિદ્યાર્થીઓને OTP & સ્કોરકાર્ડ જઈ રહ્યા છે.`
+                  : 'તમારા ૩ WhatsApp નંબરો લિંક કરીને ફ્રી ઓટોમેટિક OTP અને સ્કોરકાર્ડ વિતરણ ચાલુ કરો.'}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 <button
@@ -14210,7 +14210,7 @@ function StudentLogins({ showToast }) {
                     fontFamily: 'Hind Vadodara, sans-serif'
                   }}
                 >
-                  <Smartphone size={14} /> 📱 ૫-નંબર પુલ ({waBridge.connectedCount || 0}/5)
+                  <Smartphone size={14} /> 📱 ૩-નંબર પુલ ({waBridge.connectedCount || 0}/{waBridge.totalSlots || 3})
                 </button>
               </div>
 

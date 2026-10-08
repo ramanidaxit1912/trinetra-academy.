@@ -26,7 +26,7 @@ const fs = require('fs');
 const QRCode = require('qrcode');
 const prisma = require('../prismaClient');
 
-const NUM_SLOTS = 5;
+const NUM_SLOTS = 3;
 
 // Base sessions directory
 const baseSessionsDir = path.join(__dirname, '../whatsapp_sessions');
@@ -627,7 +627,7 @@ function dispatchWAQueue() {
   const connected = getConnectedSlots().sort((a, b) => a.id - b.id);
   if (connected.length === 0) return;
 
-  // Dispatch to slots in strict sequence (1 -> 2 -> 3 -> 4 -> 5 -> 1...)
+  // Dispatch to slots in strict sequence (1 -> 2 -> 3 -> 1...)
   for (let attempt = 0; attempt < connected.length; attempt++) {
     if (waMessageQueue.length === 0) break;
 

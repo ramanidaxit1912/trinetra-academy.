@@ -1,6 +1,6 @@
 /**
  * whatsappPortal.js — Trinetra Online Academy
- * 5-Slot Multi-WhatsApp Pool Dashboard HTML Template
+ * 3-Slot Multi-WhatsApp Pool Dashboard HTML Template
  */
 
 function getWhatsAppPortalHtml() {
@@ -9,7 +9,7 @@ function getWhatsAppPortalHtml() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ત્રિનેત્ર એકેડેમી — ૫-નંબર WhatsApp પુલ કંટ્રોલ સેન્ટર</title>
+  <title>ત્રિનેત્ર એકેડેમી — ૩-નંબર WhatsApp પુલ કંટ્રોલ સેન્ટર</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+Gujarati:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -288,7 +288,7 @@ function getWhatsAppPortalHtml() {
   <div class="container">
     <div class="header">
       <div class="header-logo">🏛️📱</div>
-      <h1>ત્રિનેત્ર એકેડેમી — ૫-નંબર WhatsApp પુલ કંટ્રોલ સેન્ટર</h1>
+      <h1>ત્રિનેત્ર એકેડેમી — ૩-નંબર WhatsApp પુલ કંટ્રોલ સેન્ટર</h1>
       <div class="subtitle">૫૦૦+ વિદ્યાર્થીઓ માટે ઓટોમેટિક OTP અને સ્કોરકાર્ડ લોડ-બેલેન્સિંગ સિસ્ટમ</div>
     </div>
 
@@ -298,7 +298,7 @@ function getWhatsAppPortalHtml() {
         <div class="stat-icon">📱</div>
         <div>
           <div class="stat-label">કુલ જોડાયેલા નંબર્સ</div>
-          <div class="stat-val" id="stat-connected">-- / 5 સક્રિય</div>
+          <div class="stat-val" id="stat-connected">-- / 3 સક્રિય</div>
         </div>
       </div>
       <div class="stat-card">
@@ -329,7 +329,7 @@ function getWhatsAppPortalHtml() {
       ⏸️ <strong>WhatsApp પુલ હાલ વિરામ (PAUSED/OFF) પર છે:</strong> સર્વરના બેકગ્રાઉન્ડ ઇન્ટરનેટ સોકેટ્સ બંધ છે જેથી ૦% ડેટા વપરાય છે. બધા સ્ટુડન્ટ ટેસ્ટ, ગ્રાફ અને સ્કોરબોર્ડ સંપૂર્ણપણે ચાલુ છે. WhatsApp ફરી શરૂ કરવા માટે ઉપર 'ON કરો' બટન દબાવો.
     </div>
 
-    <!-- 5 Slots Grid -->
+    <!-- 3 Slots Grid -->
     <div class="slots-grid" id="slots-container">
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
         <div class="spinner"></div>
@@ -339,11 +339,11 @@ function getWhatsAppPortalHtml() {
 
     <!-- Explanation Guide -->
     <div class="info-card">
-      <div class="info-title">💡 ૫-નંબર WhatsApp પુલ કેવી રીતે કામ કરે છે?</div>
+      <div class="info-title">💡 ૩-નંબર WhatsApp પુલ કેવી રીતે કામ કરે છે?</div>
       <div class="info-grid">
         <div class="info-item">
-          <strong>૧. ૫૦૦ વિદ્યાર્થીઓ માટે સુરક્ષિત:</strong>
-          જ્યારે ૫૦૦ વિદ્યાર્થીઓ ટેસ્ટ પૂર્ણ કરશે, ત્યારે સિસ્ટમ બધા કનેક્ટેડ નંબરોમાં મેસેજ વહેંચી દેશે (દા.ત. ૫ નંબર હોય તો દરેક નંબર પર માત્ર ~૧૦૦ મેસેજ જશે).
+          <strong>૧. ૫૦૦+ વિદ્યાર્થીઓ માટે સુરક્ષિત:</strong>
+          જ્યારે વિદ્યાર્થીઓ ટેસ્ટ પૂર્ણ કરશે, ત્યારે સિસ્ટમ ૩ કનેક્ટેડ નંબરોમાં વારાફરતી મેસેજ વહેંચી દેશે (દા.ત. ૩ નંબર હોય તો દરેક નંબર પર ૧/૩ મેસેજ જશે).
         </div>
         <div class="info-item">
           <strong>૨. ૦% બ્લોક જોખમ (Anti-Ban Jitter):</strong>
@@ -351,11 +351,11 @@ function getWhatsAppPortalHtml() {
         </div>
         <div class="info-item">
           <strong>૩. પેરેલલ સ્પીડ બૂસ્ટ:</strong>
-          ૫ નંબરો એક સાથે સમાંતર મેસેજ મોકલશે, એટલે ૫૦૦ વિદ્યાર્થીઓને પરિણામ માત્ર ૪ થી ૫ મિનિટમાં પહોંચી જશે.
+          ૩ નંબરો એક સાથે સમાંતર મેસેજ મોકલશે, એટલે સેંકડો વિદ્યાર્થીઓને પરિણામ ઝડપથી પહોંચી જશે.
         </div>
         <div class="info-item">
-          <strong>૪. ૧ થી ૫ કોઈપણ સંખ્યામાં જોડી શકાય:</strong>
-          જો તમારી પાસે અત્યારે ૨ કે ૩ નંબર હોય તો પણ સિસ્ટમ સરળતાથી કામ કરશે. બાકીના નંબર ગમે ત્યારે ઉમેરી શકો છો.
+          <strong>૪. ૧ થી ૩ કોઈપણ સંખ્યામાં જોડી શકાય:</strong>
+          જો તમારી પાસે અત્યારે ૧ કે ૨ નંબર હોય તો પણ સિસ્ટમ સરળતાથી કામ કરશે. ત્રીજો નંબર ગમે ત્યારે ઉમેરી શકો છો.
         </div>
       </div>
     </div>
@@ -413,8 +413,9 @@ function getWhatsAppPortalHtml() {
         }
       }
 
+      const totalSlots = data.totalSlots || 3;
       const connectedCount = data.connectedCount || 0;
-      document.getElementById('stat-connected').innerText = isPausedGlobal ? '0 / 5 (વિરામ)' : (connectedCount + ' / 5 સક્રિય');
+      document.getElementById('stat-connected').innerText = isPausedGlobal ? ('0 / ' + totalSlots + ' (વિરામ)') : (connectedCount + ' / ' + totalSlots + ' સક્રિય');
       document.getElementById('stat-speed').innerText = isPausedGlobal ? '0x (વિરામ)' : (connectedCount > 0 ? (connectedCount + 'x પેરેલલ') : '0x (ઑફલાઇન)');
 
       const container = document.getElementById('slots-container');
