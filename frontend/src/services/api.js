@@ -129,6 +129,7 @@ export const grantMasterByMobile    = (data) => api.post('/teacher/grant-master-
 export const getLiveOTPs            = ()   => api.get('/teacher/live-otps');
 export const getWhatsAppBridgeStatus = ()  => api.get('/whatsapp/status');
 export const disconnectWhatsAppBridge = () => api.post('/whatsapp/disconnect');
+export const toggleWhatsAppBridge     = (enable) => api.post('/whatsapp/toggle', { enable });
 export const broadcastWhatsApp      = (data) => api.post('/teacher/broadcast-whatsapp', data);
 export const exportCSV              = ()   => window.open('/api/teacher/export-csv', '_blank');
 export const cleanTestData          = (data) => api.post('/teacher/clean-test-data', data);

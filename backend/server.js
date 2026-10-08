@@ -23,7 +23,7 @@ const uploadRoutes = require('./routes/upload');
 const teacherRoutes = require('./routes/teacher');
 const materialsRoutes = require('./routes/materials');
 const marketingRoutes = require('./routes/marketing');
-const { initWhatsApp, initWhatsAppSlot, getWhatsAppStatus, logoutWhatsApp, hasSavedSession, pauseWhatsApp, NUM_SLOTS } = require('./services/whatsappService');
+const { initWhatsApp, initWhatsAppSlot, getWhatsAppStatus, logoutWhatsApp, hasSavedSession, pauseWhatsApp, toggleWhatsApp, NUM_SLOTS } = require('./services/whatsappService');
 const { prewarmPdfEngine } = require('./services/pdfService');
 const { cleanupOldCloudinaryPdfs } = require('./services/cloudinaryService');
 const { getWhatsAppPortalHtml } = require('./views/whatsappPortal');
@@ -126,6 +126,16 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
   const slotId = req.body?.slotId ? Number(req.body.slotId) : 1;
   const result = await logoutWhatsApp(slotId);
   res.json(result);
+});
+
+app.post('/api/whatsapp/toggle', async (req, res) => {
+  try {
+    const enable = req.body?.enable;
+    const result = await toggleWhatsApp(enable);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ─── Health Check ─────────────────────────────────────────────

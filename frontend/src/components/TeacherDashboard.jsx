@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, deleteTest, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, toggleWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
   overrideLeaderboard, getLeaderboardOverrides, updateStudentName, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
@@ -26,7 +26,7 @@ import {
   RefreshCw, Layers, Download, Printer, FileText, Calendar, Image as ImageIcon, X, AlertCircle,
   Share2, FolderOpen, UploadCloud, FileCheck, ExternalLink, Link as LinkIcon, RotateCw, Maximize2,
   Sparkles, Tag, Unlock, Key, KeyRound, ShieldCheck, HelpCircle,
-  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall, Archive, Cloud
+  Copy, Check, Smartphone, Activity, Filter, TrendingUp, PhoneCall, Archive, Cloud, Power
 } from 'lucide-react';
 
 const darkLbl = { display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8', marginBottom: 6 };
@@ -13729,6 +13729,27 @@ function StudentLogins({ showToast }) {
     } catch {}
   };
 
+  const [isTogglingWa, setIsTogglingWa] = useState(false);
+
+  const handleToggleWa = async () => {
+    if (isTogglingWa) return;
+    setIsTogglingWa(true);
+    try {
+      const willEnable = waBridge.isPaused ? true : false;
+      const res = await toggleWhatsAppBridge(willEnable);
+      if (res.data?.success) {
+        showToast(res.data?.message || (willEnable ? '✅ WhatsApp Bridge સક્રિય થયું!' : '⏸️ WhatsApp Bridge બંધ (Paused) થયું!'), 'success');
+        await checkWaStatus();
+      } else {
+        showToast(res.data?.error || 'WhatsApp સ્ટેટસ બદલવામાં ભૂલ આવી.', 'error');
+      }
+    } catch (err) {
+      showToast('સર્વર કનેક્શનમાં ભૂલ આવી.', 'error');
+    } finally {
+      setIsTogglingWa(false);
+    }
+  };
+
   useEffect(() => {
     checkWaStatus();
     fetchOtpMode();
@@ -14112,26 +14133,63 @@ function StudentLogins({ showToast }) {
 
             {/* WhatsApp Auto-OTP Cloud Bridge */}
             <div className="sl-kpi-card" style={{
-              background: waBridge.status === 'CONNECTED'
+              background: waBridge.isPaused
+                ? 'linear-gradient(135deg, rgba(51, 65, 85, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)'
+                : waBridge.status === 'CONNECTED'
                 ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)'
                 : 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
-              borderColor: waBridge.status === 'CONNECTED' ? 'rgba(16, 185, 129, 0.45)' : 'rgba(234, 179, 8, 0.35)'
+              borderColor: waBridge.isPaused
+                ? 'rgba(148, 163, 184, 0.35)'
+                : waBridge.status === 'CONNECTED' ? 'rgba(16, 185, 129, 0.45)' : 'rgba(234, 179, 8, 0.35)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: '0.78rem', color: '#6ee7b7', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.78rem', color: waBridge.isPaused ? '#94a3b8' : '#6ee7b7', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
                   💬 WhatsApp Auto-OTP
                 </span>
                 <span style={{
-                  background: waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
+                  background: waBridge.isPaused ? '#64748b' : waBridge.status === 'CONNECTED' ? '#10b981' : waBridge.status === 'SCAN_QR' ? '#f59e0b' : '#ef4444',
                   color: 'white', padding: '2px 8px', borderRadius: 6, fontWeight: 900, fontSize: '0.7rem'
                 }}>
-                  {waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.connectedCount || 1}/5 પુલ)` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
+                  {waBridge.isPaused ? '⏸️ PAUSED (OFF)' : waBridge.status === 'CONNECTED' ? `✓ CONNECTED (${waBridge.connectedCount || 1}/5 પુલ)` : waBridge.status === 'SCAN_QR' ? '📱 SCAN QR' : '⚠️ DISCONNECTED'}
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.4, margin: '4px 0' }}>
-                {waBridge.status === 'CONNECTED' ? `🚀 ૧૦૦% સક્રિય: ${waBridge.connectedCount || 1}/5 નંબરોથી વિદ્યાર્થીઓને OTP & સ્કોરકાર્ડ જઈ રહ્યા છે.` : 'તમારા ૫ WhatsApp નંબરો લિંક કરીને ફ્રી ઓટોમેટિક OTP અને સ્કોરકાર્ડ વિતરણ ચાલુ કરો.'}
+                {waBridge.isPaused
+                  ? '⏸️ સોકેટ્સ બંધ (Paused) છે. બેકગ્રાઉન્ડ ડેટા 0% વપરાશે. ટેસ્ટ ગ્રાફ & સ્કોરબોર્ડ સંપૂર્ણ ચાલુ રહેશે.'
+                  : waBridge.status === 'CONNECTED'
+                  ? `🚀 ૧૦૦% સક્રિય: ${waBridge.connectedCount || 1}/5 નંબરોથી વિદ્યાર્થીઓને OTP & સ્કોરકાર્ડ જઈ રહ્યા છે.`
+                  : 'તમારા ૫ WhatsApp નંબરો લિંક કરીને ફ્રી ઓટોમેટિક OTP અને સ્કોરકાર્ડ વિતરણ ચાલુ કરો.'}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={handleToggleWa}
+                  disabled={isTogglingWa}
+                  className="sa-btn-pressable"
+                  title={waBridge.isPaused ? "WhatsApp સોકેટ ફરી ચાલુ કરો" : "બેકગ્રાઉન્ડ સોકેટ બંધ (Pause) કરો"}
+                  style={{
+                    background: waBridge.isPaused
+                      ? 'linear-gradient(135deg, #10b981, #059669)'
+                      : 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '7px 11px',
+                    borderRadius: 8,
+                    fontSize: '0.74rem',
+                    fontWeight: 900,
+                    cursor: isTogglingWa ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    fontFamily: 'Hind Vadodara, sans-serif',
+                    boxShadow: waBridge.isPaused ? '0 2px 8px rgba(16, 185, 129, 0.4)' : '0 2px 8px rgba(239, 68, 68, 0.35)',
+                    opacity: isTogglingWa ? 0.7 : 1
+                  }}
+                >
+                  <Power size={13} style={{ strokeWidth: 3 }} />
+                  {isTogglingWa ? '...' : (waBridge.isPaused ? '▶️ ON કરો' : '⏸️ OFF કરો')}
+                </button>
                 <button
                   onClick={() => window.open('/whatsapp', '_blank')}
                   className="sa-btn-pressable"
@@ -14152,7 +14210,7 @@ function StudentLogins({ showToast }) {
                     fontFamily: 'Hind Vadodara, sans-serif'
                   }}
                 >
-                  <Smartphone size={14} /> 📱 ૫-નંબર પુલ મેનેજર ({waBridge.connectedCount || 0}/5)
+                  <Smartphone size={14} /> 📱 ૫-નંબર પુલ ({waBridge.connectedCount || 0}/5)
                 </button>
               </div>
 

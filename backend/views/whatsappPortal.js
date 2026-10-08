@@ -315,6 +315,18 @@ function getWhatsAppPortalHtml() {
           <div class="stat-val" style="color: #4ade80;">૧૦૦% સુરક્ષિત (૨.૫-૪s)</div>
         </div>
       </div>
+      <div class="stat-card" style="cursor: pointer; border-color: rgba(56, 189, 248, 0.3);" onclick="toggleBridge()">
+        <div class="stat-icon" id="stat-toggle-icon">🔌</div>
+        <div>
+          <div class="stat-label">સોકેટ પાવર સ્વીચ (ક્લિક કરો)</div>
+          <div class="stat-val" id="stat-toggle-val" style="font-size: 0.95rem;">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paused Warning Banner -->
+    <div id="paused-alert-banner" style="display:none; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 14px; padding: 14px 20px; margin-bottom: 24px; color: #fca5a5; font-size: 0.88rem; text-align: center; font-weight: 700; line-height: 1.5;">
+      ⏸️ <strong>WhatsApp પુલ હાલ વિરામ (PAUSED/OFF) પર છે:</strong> સર્વરના બેકગ્રાઉન્ડ ઇન્ટરનેટ સોકેટ્સ બંધ છે જેથી ૦% ડેટા વપરાય છે. બધા સ્ટુડન્ટ ટેસ્ટ, ગ્રાફ અને સ્કોરબોર્ડ સંપૂર્ણપણે ચાલુ છે. WhatsApp ફરી શરૂ કરવા માટે ઉપર 'ON કરો' બટન દબાવો.
     </div>
 
     <!-- 5 Slots Grid -->
@@ -351,6 +363,28 @@ function getWhatsAppPortalHtml() {
 
   <script>
     let pollInterval = null;
+    let isPausedGlobal = false;
+    let isToggling = false;
+
+    async function toggleBridge() {
+      if (isToggling) return;
+      isToggling = true;
+      const toggleVal = document.getElementById('stat-toggle-val');
+      if (toggleVal) toggleVal.innerText = 'પ્રોસેસિંગ...';
+      try {
+        const nextState = isPausedGlobal ? true : false;
+        await fetch('/api/whatsapp/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enable: nextState })
+        });
+        setTimeout(fetchStatus, 700);
+      } catch (e) {
+        console.error('Toggle error:', e);
+      } finally {
+        isToggling = false;
+      }
+    }
 
     async function fetchStatus() {
       try {
@@ -363,9 +397,25 @@ function getWhatsAppPortalHtml() {
     }
 
     function renderDashboard(data) {
+      isPausedGlobal = !!data.isPaused;
+      const toggleVal = document.getElementById('stat-toggle-val');
+      const toggleIcon = document.getElementById('stat-toggle-icon');
+      const pauseBanner = document.getElementById('paused-alert-banner');
+      if (pauseBanner) pauseBanner.style.display = isPausedGlobal ? 'block' : 'none';
+
+      if (toggleVal) {
+        if (isPausedGlobal) {
+          toggleVal.innerHTML = '<span style="color:#f87171; font-weight:800;">🔴 OFF (ચાલુ કરો)</span>';
+          if (toggleIcon) toggleIcon.innerText = '⏸️';
+        } else {
+          toggleVal.innerHTML = '<span style="color:#4ade80; font-weight:800;">🟢 ON (બંધ કરો)</span>';
+          if (toggleIcon) toggleIcon.innerText = '⚡';
+        }
+      }
+
       const connectedCount = data.connectedCount || 0;
-      document.getElementById('stat-connected').innerText = connectedCount + ' / 5 સક્રિય';
-      document.getElementById('stat-speed').innerText = connectedCount > 0 ? (connectedCount + 'x પેરેલલ') : '0x (ઑફલાઇન)';
+      document.getElementById('stat-connected').innerText = isPausedGlobal ? '0 / 5 (વિરામ)' : (connectedCount + ' / 5 સક્રિય');
+      document.getElementById('stat-speed').innerText = isPausedGlobal ? '0x (વિરામ)' : (connectedCount > 0 ? (connectedCount + 'x પેરેલલ') : '0x (ઑફલાઇન)');
 
       const container = document.getElementById('slots-container');
       const slots = data.slots || [];
@@ -384,7 +434,16 @@ function getWhatsAppPortalHtml() {
         let bodyHtml = '';
         let footerHtml = '';
 
-        if (status === 'CONNECTED') {
+        if (isPausedGlobal || status === 'PAUSED') {
+          badgeHtml = '<span class="badge" style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid #64748b;">⏸️ વિરામ (OFF)</span>';
+          let displayPhone = phone || '';
+          if (String(displayPhone).startsWith('91') && String(displayPhone).length === 12) {
+            displayPhone = String(displayPhone).slice(2);
+          }
+          bodyHtml = (displayPhone ? '<div class="phone-text" style="color:#94a3b8;">+91 ' + displayPhone + '</div>' : '<div style="font-size:2.2rem; margin-bottom: 10px; opacity: 0.5;">⏸️</div>') +
+            '<p class="slot-desc">સોકેટ બેકગ્રાઉન્ડ વિરામ પર છે. સેવ કરેલું સેશન સુરક્ષિત છે.</p>';
+          footerHtml = '<button class="btn btn-connect" onclick="toggleBridge()">▶️ પુલ શરૂ કરો (ON)</button>';
+        } else if (status === 'CONNECTED') {
           cardClass += ' connected';
           badgeHtml = '<span class="badge badge-connected">🟢 જોડાયેલ છે</span>';
           let displayPhone = phone || 'Active';

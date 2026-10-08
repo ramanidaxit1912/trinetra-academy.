@@ -67,6 +67,9 @@ for (let i = 1; i <= NUM_SLOTS; i++) {
   };
 }
 
+// ⏸️ Global pause flag (Teacher manual control or Night Mode)
+let isManuallyPaused = false;
+
 // In-memory cache of saved file contents per slot to eliminate redundant Supabase writes
 const savedSessionCache = new Map(); // key: `slot_${slotId}__${filename}` -> content
 
@@ -259,6 +262,10 @@ async function clearSessionFromDb(slotId) {
 
 // ─── Reconnect Scheduler Per Slot ─────────────────────────────
 function scheduleReconnect(slotId, forceDelay) {
+  if (isManuallyPaused) {
+    console.log(`⏸️ [WhatsApp Slot ${slotId}] Reconnect skipped — WhatsApp bridge is paused.`);
+    return;
+  }
   const slot = slots[slotId];
   if (!slot || slot.reconnectTimer) return;
   const delay = forceDelay !== undefined
@@ -277,6 +284,11 @@ async function initWhatsAppSlot(slotId) {
   const sid = Number(slotId);
   const slot = slots[sid];
   if (!slot) return;
+
+  if (isManuallyPaused) {
+    console.log(`⏸️ [WhatsApp Slot ${sid}] Initialization skipped — WhatsApp is manually paused.`);
+    return;
+  }
 
   if (slot.isInitializing) {
     console.log(`ℹ️ [WhatsApp Slot ${sid}] Already initializing, skipping.`);
@@ -445,6 +457,7 @@ async function initWhatsAppSlot(slotId) {
 
 // ─── Initialize All Saved Slots or a Specific Slot ────────────
 async function initWhatsApp(targetSlotId = null) {
+  isManuallyPaused = false;
   if (targetSlotId) {
     return initWhatsAppSlot(Number(targetSlotId));
   }
@@ -499,9 +512,10 @@ async function logoutWhatsApp(slotId = 1) {
   }
 }
 
-// ─── Pause WhatsApp (Night Mode) ──────────────────────────────
+// ─── Pause WhatsApp (Manual Control or Night Mode) ────────────
 async function pauseWhatsApp() {
   try {
+    isManuallyPaused = true;
     for (let i = 1; i <= NUM_SLOTS; i++) {
       const slot = slots[i];
       if (slot.reconnectTimer) { clearTimeout(slot.reconnectTimer); slot.reconnectTimer = null; }
@@ -521,10 +535,24 @@ async function pauseWhatsApp() {
       slot.reconnectAttempts = 0;
       slot.isInitializing = false;
     }
-    console.log('⏸️ [WhatsApp Pool] Night Mode: All slots paused. Sessions saved. Auto-resume at 6 AM IST.');
-    return { success: true };
+    console.log('⏸️ [WhatsApp Pool] All slots paused. Zero background socket data.');
+    return { success: true, isPaused: true };
   } catch (e) {
     return { success: false, error: e.message };
+  }
+}
+
+// ─── Toggle WhatsApp (Manual Teacher Switch) ──────────────────
+async function toggleWhatsApp(enable) {
+  if (enable === true || (enable === undefined && isManuallyPaused)) {
+    isManuallyPaused = false;
+    console.log('▶️ [WhatsApp Pool] Teacher resumed WhatsApp (ON).');
+    await initWhatsApp();
+    return { success: true, isPaused: false, status: getWhatsAppStatus().status, message: 'WhatsApp Bridge સફળતાપૂર્વક ચાલુ (ON) થયું!' };
+  } else {
+    console.log('⏸️ [WhatsApp Pool] Teacher paused WhatsApp (OFF).');
+    await pauseWhatsApp();
+    return { success: true, isPaused: true, status: 'PAUSED', message: 'WhatsApp Bridge સફળતાપૂર્વક બંધ (OFF) કર્યું!' };
   }
 }
 
@@ -534,13 +562,16 @@ function getWhatsAppStatus() {
   const scanningSlots = Object.values(slots).filter(s => s.status === 'SCAN_QR');
   const connectingSlots = Object.values(slots).filter(s => s.status === 'CONNECTING');
 
-  const overallStatus = activeSlots.length > 0 
-    ? 'CONNECTED' 
-    : (scanningSlots.length > 0 ? 'SCAN_QR' : (connectingSlots.length > 0 ? 'CONNECTING' : 'DISCONNECTED'));
+  const overallStatus = isManuallyPaused
+    ? 'PAUSED'
+    : (activeSlots.length > 0 
+        ? 'CONNECTED' 
+        : (scanningSlots.length > 0 ? 'SCAN_QR' : (connectingSlots.length > 0 ? 'CONNECTING' : 'DISCONNECTED')));
 
   const phones = activeSlots.map(s => s.connectedPhone).filter(Boolean);
 
   return {
+    isPaused: isManuallyPaused,
     status: overallStatus,
     totalSlots: NUM_SLOTS,
     connectedCount: activeSlots.length,
@@ -549,7 +580,7 @@ function getWhatsAppStatus() {
     activeSlotIds: activeSlots.map(s => s.id),
     slots: Object.values(slots).map(s => ({
       id: s.id,
-      status: s.status,
+      status: isManuallyPaused ? 'PAUSED' : s.status,
       phone: s.connectedPhone,
       qrCode: s.qrCodeDataUrl,
       lastError: s.lastError,
@@ -924,5 +955,6 @@ module.exports = {
   sendWhatsAppDailyReport,
   sendWhatsAppTestCompletionSummary,
   getWhatsAppStatus,
-  logoutWhatsApp
+  logoutWhatsApp,
+  toggleWhatsApp
 };
