@@ -196,12 +196,17 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
     });
 
     let record;
+    let storedSavedAnswers = savedAnswers !== undefined ? savedAnswers : (existing?.savedAnswers || {});
+    if (typeof storedSavedAnswers === 'object' && storedSavedAnswers !== null) {
+      storedSavedAnswers._lastActiveAt = Date.now();
+    }
+
     if (existing) {
       record = await prisma.submission.update({
         where: { id: existing.id },
         data: {
           currentIndex: currentIndex != null ? Number(currentIndex) : existing.currentIndex,
-          savedAnswers: savedAnswers !== undefined ? savedAnswers : existing.savedAnswers,
+          savedAnswers: storedSavedAnswers,
           answers: answers || existing.answers || [],
           testName: testName || existing.testName,
           subject: subject || existing.subject,
@@ -216,7 +221,7 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
           subject: subject || 'General',
           status: 'IN_PROGRESS',
           currentIndex: currentIndex != null ? Number(currentIndex) : 0,
-          savedAnswers: savedAnswers || {},
+          savedAnswers: storedSavedAnswers,
           answers: answers || [],
           startedAt: new Date(),
         }
@@ -293,7 +298,7 @@ router.delete('/active-session', authMiddleware, async (req, res) => {
 // ─── POST /api/submissions ────────────────────────────────────
 // Student submits final test
 router.post('/', authMiddleware, async (req, res) => {
-  const { answers, photoUrl, testCode, testName, subject, tabSwitchCount, screenshotCount, screenshotViolations } = req.body;
+  const { answers, photoUrl, testCode, testName, subject, tabSwitchCount, screenshotCount, screenshotViolations, isAutoSubmit, autoSubmitReason } = req.body;
   let studentId = req.user.id;
 
   if (!studentId) {
@@ -395,6 +400,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (ssCount > 0) {
       const qDetail = ssQStr ? ` (પ્રશ્ન નં. ${ssQStr})` : '';
       remarksParts.push(`📸 વિદ્યાર્થીએ કસોટી દરમિયાન ${ssCount} વાર સ્ક્રીનશોટ પાડવાનો પ્રયાસ કર્યો હતો${qDetail}${ssCount >= 3 ? ' (Strike 3 Auto-submitted)' : ''}.`);
+    }
+    if (autoSubmitReason === 'INACTIVITY_6MIN' || (isAutoSubmit && String(autoSubmitReason || '').includes('INACTIV'))) {
+      remarksParts.push('⏰ ૬ મિનિટ નિષ્ક્રિયતાને કારણે ઓટો-સબમિટ. [AUTO_SUBMIT_6MIN]');
     }
 
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
@@ -1512,10 +1520,123 @@ router.post('/send-pragati-whatsapp', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── Auto-Finalize Stale In-Progress Sessions (> 6 minutes of silence) ────
+async function autoFinalizeStaleSessions() {
+  try {
+    const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+    const staleSessions = await prisma.submission.findMany({
+      where: {
+        status: 'IN_PROGRESS',
+        startedAt: { lt: sixMinutesAgo }
+      },
+      include: { student: true }
+    });
+
+    for (const session of staleSessions) {
+      let lastActive = session.startedAt ? new Date(session.startedAt).getTime() : 0;
+      if (session.savedAnswers && typeof session.savedAnswers === 'object' && session.savedAnswers._lastActiveAt) {
+        lastActive = Number(session.savedAnswers._lastActiveAt);
+      }
+      if (Date.now() - lastActive < 6 * 60 * 1000) {
+        continue; // Still active within 6 minutes
+      }
+
+      let questions = [];
+      if (session.testCode) {
+        questions = await prisma.question.findMany({ where: { testCode: session.testCode } });
+      }
+
+      const answersArr = Array.isArray(session.answers) && session.answers.length > 0
+        ? session.answers
+        : Object.entries(session.savedAnswers || {})
+            .filter(([k]) => !k.startsWith('_'))
+            .map(([qId, val], idx) => ({
+              questionId: Number(qId),
+              studentOrder: idx + 1,
+              selectedOpt: typeof val === 'string' ? val : (val?.selectedOpt || null),
+              answerText: typeof val === 'string' ? '' : (val?.answerText || '')
+            }));
+
+      const { score, total, correctCount, wrongCount, negativeMarks } = calculateMCQScore(answersArr, questions);
+      const totalMarksVal = questions.length > 0 ? questions.reduce((s, q) => s + (q.marks || 1), 0) : total;
+
+      await prisma.submission.update({
+        where: { id: session.id },
+        data: {
+          status: 'COMPLETED',
+          mcqScore: score,
+          totalMCQ: total,
+          totalMarks: totalMarksVal,
+          correctCount,
+          wrongCount,
+          negativeMarks,
+          remarks: `${session.remarks || ''} ⏰ ૬ મિનિટ નિષ્ક્રિયતાને કારણે ઓટો-સબમિટ. [AUTO_SUBMIT_6MIN]`.trim(),
+          submittedAt: new Date()
+        }
+      });
+      console.log(`⏱️ [Auto-Submit 6-Min] Stale session #${session.id} for student #${session.studentId} finalized.`);
+    }
+  } catch (err) {
+    console.warn('Auto-finalize stale sessions note:', err.message);
+  }
+}
+
+// ─── POST /api/submissions/re-access ────────────────────────────
+// Teacher grants Fresh Restart or Resume access to an auto-submitted student
+router.post('/re-access', authMiddleware, teacherOnly, async (req, res) => {
+  const { submissionId, mode } = req.body; // mode: 'FRESH' | 'RESUME'
+
+  if (!submissionId || !['FRESH', 'RESUME'].includes(mode)) {
+    return res.status(400).json({ error: 'submissionId અને માન્ય mode (FRESH અથવા RESUME) જરૂરી છે.' });
+  }
+
+  try {
+    const sub = await prisma.submission.findUnique({
+      where: { id: Number(submissionId) },
+      include: { student: true }
+    });
+
+    if (!sub) {
+      return res.status(404).json({ error: 'સબમિશન મળ્યું નથી.' });
+    }
+
+    if (mode === 'FRESH') {
+      // 🔄 Fresh Restart: Delete completed attempt so student can start test again from Q1 fresh
+      await prisma.submission.delete({
+        where: { id: sub.id }
+      });
+      return res.json({
+        success: true,
+        mode: 'FRESH',
+        message: `✅ વિદ્યાર્થી ${sub.student?.name || ''} ને નવેસરથી (Fresh) કસોટી આપવાની પરવાનગી અપાઈ ગઈ છે.`
+      });
+    } else {
+      // ▶️ Resume: Convert back to IN_PROGRESS so student continues where they left off
+      const updated = await prisma.submission.update({
+        where: { id: sub.id },
+        data: {
+          status: 'IN_PROGRESS',
+          remarks: `${(sub.remarks || '').replace(/\[AUTO_SUBMIT_6MIN\]/g, '')} [RESUMED_BY_TEACHER]`.trim(),
+          submittedAt: new Date()
+        }
+      });
+      return res.json({
+        success: true,
+        mode: 'RESUME',
+        message: `✅ વિદ્યાર્થી ${sub.student?.name || ''} ને જ્યાંથી અટક્યા હતા ત્યાંથી કસોટી ચાલુ (Resume) કરવાની પરવાનગી અપાઈ ગઈ છે.`
+      });
+    }
+  } catch (err) {
+    console.error('Re-access error:', err);
+    res.status(500).json({ error: 'Re-access આપવામાં ભૂલ આવી.' });
+  }
+});
+
 // ─── GET /api/submissions ─────────────────────────────────────
 // All submissions (teacher only)
 router.get('/', authMiddleware, teacherOnly, async (req, res) => {
   try {
+    await autoFinalizeStaleSessions();
     const submissions = await prisma.submission.findMany({
       orderBy: { submittedAt: 'desc' },
       include: {

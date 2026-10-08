@@ -436,7 +436,9 @@ export default function ExamPage() {
         subject:  targetSubject,
         tabSwitchCount: finalViolations,
         screenshotCount: ssCount,
-        screenshotViolations: ssViolationsList
+        screenshotViolations: ssViolationsList,
+        isAutoSubmit: Boolean(finalSsData.isAutoSubmit),
+        autoSubmitReason: finalSsData.autoSubmitReason || (finalViolations >= 3 ? 'TAB_SWITCH_3' : (ssCount >= 3 ? 'SCREENSHOT_3' : null))
       });
 
       // Clear local storage progress upon successful completion

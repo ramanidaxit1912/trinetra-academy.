@@ -108,6 +108,7 @@ export const updateStudentName = (data) => api.post('/submissions/student/update
 
 export const gradeSubmission  = (id, d) => api.put(`/submissions/${id}/grade`, d);
 export const reEvaluateSubmissions = (data) => api.post('/submissions/re-evaluate', data);
+export const grantReAccess    = (data) => api.post('/submissions/re-access', data);
 export const sendWhatsAppScorecard = (id, data = {}) => api.post(`/submissions/${id}/send-whatsapp`, data, { timeout: 90000 });
 export const sendPragatiWhatsApp   = (data = {})     => api.post('/submissions/send-pragati-whatsapp', data, { timeout: 90000 });
 

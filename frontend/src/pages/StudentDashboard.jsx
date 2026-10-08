@@ -1070,7 +1070,7 @@ export default function StudentDashboard() {
   const handleStartExam = async (testQuestions) => {
     const firstQ = testQuestions && testQuestions[0];
     const tCode = firstQ?.testCode;
-    const isAlreadyDone = tCode && submissions.some(s => s.testCode === tCode);
+    const isAlreadyDone = tCode && submissions.some(s => s.testCode === tCode && s.status === 'COMPLETED');
     if (isAlreadyDone) {
       alert('⚠️ તમે આ કસોટી અગાઉ આપી ચૂક્યા છો! એક કસોટી એક જ વાર આપી શકાય છે.');
       setActiveTab('results');

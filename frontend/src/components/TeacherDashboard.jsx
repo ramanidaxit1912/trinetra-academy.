@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store/useStore';
 import {
   getQuestions, getAllQuestions, getQuestionsByTest, addQuestion as createQuestion, deleteQuestion, deleteTest, updateQuestion, updateTestMeta, activateTest, scheduleTest,
-  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, toggleWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, broadcastWhatsApp, cleanTestData, sendDailyReport,
+  getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, toggleWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, grantReAccess, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
   overrideLeaderboard, getLeaderboardOverrides, updateStudentName, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
@@ -10390,6 +10390,22 @@ function StudentAnswers({ showToast }) {
   const [zipProgress, setZipProgress] = useState({}); // { [testCode]: string }
   const [cloudSaving, setCloudSaving] = useState({}); // { [testCode]: boolean } — Cloudinary batch upload
   const [cloudProgress, setCloudProgress] = useState({}); // { [testCode]: string }
+  const [reAccessModalSub, setReAccessModalSub] = useState(null); // Sub selected for granting re-access
+  const [reAccessLoading, setReAccessLoading]   = useState(false);
+
+  const handleExecuteReAccess = async (submissionId, mode) => {
+    setReAccessLoading(true);
+    try {
+      const res = await grantReAccess({ submissionId, mode });
+      showToast(res.data?.message || 'પરવાનગી સફળતાપૂર્વક અપાઈ ગઈ!', 'success');
+      setReAccessModalSub(null);
+      await fetchSubs();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Re-access આપવામાં ભૂલ આવી.', 'error');
+    } finally {
+      setReAccessLoading(false);
+    }
+  };
 
 
   const rotatePhoto = (url, e) => {
@@ -10823,7 +10839,11 @@ function StudentAnswers({ showToast }) {
   // Group filteredSubs by testCode for the new grouped view
   const groupedByTest = useMemo(() => {
     const map = {};
-    filteredSubs.forEach(sub => {
+    const baseList = sortBy === 'AUTO_SUBMIT_6MIN'
+      ? filteredSubs.filter(s => s.remarks?.includes('AUTO_SUBMIT_6MIN'))
+      : filteredSubs;
+
+    baseList.forEach(sub => {
       const key = sub.testCode || 'NO-CODE';
       if (!map[key]) {
         map[key] = {
@@ -10937,6 +10957,13 @@ function StudentAnswers({ showToast }) {
             if (durA > 0 && durB === 0) return -1;
             if (durB > 0 && durA === 0) return 1;
             return getScore(b) - getScore(a);
+          } else if (sortBy === 'AUTO_SUBMIT_6MIN') {
+            const isAutoA = a.remarks?.includes('AUTO_SUBMIT_6MIN') ? 1 : 0;
+            const isAutoB = b.remarks?.includes('AUTO_SUBMIT_6MIN') ? 1 : 0;
+            if (isAutoB !== isAutoA) return isAutoB - isAutoA;
+            const timeA = new Date(a.submittedAt || a.createdAt || 0).getTime();
+            const timeB = new Date(b.submittedAt || b.createdAt || 0).getTime();
+            return timeB - timeA;
           }
           return 0;
         });
@@ -11258,7 +11285,8 @@ function StudentAnswers({ showToast }) {
             { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
             { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
             { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },
-            { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' }
+            { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' },
+            { id: 'AUTO_SUBMIT_6MIN', label: '⚠️ ૬-મિનિટ ઓટો-સબમિટ', title: '૬ મિનિટ નિષ્ક્રિય રહેવાથી આપમેળે સબમિટ થયેલા વિદ્યાર્થીઓ' }
           ].map(s => {
             const isAct = sortBy === s.id;
             return (
@@ -11903,8 +11931,15 @@ function StudentAnswers({ showToast }) {
                 return (
                   <div
                     key={sub.id}
-                    className={`sa-student-card-item sa-stagger-card ${(sortBy === 'TOPPER' || sortBy === 'LEADERBOARD') ? (sIdx === 0 ? 'rank-1' : sIdx === 1 ? 'rank-2' : sIdx === 2 ? 'rank-3' : '') : ''}`}
-                    style={{ animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s` }}
+                    className={`sa-student-card-item sa-stagger-card ${(sortBy === 'TOPPER' || sortBy === 'LEADERBOARD') ? (sIdx === 0 ? 'rank-1' : sIdx === 1 ? 'rank-2' : sIdx === 2 ? 'rank-3' : '') : ''} ${sub.remarks?.includes('AUTO_SUBMIT_6MIN') ? 'auto-submit-6min-card' : ''}`}
+                    style={{
+                      animationDelay: `${Math.min(sIdx * 0.05, 0.5)}s`,
+                      ...(sub.remarks?.includes('AUTO_SUBMIT_6MIN') ? {
+                        border: '1.5px solid rgba(245, 158, 11, 0.7)',
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.09) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                        boxShadow: '0 4px 20px rgba(245, 158, 11, 0.2)'
+                      } : {})
+                    }}
                   >
                     {/* Modern Responsive Card Row */}
                     <div className="sa-card-flex-row">
@@ -12087,6 +12122,22 @@ function StudentAnswers({ showToast }) {
                             )}
 
                             {/* Evaluation Status Chip */}
+                            {sub.remarks?.includes('AUTO_SUBMIT_6MIN') && (
+                              <span style={{
+                                background: 'rgba(245, 158, 11, 0.22)',
+                                color: '#f59e0b',
+                                fontSize: '0.72rem',
+                                fontWeight: 900,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                border: '1px solid rgba(245, 158, 11, 0.5)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                ⚠️ ૬ મિનિટ Inactive Auto-Submit
+                              </span>
+                            )}
                             {sub.status === 'IN_PROGRESS' ? (
                               <span style={{
                                 background: 'rgba(34, 197, 94, 0.2)',
@@ -12211,6 +12262,61 @@ function StudentAnswers({ showToast }) {
                           <Eye size={15} />
                           <span>{isSelected ? '✕ પ્રિવ્યુ છુપાવો' : (pureMcq ? 'વિદ્યાર્થીના જવાબો જુઓ' : 'જવાબો & ગુણ તપાસો')}</span>
                         </button>
+
+                        {sub.remarks?.includes('AUTO_SUBMIT_6MIN') ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReAccessModalSub(sub);
+                            }}
+                            style={{
+                              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '7px 14px',
+                              borderRadius: 8,
+                              fontSize: '0.8rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              boxShadow: '0 3px 12px rgba(245, 158, 11, 0.4)',
+                              transition: 'all 0.2s ease',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="વિદ્યાર્થીને ફરીથી ટેસ્ટ આપવા માટે પરવાનગી આપો (Fresh Restart અથવા Resume)"
+                          >
+                            <span>🔓 Access આપો</span>
+                          </button>
+                        ) : sub.status === 'COMPLETED' ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReAccessModalSub(sub);
+                            }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: '#cbd5e1',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              padding: '6px 10px',
+                              borderRadius: 8,
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              whiteSpace: 'nowrap',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title="આ વિદ્યાર્થીને કસોટી ફરીથી આપવાની પરવાનગી આપો"
+                          >
+                            <span>🔓 Re-Access</span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
 
@@ -13643,6 +13749,212 @@ function StudentAnswers({ showToast }) {
                   {savingMaster ? 'સાચવી રહ્યા છીએ...' : '💾 Answer Key સાચવો & બધા જ વિદ્યાર્થીઓના ગુણ ફરી ગણો'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── RE-ACCESS / RE-OPEN TEST MODAL (PORTALED) ── */}
+      {reAccessModalSub && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999999,
+            background: 'rgba(2, 6, 23, 0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !reAccessLoading) setReAccessModalSub(null); }}
+        >
+          <div
+            style={{
+              background: '#0f172a',
+              border: '1.5px solid rgba(245, 158, 11, 0.5)',
+              borderRadius: 18,
+              width: '100%',
+              maxWidth: 520,
+              boxShadow: '0 25px 60px -15px rgba(0,0,0,0.85), 0 0 35px rgba(245, 158, 11, 0.25)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #78350f, #92400e)',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(245, 158, 11, 0.3)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.5rem' }}>🔓</span>
+                <div>
+                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '1.05rem', fontWeight: 900 }}>
+                    વિદ્યાર્થીને કસોટી Access આપો
+                  </h3>
+                  <p style={{ color: '#fed7aa', margin: 0, fontSize: '0.74rem' }}>
+                    Re-Open Test Permission
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !reAccessLoading && setReAccessModalSub(null)}
+                style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px' }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                marginBottom: 18
+              }}>
+                <div style={{ color: '#93c5fd', fontSize: '0.82rem', fontWeight: 700, marginBottom: 4 }}>
+                  👤 વિદ્યાર્થી: <strong style={{ color: '#ffffff' }}>{reAccessModalSub.student?.name}</strong> ({reAccessModalSub.student?.mobile})
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginBottom: 4 }}>
+                  📋 કસોટી: <span style={{ color: '#fde047', fontWeight: 700 }}>{reAccessModalSub.testName || reAccessModalSub.testCode}</span>
+                </div>
+                {reAccessModalSub.remarks?.includes('AUTO_SUBMIT_6MIN') && (
+                  <div style={{
+                    marginTop: 8,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    color: '#fbbf24',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    ⚠️ આ વિદ્યાર્થી ૬ મિનિટ સુધી નિષ્ક્રિય રહેવાથી ટેસ્ટ આપમેળે સબમિટ થયો હતો.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ color: '#e2e8f0', fontSize: '0.86rem', fontWeight: 800, marginBottom: 12 }}>
+                તમે કઈ રીતે વિદ્યાર્થીને કસોટી ચાલુ કરવા દેવા માંગો છો?
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Option 1: Resume */}
+                <button
+                  type="button"
+                  disabled={reAccessLoading}
+                  onClick={() => handleExecuteReAccess(reAccessModalSub.id, 'RESUME')}
+                  style={{
+                    background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
+                    border: '1.5px solid #3b82f6',
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    color: '#ffffff',
+                    cursor: reAccessLoading ? 'not-allowed' : 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.8rem' }}>▶️</span>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900 }}>
+                      Resume (જ્યાંથી અટક્યા હતા ત્યાંથી ચાલુ રાખો)
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#bfdbfe', marginTop: 2 }}>
+                      અગાઉ આપેલા જવાબો સચવાયેલા રહેશે અને બાકી રહેલા પ્રશ્નોથી ટેસ્ટ આગળ વધશે.
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 2: Fresh Restart */}
+                <button
+                  type="button"
+                  disabled={reAccessLoading}
+                  onClick={() => handleExecuteReAccess(reAccessModalSub.id, 'FRESH')}
+                  style={{
+                    background: 'linear-gradient(135deg, #065f46, #059669)',
+                    border: '1.5px solid #10b981',
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    color: '#ffffff',
+                    cursor: reAccessLoading ? 'not-allowed' : 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.8rem' }}>🔄</span>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900 }}>
+                      Fresh Restart (શરૂઆતથી નવેસરથી આપવા દો)
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#a7f3d0', marginTop: 2 }}>
+                      અગાઉનો સબમિશન ડિલીટ થશે અને વિદ્યાર્થી પ્રશ્ન નં. 1 થી નવેસરથી ટેસ્ટ આપશે.
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {reAccessLoading && (
+                <div style={{ textAlign: 'center', marginTop: 14, color: '#f59e0b', fontSize: '0.82rem', fontWeight: 800 }}>
+                  ⏳ પ્રોસેસ થઈ રહ્યું છે, કૃપા કરીને રાહ જુઓ...
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              background: '#090d16',
+              padding: '12px 20px',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                type="button"
+                disabled={reAccessLoading}
+                onClick={() => setReAccessModalSub(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#cbd5e1',
+                  padding: '7px 16px',
+                  borderRadius: 8,
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                રદ કરો (Cancel)
+              </button>
             </div>
           </div>
         </div>,

@@ -110,6 +110,17 @@ export default function ExamEngine({ onFinish }) {
     ...extra
   }), [screenshotCount, questions]);
 
+  // ─── ⏱️ 6-Minute Inactivity Detector State ───────────────────
+  const INACTIVITY_TIMEOUT_MS = 6 * 60 * 1000; // 6 mins
+  const INACTIVITY_WARNING_MS = 5.5 * 60 * 1000; // 5 mins 30 secs
+  const lastActivityTimeRef = useRef(Date.now());
+  const [inactivityWarningSeconds, setInactivityWarningSeconds] = useState(null);
+
+  const resetInactivityTimer = useCallback(() => {
+    lastActivityTimeRef.current = Date.now();
+    setInactivityWarningSeconds(null);
+  }, []);
+
   // ─── 🔊 Procedural Anti-Cheat Warning Audio Synthesizer ───
   const playAlertBeep = (freq = 750, count = 2) => {
     try {
@@ -603,6 +614,44 @@ export default function ExamEngine({ onFinish }) {
     };
   }, [activeTestCode, user, onFinish, screenshotCount, getFinishPayload]);
 
+  // ─── ⏱️ 6-Minute Inactivity Monitoring Engine ────────────────
+  useEffect(() => {
+    const handleUserActivity = () => {
+      lastActivityTimeRef.current = Date.now();
+      if (inactivityWarningSeconds !== null && inactivityWarningSeconds > 0) {
+        setInactivityWarningSeconds(null);
+      }
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach(evt => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    const inactivityInterval = setInterval(() => {
+      const elapsed = Date.now() - lastActivityTimeRef.current;
+      if (elapsed >= INACTIVITY_TIMEOUT_MS) {
+        clearInterval(inactivityInterval);
+        setInactivityWarningSeconds(0);
+        playAlertBeep(1100, 3);
+        setTimeout(() => {
+          onFinish(true, tabSwitchCount, getFinishPayload({
+            autoSubmitReason: 'INACTIVITY_6MIN',
+            isAutoSubmit: true
+          }));
+        }, 1200);
+      } else if (elapsed >= INACTIVITY_WARNING_MS) {
+        const remainingSecs = Math.max(1, Math.ceil((INACTIVITY_TIMEOUT_MS - elapsed) / 1000));
+        setInactivityWarningSeconds(remainingSecs);
+      } else {
+        setInactivityWarningSeconds(null);
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach(evt => window.removeEventListener(evt, handleUserActivity));
+      clearInterval(inactivityInterval);
+    };
+  }, [onFinish, tabSwitchCount, getFinishPayload, inactivityWarningSeconds]);
+
   // ─── Auto-advance when Per-Question Timer hits 0 ────────────
   const goNextAuto = useCallback(() => {
     setCurrentIndex(prev => {
@@ -1053,6 +1102,118 @@ export default function ExamEngine({ onFinish }) {
                 >
                   ✓ હું સમજી ગયો / ગઈ — કસોટી ચાલુ રાખો →
                 </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ⏰ 6-MINUTE INACTIVITY WARNING MODAL ⏰ */}
+        {inactivityWarningSeconds !== null && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 9999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}>
+            <div className="card animate-fade-in" style={{
+              maxWidth: 480,
+              width: '100%',
+              padding: '30px 24px',
+              borderRadius: 20,
+              textAlign: 'center',
+              boxShadow: '0 25px 50px -12px rgba(245, 158, 11, 0.45)',
+              border: '2.5px solid #f59e0b',
+              background: '#ffffff'
+            }}>
+              <div style={{
+                width: 72,
+                height: 72,
+                borderRadius: '50%',
+                background: 'rgba(245, 158, 11, 0.15)',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.4rem',
+                margin: '0 auto 16px auto',
+                boxShadow: '0 0 24px rgba(245, 158, 11, 0.35)'
+              }}>
+                ⏰
+              </div>
+
+              <h3 style={{
+                margin: '0 0 10px 0',
+                color: '#b45309',
+                fontSize: '1.35rem',
+                fontWeight: 900
+              }}>
+                {inactivityWarningSeconds <= 0
+                  ? '🛑 કસોટી આપોઆપ સબમિટ થઈ રહી છે...'
+                  : '⚠️ તમે ૫:૩૦ મિનિટથી નિષ્ક્રિય છો!'}
+              </h3>
+
+              <p style={{
+                color: '#334155',
+                fontSize: '0.95rem',
+                lineHeight: 1.6,
+                margin: '0 0 20px 0',
+                fontWeight: 600
+              }}>
+                {inactivityWarningSeconds <= 0
+                  ? '૬ મિનિટ સુધી કોઈ જવાબ કે પ્રતિક્રિયા ન મળતાં તમારી કસોટી આપમેળે સબમિટ કરવામાં આવી રહી છે.'
+                  : 'પરીક્ષા નીતિ મુજબ, જો ૬ મિનિટ સુધી કોઈ જવાબ કે ક્લિક નહીં થાય તો તમારી કસોટી આપોઆપ સબમિટ થઈ જશે!'}
+              </p>
+
+              {inactivityWarningSeconds > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  border: '2px dashed #f59e0b',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  marginBottom: 22,
+                  fontSize: '1.25rem',
+                  color: '#b45309',
+                  fontWeight: 900
+                }}>
+                  ⏱️ ઓટો-સબમિટ બાકી: <span style={{ color: '#dc2626', fontSize: '1.45rem' }}>{inactivityWarningSeconds}</span> સેકન્ડ
+                </div>
+              )}
+
+              {inactivityWarningSeconds > 0 ? (
+                <button
+                  type="button"
+                  onClick={resetInactivityTimer}
+                  className="btn-primary"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '14px',
+                    fontSize: '1.05rem',
+                    fontWeight: 900,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 16px rgba(22, 163, 74, 0.4)'
+                  }}
+                >
+                  ✅ હું હાજર છું — પરીક્ષા ચાલુ રાખો!
+                </button>
+              ) : (
+                <div style={{
+                  padding: '14px',
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  fontSize: '0.94rem'
+                }}>
+                  ⏳ ઓટો-સબમિશન ચાલુ છે...
+                </div>
               )}
             </div>
           </div>
