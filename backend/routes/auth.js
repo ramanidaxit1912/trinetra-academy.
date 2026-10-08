@@ -10,8 +10,17 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function normalizeDigits(str) {
+  const gujaratiDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+  let res = String(str || '');
+  gujaratiDigits.forEach((d, i) => {
+    res = res.replaceAll(d, String(i));
+  });
+  return res;
+}
+
 function cleanIndianMobile(rawMobile) {
-  let digits = String(rawMobile || '').replace(/\D/g, '');
+  let digits = normalizeDigits(rawMobile).replace(/\D/g, '');
   if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
   else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
   return digits.slice(0, 10);
@@ -188,18 +197,18 @@ router.post('/send-otp', async (req, res) => {
 
   try {
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
 
-    // ⚡ Fast Parallel Execution: Invalidate old + Create new OTP concurrently in Supabase
-    const dbPromise = Promise.all([
-      prisma.oTPSession.updateMany({
-        where: { mobile: cleanMobile, used: false },
-        data: { used: true }
-      }),
-      prisma.oTPSession.create({
-        data: { mobile: cleanMobile, otp, expiresAt }
-      })
-    ]);
+    // 1. Invalidate any prior unused OTPs sequentially first (fixes race condition where updateMany marked new OTP as used)
+    await prisma.oTPSession.updateMany({
+      where: { mobile: cleanMobile, used: false },
+      data: { used: true }
+    });
+
+    // 2. Create the fresh new OTP session with used: false
+    await prisma.oTPSession.create({
+      data: { mobile: cleanMobile, otp, expiresAt, used: false }
+    });
 
     // Check Teacher Dashboard OTP Delivery Setting ('WHATSAPP' vs 'SCREEN')
     const { getSetting } = require('../services/settingsService');
@@ -207,7 +216,6 @@ router.post('/send-otp', async (req, res) => {
 
     if (otpMode === 'SCREEN') {
       // ⚡ Direct Screen Display Mode: 0s waiting, no WhatsApp quota consumed
-      await dbPromise;
       return res.json({ 
         success: true, 
         message: '🔑 તમારો લૉગિન OTP નીચે સ્ક્રીન પર દર્શાવવામાં આવ્યો છે.',
@@ -219,13 +227,13 @@ router.post('/send-otp', async (req, res) => {
 
     // 🟢 WhatsApp Mode: 100% Automated Free WhatsApp OTP Delivery (dispatches immediately)
     const { sendWhatsAppOTP } = require('../services/whatsappService');
-    const waPromise = sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી').catch(err => {
+    let waResult = { success: false };
+    try {
+      waResult = await sendWhatsAppOTP(cleanMobile, otp, name || 'વિદ્યાર્થી');
+    } catch (err) {
       console.warn('WhatsApp service trigger note:', err.message);
-      return { success: false, error: err.message };
-    });
-
-    // Wait for both DB and WhatsApp concurrently (cuts waiting time by 50%!)
-    const [, waResult] = await Promise.all([dbPromise, waPromise]);
+      waResult = { success: false, error: err.message };
+    }
 
     const isDeliveredViaWhatsApp = Boolean(waResult?.success);
     const shouldProvideScreenOtp = process.env.OTP_MODE === 'dev' || !isDeliveredViaWhatsApp;
@@ -256,17 +264,29 @@ router.post('/verify-otp', async (req, res) => {
 
   try {
     const cleanMobile = cleanIndianMobile(mobile);
+    const rawMobile = String(mobile || '').trim();
+    const last10 = rawMobile.replace(/\D/g, '').slice(-10);
+    const cleanOtp = normalizeDigits(otp).replace(/\D/g, '').trim();
+
+    const mobileVariants = Array.from(new Set([
+      cleanMobile,
+      rawMobile,
+      last10,
+      `+91${cleanMobile}`,
+      `91${cleanMobile}`,
+      `0${cleanMobile}`
+    ])).filter(Boolean);
 
     // Check Master PIN (191219) or Find valid OTP Session
     const MASTER_PIN = process.env.MASTER_PIN || '191219';
-    const isMasterOTP = String(otp).trim() === MASTER_PIN;
+    const isMasterOTP = cleanOtp === MASTER_PIN;
 
     let otpSession = null;
     if (isMasterOTP) {
       // Check if teacher has granted Master PIN access to this student mobile
       const allowedStudent = await prisma.student.findFirst({
         where: {
-          mobile: { in: [cleanMobile, mobile] },
+          mobile: { in: mobileVariants },
           OR: [
             { masterAccessAllowed: true },
             { masterAccessExpiresAt: { gt: new Date() } }
@@ -286,24 +306,40 @@ router.post('/verify-otp', async (req, res) => {
         data: { masterAccessAllowed: false, masterAccessExpiresAt: null }
       });
     } else {
+      // 1. Primary lookup: Unused OTP matching session with 2-min clock skew tolerance
       otpSession = await prisma.oTPSession.findFirst({
         where: {
-          mobile: { in: [cleanMobile, mobile] },
-          otp,
+          mobile: { in: mobileVariants },
+          otp: cleanOtp,
           used: false,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date(Date.now() - 2 * 60 * 1000) }
+        },
+        orderBy: { createdAt: 'desc' }
       });
+
+      // 2. Fallback safety: If matching OTP was created within the last 60 seconds (handles quick retry / double submit)
+      if (!otpSession) {
+        otpSession = await prisma.oTPSession.findFirst({
+          where: {
+            mobile: { in: mobileVariants },
+            otp: cleanOtp,
+            createdAt: { gt: new Date(Date.now() - 60 * 1000) }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      }
 
       if (!otpSession) {
         return res.status(400).json({ error: '❌ OTP ખોટો છે અથવા સમય પૂરો થઈ ગયો છે.' });
       }
 
       // Mark OTP as used
-      await prisma.oTPSession.update({
-        where: { id: otpSession.id },
-        data: { used: true }
-      });
+      if (!otpSession.used) {
+        await prisma.oTPSession.update({
+          where: { id: otpSession.id },
+          data: { used: true }
+        });
+      }
     }
 
     // Generate new unique Session ID for Single Device Login
@@ -312,8 +348,8 @@ router.post('/verify-otp', async (req, res) => {
     // Upsert student (create if not exists) with new sessionId & login timestamp
     const student = await prisma.student.upsert({
       where: { mobile: cleanMobile },
-      update: { name, currentSessionId: sessionId, lastLoginAt: new Date() },
-      create: { mobile: cleanMobile, name, currentSessionId: sessionId, lastLoginAt: new Date() }
+      update: { name: String(name).trim(), currentSessionId: sessionId, lastLoginAt: new Date() },
+      create: { mobile: cleanMobile, name: String(name).trim(), currentSessionId: sessionId, lastLoginAt: new Date() }
     });
 
     // Generate JWT with embedded sessionId (8-hour student session)

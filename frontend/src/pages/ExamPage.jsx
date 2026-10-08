@@ -267,10 +267,13 @@ export default function ExamPage() {
   // ─── Step 2: Verify OTP ───────────────────────────────────
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setLoading(true);
     try {
-      const res = await verifyOTP(form.mobile, form.name, otp);
+      const cleanMob = String(form.mobile || '').replace(/\D/g, '').slice(-10);
+      const cleanOtpStr = String(otp || '').trim().replace(/\s+/g, '');
+      const res = await verifyOTP(cleanMob, String(form.name || '').trim(), cleanOtpStr);
       loginStudent(res.data.student, res.data.token);
       await loadQuestionsAndStart();
     } catch (err) {

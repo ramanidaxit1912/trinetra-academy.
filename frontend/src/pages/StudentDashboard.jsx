@@ -1003,6 +1003,7 @@ export default function StudentDashboard() {
     }
     setAuthLoading(true);
     try {
+      setOtp('');
       const res = await sendOTP(valResult.cleaned, name);
       if (res.data.devOtp) setDevOtp(res.data.devOtp);
       setOtpDeliveryMsg(res.data.message || (res.data.whatsappSent ? `📲 +91 ${mobile} ના WhatsApp પર OTP મોકલ્યો છે.` : ''));
@@ -1027,10 +1028,13 @@ export default function StudentDashboard() {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
+    if (authLoading) return;
     setAuthError('');
     setAuthLoading(true);
     try {
-      const res = await verifyOTP(mobile, name, otp);
+      const cleanMob = String(mobile || '').replace(/\D/g, '').slice(-10);
+      const cleanOtpStr = String(otp || '').trim().replace(/\s+/g, '');
+      const res = await verifyOTP(cleanMob, String(name || '').trim(), cleanOtpStr);
       
       // 🌟 Trigger Shatter Vault Doors & Dimensional Warp Sequence
       setIsVaultOpening(true);
