@@ -137,50 +137,136 @@ function Avatar({ name, size = 36, colors }) {
 }
 
 /* ─── 📐 Math Symbol Quick Insert Toolbar ──────────────── */
-export function MathSymbolToolbar({ onInsert }) {
+export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
+  const lastActiveElRef = useRef(null);
+
+  useEffect(() => {
+    const handleFocusCapture = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === 'TEXTAREA' || (tag === 'INPUT' && !['file', 'button', 'submit', 'checkbox', 'radio'].includes(e.target?.type))) {
+        lastActiveElRef.current = e.target;
+      }
+    };
+    document.addEventListener('focusin', handleFocusCapture, true);
+    return () => document.removeEventListener('focusin', handleFocusCapture, true);
+  }, []);
+
   const symbols = [
-    { label: '½', val: '1/2', title: 'Fraction 1/2' },
-    { label: '¾', val: '3/4', title: 'Fraction 3/4' },
-    { label: 'a/b', val: '\\frac{a}{b}', title: 'LaTeX Fraction' },
-    { label: 'x²', val: 'x^2', title: 'Square power' },
-    { label: 'x³', val: 'x^3', title: 'Cube power' },
-    { label: 'xⁿ', val: 'x^n', title: 'n power' },
-    { label: 'x₁', val: 'x_1', title: 'Subscript' },
-    { label: '√', val: '\\sqrt{}', title: 'Square root' },
-    { label: '∛', val: '\\sqrt[3]{}', title: 'Cube root' },
+    { label: '½', val: '½', title: 'Fraction 1/2' },
+    { label: '¾', val: '¾', title: 'Fraction 3/4' },
+    { label: 'a/b', val: '\\frac{a}{b}', title: 'LaTeX Fraction (અપૂર્ણાંક)' },
+    { label: 'x²', val: 'x²', title: 'વર્ગ (Square / Power 2)' },
+    { label: 'x³', val: 'x³', title: 'ઘન (Cube / Power 3)' },
+    { label: 'xⁿ', val: 'xⁿ', title: 'n-ઘાત (Power n)' },
+    { label: 'x₁', val: 'x₁', title: 'સબસ્ક્રીપ્ટ (Subscript 1)' },
+    { label: '√', val: '√', title: 'વર્ગમૂળ (Square root)' },
+    { label: '∛', val: '∛', title: 'ઘનમૂળ (Cube root)' },
     { label: '→MN', val: '→ MN', title: 'Ray (કિરણ)' },
     { label: '↔MN', val: '↔ MN', title: 'Line (રેખા)' },
     { label: '¯MN', val: '\u0304 MN', title: 'Segment (રેખાખંડ)' },
-    { label: '∠', val: '\\angle ', title: 'Angle (ખૂણો)' },
-    { label: '△', val: '\\Delta ', title: 'Triangle (ત્રિકોણ)' },
-    { label: '°', val: '^o', title: 'Degree' },
-    { label: 'π', val: 'pi', title: 'Pi' },
-    { label: 'θ', val: 'theta', title: 'Theta' },
-    { label: 'α', val: 'alpha', title: 'Alpha' },
-    { label: 'β', val: 'beta', title: 'Beta' },
-    { label: '±', val: '+-', title: 'Plus-Minus' },
-    { label: '≠', val: '!=', title: 'Not Equal' },
-    { label: '≤', val: '<=', title: 'Less or Equal' },
-    { label: '≥', val: '>=', title: 'Greater or Equal' },
-    { label: '×', val: '\\times', title: 'Multiply' },
-    { label: '÷', val: '\\div', title: 'Divide' },
-    { label: '∞', val: '\\infty', title: 'Infinity' },
-    { label: '∴', val: '\\therefore', title: 'Therefore' },
-    { label: '∵', val: '\\because', title: 'Because' },
-    { label: '⇒', val: '=>', title: 'Implies' },
-    { label: '∈', val: '\\in', title: 'Element of' },
-    { label: '∪', val: '\\cup', title: 'Union' },
-    { label: '∩', val: '\\cap', title: 'Intersection' },
-    { label: '⊥', val: '\\perp', title: 'Perpendicular' },
-    { label: '∥', val: '\\parallel', title: 'Parallel' },
-    { label: '→ પ્રક્રિયા', val: ' \\to ', title: 'રાસાયણિક પ્રક્રિયા (Chemical Reaction)' },
-    { label: '⇌ સંતુલન', val: ' \\rightleftharpoons ', title: 'રાસાયણિક સંતુલન (Equilibrium)' },
-    { label: '°C', val: '^\\circ C', title: 'ડિગ્રી સેલ્સિયસ (°C)' },
-    { label: 'Ω', val: '\\Omega', title: 'ઓહ્મ (Ohm)' },
-    { label: 'λ', val: '\\lambda', title: 'તરંગલંબાઈ (Lambda)' },
-    { label: 'μ', val: '\\mu', title: 'માઇક્રો (Micro)' },
+    { label: '∠', val: '∠ ', title: 'Angle (ખૂણો)' },
+    { label: '△', val: '△ ', title: 'Triangle (ત્રિકોણ)' },
+    { label: '°', val: '°', title: 'Degree (અંશ)' },
+    { label: 'π', val: 'π', title: 'Pi' },
+    { label: 'θ', val: 'θ', title: 'Theta' },
+    { label: 'α', val: 'α', title: 'Alpha' },
+    { label: 'β', val: 'β', title: 'Beta' },
+    { label: '±', val: '±', title: 'Plus-Minus' },
+    { label: '≠', val: '≠', title: 'Not Equal' },
+    { label: '≤', val: '≤', title: 'Less or Equal' },
+    { label: '≥', val: '≥', title: 'Greater or Equal' },
+    { label: '×', val: '×', title: 'Multiply' },
+    { label: '÷', val: '÷', title: 'Divide' },
+    { label: '∞', val: '∞', title: 'Infinity' },
+    { label: '∴', val: '∴', title: 'Therefore' },
+    { label: '∵', val: '∵', title: 'Because' },
+    { label: '⇒', val: '⇒', title: 'Implies' },
+    { label: '∈', val: '∈', title: 'Element of' },
+    { label: '∪', val: '∪', title: 'Union' },
+    { label: '∩', val: '∩', title: 'Intersection' },
+    { label: '⊥', val: '⊥', title: 'Perpendicular' },
+    { label: '∥', val: '∥', title: 'Parallel' },
+    { label: '→ પ્રક્રિયા', val: ' → ', title: 'રાસાયણિક પ્રક્રિયા (Chemical Reaction)' },
+    { label: '⇌ સંતુલન', val: ' ⇌ ', title: 'રાસાયણિક સંતુલન (Equilibrium)' },
+    { label: '°C', val: '°C', title: 'ડિગ્રી સેલ્સિયસ (°C)' },
+    { label: 'Ω', val: 'Ω', title: 'ઓહ્મ (Ohm)' },
+    { label: 'λ', val: 'λ', title: 'તરંગલંબાઈ (Lambda)' },
+    { label: 'μ', val: 'μ', title: 'માઇક્રો (Micro)' },
     { label: '॥ ૧ ॥', val: '॥ ૧ ॥', title: 'સંસ્કૃત શ્લોક વિરામ (Danda)' },
   ];
+
+  const handleInsert = (rawVal) => {
+    let el = null;
+    if (targetRef && targetRef.current && document.contains(targetRef.current)) {
+      el = targetRef.current;
+    } else if (lastActiveElRef.current && document.contains(lastActiveElRef.current)) {
+      el = lastActiveElRef.current;
+    }
+
+    if (el && typeof el.selectionStart === 'number') {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const currentVal = (el === targetRef?.current && value !== undefined) ? value : (el.value || '');
+      const before = currentVal.substring(0, start);
+      const after = currentVal.substring(end);
+
+      // Smart powers/subscripts: if cursor is preceded by variable/number, insert power/subscript only
+      let symToInsert = rawVal;
+      const charBefore = before.trim().slice(-1);
+      const isPrecededByVar = /[a-zA-Z0-9\)]/.test(charBefore);
+
+      if (rawVal === 'x²' || rawVal === 'x^2') {
+        symToInsert = isPrecededByVar ? '²' : 'x²';
+      } else if (rawVal === 'x³' || rawVal === 'x^3') {
+        symToInsert = isPrecededByVar ? '³' : 'x³';
+      } else if (rawVal === 'xⁿ' || rawVal === 'x^n') {
+        symToInsert = isPrecededByVar ? 'ⁿ' : 'xⁿ';
+      } else if (rawVal === 'x₁' || rawVal === 'x_1') {
+        symToInsert = isPrecededByVar ? '₁' : 'x₁';
+      }
+
+      const newVal = before + symToInsert + after;
+
+      if (el === targetRef?.current && onChange) {
+        onChange(newVal);
+      } else {
+        try {
+          const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+          const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(el, newVal);
+          } else {
+            el.value = newVal;
+          }
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (err) {
+          el.value = newVal;
+        }
+      }
+
+      if (onInsert) {
+        onInsert(symToInsert, newVal);
+      }
+
+      requestAnimationFrame(() => {
+        try {
+          el.focus();
+          const nextPos = start + symToInsert.length;
+          el.setSelectionRange(nextPos, nextPos);
+        } catch (err) {}
+      });
+    } else {
+      const currentVal = value || '';
+      const spacer = (currentVal && !currentVal.endsWith(' ') && !rawVal.startsWith(' ')) ? ' ' : '';
+      const newVal = currentVal + spacer + rawVal;
+      if (onChange) {
+        onChange(newVal);
+      } else if (onInsert) {
+        onInsert(rawVal, newVal);
+      }
+    }
+  };
 
   return (
     <div style={{ background: 'rgba(30,41,59,0.85)', borderRadius: 8, padding: '6px 8px', marginBottom: 8, border: '1px solid rgba(148,163,184,0.2)' }}>
@@ -193,7 +279,8 @@ export function MathSymbolToolbar({ onInsert }) {
             key={idx}
             type="button"
             title={s.title}
-            onClick={() => onInsert && onInsert(s.val)}
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => handleInsert(s.val)}
             style={{
               background: 'rgba(51,65,85,0.9)',
               color: '#f8fafc',
@@ -4094,7 +4181,11 @@ function ManualTestCreator({ showToast, onDone }) {
               </div>
 
               {/* Math Symbol Toolbar for Question Text */}
-              <MathSymbolToolbar onInsert={(sym) => updateQuestionAtIndex(activeIdx, 'text', (curQ.text || '') + (curQ.text && !curQ.text.endsWith(' ') ? ' ' : '') + sym)} />
+              <MathSymbolToolbar
+                value={curQ.text || ''}
+                onChange={(val) => updateQuestionAtIndex(activeIdx, 'text', val)}
+                onInsert={(sym) => updateQuestionAtIndex(activeIdx, 'text', (curQ.text || '') + sym)}
+              />
 
               {/* Question Text */}
               <div style={{ marginBottom: 14 }}>
@@ -4778,7 +4869,11 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           </div>
 
           {/* Math Symbol Toolbar */}
-          <MathSymbolToolbar onInsert={(sym) => setNewQ(q => ({ ...q, text: (q.text || '') + (q.text && !q.text.endsWith(' ') ? ' ' : '') + sym }))} />
+          <MathSymbolToolbar
+            value={newQ.text || ''}
+            onChange={(val) => setNewQ(q => ({ ...q, text: val }))}
+            onInsert={(sym) => setNewQ(q => ({ ...q, text: (q.text || '') + sym }))}
+          />
 
           <div style={{ marginBottom: 10 }}>
             <label style={darkLbl}>Question Text *</label>
@@ -5048,7 +5143,11 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   </div>
 
                   {/* Math Toolbar for Edit */}
-                  <MathSymbolToolbar onInsert={(sym) => setEditForm(f => ({ ...f, text: (f.text || '') + (f.text && !f.text.endsWith(' ') ? ' ' : '') + sym }))} />
+                  <MathSymbolToolbar
+                    value={editForm.text || ''}
+                    onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
+                    onInsert={(sym) => setEditForm(f => ({ ...f, text: (f.text || '') + sym }))}
+                  />
 
                   <div style={{ marginBottom: 10 }}>
                     <label style={darkLbl}>Question Text</label>
@@ -9356,6 +9455,10 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                       </select>
                                       <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => setEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
                                     </div>
+                                    <MathSymbolToolbar
+                                      value={editForm.text || ''}
+                                      onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
+                                    />
                                     <textarea className="input-dark" rows={2} placeholder="પ્રશ્ન લખાણ..." value={editForm.text || ''} onChange={e => setEditForm(f => ({ ...f, text: e.target.value }))} style={{ marginBottom: 8 }} />
 
                                     {/* ── QUESTION IMAGE UPLOAD IN EDIT ── */}
@@ -10181,6 +10284,11 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                             <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => setEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
                           </div>
                         </div>
+
+                        <MathSymbolToolbar
+                          value={editForm.text || ''}
+                          onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
+                        />
 
                         <div style={{ marginBottom: 8 }}>
                           <label style={darkLbl}>Question Text</label>

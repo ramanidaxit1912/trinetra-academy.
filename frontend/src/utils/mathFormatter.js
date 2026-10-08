@@ -303,11 +303,17 @@ export function formatMathText(rawText, isQuestion = false) {
     try { return renderKaTeX(`\\vec{${letters}}`, false); } catch { return `vec(${letters})`; }
   });
 
-  // Degrees: 90^\circ, 90^o, 45\degree -> 90°, 45°
+  // Degrees & Celsius: 90^\circ, 90^o, 45\degree, ^\circ C, ^\circ, \degree C -> 90°, 45°, °C, °
+  text = text.replace(/\^\\circ\s*C\b/gi, '°C');
+  text = text.replace(/\\degree\s*C\b/gi, '°C');
+  text = text.replace(/\^o\s*C\b/gi, '°C');
+  text = text.replace(/\^0\s*C\b/gi, '°C');
   text = text.replace(/(\d+)\^\\circ/g, '$1°');
+  text = text.replace(/\^\\circ\b/g, '°');
   text = text.replace(/(\d+)\^o\b/g, '$1°');
   text = text.replace(/(\d+)\^0\b/g, '$1°');
   text = text.replace(/\\degree\b/g, '°');
+  text = text.replace(/\\circ\b/g, '°');
 
   // 3. Mixed Fractions: e.g. 3 1/2, 7 11/12, 4 5/6
   //    -> whole + KaTeX stacked fraction (e.g. 3 and \frac{1}{2})
@@ -338,6 +344,28 @@ export function formatMathText(rawText, isQuestion = false) {
 
   // 6. Common Math & Logic Symbols
   const symbols = [
+    // Chemical Reactions, Arrows & Equilibria
+    [ /\\rightleftharpoons\b|\\leftrightharpoons\b/g, '⇌' ],
+    [ /\\to\b|\\rightarrow\b|\\longrightarrow\b/g, '→' ],
+    [ /\\leftarrow\b|\\longleftarrow\b/g, '←' ],
+    [ /\\leftrightarrow\b|\\longleftrightarrow\b/g, '↔' ],
+    [ /\\Rightarrow\b|\\Longrightarrow\b/g, '⇒' ],
+    [ /\\Leftarrow\b|\\Longleftarrow\b/g, '⇐' ],
+    [ /\\Leftrightarrow\b|\\Longleftrightarrow\b/g, '⇔' ],
+    [ /\\mapsto\b/g, '↦' ],
+    [ /\\uparrow\b/g, '↑' ],
+    [ /\\downarrow\b/g, '↓' ],
+    [ /\\updownarrow\b/g, '↕' ],
+    [ /(?<=\s)->(?=\s)/g, '→' ],
+    [ /(?<=\s)<-(?=\s)/g, '←' ],
+    [ /(?<=\s)<->(?=\s)/g, '↔' ],
+
+    // Geometry, Angles & Calculus
+    [ /\\angle\b/g, '∠' ],
+    [ /\\Delta\b|\\triangle\b/g, 'Δ' ],
+    [ /\\nabla\b/g, '∇' ],
+    [ /\\partial\b/g, '∂' ],
+
     [ /\\pm\b|\+\-/g, '±' ],
     [ /\\mp\b|\-\+/g, '∓' ],
     [ /\\neq\b|!=|<>/g, '≠' ],
