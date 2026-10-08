@@ -12560,7 +12560,11 @@ function StudentAnswers({ showToast }) {
                                 const idxB = b.masterOrderIndex !== null && b.masterOrderIndex !== undefined ? b.masterOrderIndex : (b.question?.orderIndex ?? 9999);
                                 return idxA - idxB;
                               })
-                            : revList;
+                            : [...revList].sort((a, b) => {
+                                const seqA = a.studentSeq !== null && a.studentSeq !== undefined ? Number(a.studentSeq) : 9999;
+                                const seqB = b.studentSeq !== null && b.studentSeq !== undefined ? Number(b.studentSeq) : 9999;
+                                return seqA - seqB;
+                              });
 
                           return (
                             <div style={{ marginBottom: 18 }}>
@@ -12829,18 +12833,29 @@ function StudentAnswers({ showToast }) {
                                     const qKey = q.id !== undefined && q.id !== null ? q.id : qIdx;
                                     const hasOverride = questionOverrides[sub.id]?.[qKey] !== undefined;
                                     const effectiveCorrect = hasOverride ? questionOverrides[sub.id][qKey] : isCorrect;
+                                    const isStudentCurrentQ = sub.status === 'IN_PROGRESS' && (
+                                      sub.currentIndex !== null && sub.currentIndex !== undefined && (
+                                        curSeqOrder === 'STUDENT'
+                                          ? (Number(item.studentSeq) === (Number(sub.currentIndex) + 1) || qIdx === Number(sub.currentIndex))
+                                          : (Number(item.masterOrderIndex) === Number(sub.currentIndex))
+                                      )
+                                    );
 
                                     return (
                                       <div key={q.id || qIdx}
                                         className="sa-review-q-card"
                                         style={{
-                                          background: '#1e293b',
+                                          background: isStudentCurrentQ ? 'radial-gradient(circle at top, rgba(34,197,94,0.14) 0%, #1e293b 80%)' : '#1e293b',
                                           borderRadius: 12,
                                           padding: '14px 14px',
-                                          border: isMCQ
-                                            ? (effectiveCorrect ? '1.5px solid rgba(34,197,94,0.5)' : (studentAns ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)'))
-                                            : '1px solid rgba(245,158,11,0.3)',
-                                          boxShadow: hasOverride ? '0 0 14px rgba(234,179,8,0.15)' : 'none',
+                                          border: isStudentCurrentQ
+                                            ? '2px solid #22c55e'
+                                            : isMCQ
+                                              ? (effectiveCorrect ? '1.5px solid rgba(34,197,94,0.5)' : (studentAns ? '1.5px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)'))
+                                              : '1px solid rgba(245,158,11,0.3)',
+                                          boxShadow: isStudentCurrentQ
+                                            ? '0 0 18px rgba(34,197,94,0.3)'
+                                            : (hasOverride ? '0 0 14px rgba(234,179,8,0.15)' : 'none'),
                                           minWidth: 0,
                                           overflow: 'hidden'
                                         }}>
@@ -12850,7 +12865,7 @@ function StudentAnswers({ showToast }) {
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                             <span style={{
                                               width: 26, height: 26, borderRadius: '50%',
-                                              background: isMCQ ? (effectiveCorrect ? '#15803d' : (studentAns ? '#b91c1c' : '#475569')) : '#b45309',
+                                              background: isStudentCurrentQ ? '#16a34a' : (isMCQ ? (effectiveCorrect ? '#15803d' : (studentAns ? '#b91c1c' : '#475569')) : '#b45309'),
                                               color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                               fontSize: '0.78rem', fontWeight: 900, flexShrink: 0
                                             }}>
@@ -12866,6 +12881,11 @@ function StudentAnswers({ showToast }) {
                                                   {item.masterOrderIndex !== undefined && item.masterOrderIndex !== null && (
                                                     <span style={{ color: '#94a3b8', fontSize: '0.72rem', marginLeft: 5, fontWeight: 600 }}>
                                                       [મુખ્ય પેપર: #{item.masterOrderIndex + 1}]
+                                                    </span>
+                                                  )}
+                                                  {isStudentCurrentQ && (
+                                                    <span style={{ color: '#4ade80', fontSize: '0.7rem', marginLeft: 6, fontWeight: 900, background: 'rgba(34,197,94,0.22)', padding: '2px 7px', borderRadius: 5, border: '1px solid rgba(34,197,94,0.45)' }}>
+                                                      🔴 Live સવાલ
                                                     </span>
                                                   )}
                                                 </>

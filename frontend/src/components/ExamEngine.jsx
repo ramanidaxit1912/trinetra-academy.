@@ -426,6 +426,33 @@ export default function ExamEngine({ onFinish }) {
     return () => clearTimeout(timer);
   }, [currentIndex, answers, questions, activeTestCode, activeTestName, activeSubject, user]);
 
+  // ─── Immediate Initial Sync on Mount ─────────────────────────
+  // Registers student's exact shuffled question sequence with backend immediately (0 delay)
+  const hasSyncedInitialRef = useRef(false);
+  useEffect(() => {
+    if (!hasSyncedInitialRef.current && user && activeTestCode && questions.length > 0) {
+      hasSyncedInitialRef.current = true;
+      saveTestProgress({
+        testCode: activeTestCode,
+        testName: activeTestName,
+        subject: activeSubject,
+        currentIndex: currentIndex || 0,
+        savedAnswers: answers || {},
+        answers: questions.map((q, sIdx) => {
+          const ans = (answers && answers[q.id]) || {};
+          return {
+            questionId: Number(q.id),
+            studentOrder: sIdx + 1,
+            type: q.type || 'mcq',
+            selectedOpt: ans.selectedOpt || null,
+            answerText: ans.answerText || '',
+            timeSpent: ans.timeSpent || 0
+          };
+        })
+      }).catch(() => {});
+    }
+  }, [user, activeTestCode, questions]);
+
   useEffect(() => {
     questionStartTimeRef.current = Date.now();
   }, [currentIndex]);

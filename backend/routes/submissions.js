@@ -557,10 +557,16 @@ function buildOrderedDetailedReview(questions, answersArr, photoUrl) {
 
   // 1. Order questions by student's attempt sequence from answersArr
   if (Array.isArray(answersArr) && answersArr.length > 0) {
-    answersArr.forEach((ans, aIdx) => {
+    const sortedAnswersArr = [...answersArr].sort((a, b) => {
+      const orderA = a.studentOrder !== undefined && a.studentOrder !== null ? Number(a.studentOrder) : (a.studentSeq !== undefined && a.studentSeq !== null ? Number(a.studentSeq) : 99999);
+      const orderB = b.studentOrder !== undefined && b.studentOrder !== null ? Number(b.studentOrder) : (b.studentSeq !== undefined && b.studentSeq !== null ? Number(b.studentSeq) : 99999);
+      return orderA - orderB;
+    });
+
+    sortedAnswersArr.forEach((ans, aIdx) => {
       const qId = Number(ans.questionId);
       const q = qMap.get(qId);
-      if (q) {
+      if (q && !seenQIds.has(q.id)) {
         seenQIds.add(q.id);
         orderedItems.push({
           q,
@@ -592,7 +598,15 @@ function buildOrderedDetailedReview(questions, answersArr, photoUrl) {
     }));
   }
 
-  return orderedItems.map(({ q, ans, studentSeq }) => {
+  // Strictly sort by student's sequence so questions always appear in student's exact shuffled order
+  orderedItems.sort((a, b) => {
+    const seqA = a.studentSeq !== undefined && a.studentSeq !== null ? Number(a.studentSeq) : 99999;
+    const seqB = b.studentSeq !== undefined && b.studentSeq !== null ? Number(b.studentSeq) : 99999;
+    return seqA - seqB;
+  });
+
+  return orderedItems.map(({ q, ans, studentSeq }, idx) => {
+    const finalStudentSeq = studentSeq || (idx + 1);
     const selected = ans.selectedOpt || ans.text || '';
     let isCorrect = null;
     if (q.type === 'mcq') {
@@ -606,7 +620,7 @@ function buildOrderedDetailedReview(questions, answersArr, photoUrl) {
     }
     return {
       question: q,
-      studentSeq, // Student's question #1, #2, #3...
+      studentSeq: finalStudentSeq, // Student's question #1, #2, #3...
       masterOrderIndex: q.orderIndex !== undefined && q.orderIndex !== null ? q.orderIndex : null, // Master original #
       studentAnswer: selected,
       isCorrect,
