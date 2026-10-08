@@ -4475,7 +4475,7 @@ function ManualTestCreator({ showToast, onDone }) {
                   </div>
 
                   <textarea className="input-dark" rows={2} placeholder={`પ્રશ્ન #${idx + 1} લખો...`}
-                    value={formatMathText(q.text)} onChange={e => updateQuestionAtIndex(idx, 'text', e.target.value)}
+                    value={q.text || ''} onChange={e => updateQuestionAtIndex(idx, 'text', e.target.value)}
                     style={{ marginBottom: 10 }} />
 
                   {q.type === 'mcq' && (
@@ -4528,23 +4528,119 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
     text: '', type: 'mcq', optionA: '', optionB: '', optionC: '', optionD: '', correctOpt: 'A', marks: 1, image: '', imageUrl: '', optionA_img: '', optionB_img: '', optionC_img: '', optionD_img: ''
   });
 
-  const handleSaveQuestion = async (qId) => {
-    try {
-      await updateQuestion(qId, editForm);
-      showToast('✅ પ્રશ્ન સુધારી લેવાયો!', 'success');
-      setEditingQId(null);
-      setTestData(prev => ({
-        ...prev,
-        questions: prev.questions.map(q => q.id === qId ? { ...q, ...editForm } : q)
-      }));
-      if (onSaved) onSaved();
-    } catch {
-      showToast('પ્રશ્ન સુધારવામાં ક્ષતિ.', 'error');
+  /* ── ⚡ Auto-Save System for All Question Edits ── */
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+  const [autoSaveTime, setAutoSaveTime]     = useState('');
+  const autoSaveTimerRef                    = useRef(null);
+  const activeEditingQIdRef                 = useRef(null);
+  const currentEditFormRef                  = useRef({});
+
+  activeEditingQIdRef.current = editingQId;
+  currentEditFormRef.current  = editForm;
+
+  const triggerAutoSave = (updatedForm, immediate = false) => {
+    const qId = activeEditingQIdRef.current;
+    if (!qId) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
     }
+
+    setAutoSaveStatus('saving');
+
+    const executeSave = async () => {
+      try {
+        await updateQuestion(qId, updatedForm);
+        setTestData(prev => ({
+          ...prev,
+          questions: prev.questions.map(q => q.id === qId ? { ...q, ...updatedForm } : q)
+        }));
+        setAutoSaveStatus('saved');
+        const now = new Date();
+        setAutoSaveTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        if (onSaved) onSaved();
+      } catch (err) {
+        console.error('Auto-save error:', err);
+        setAutoSaveStatus('error');
+      }
+    };
+
+    if (immediate) {
+      executeSave();
+    } else {
+      autoSaveTimerRef.current = setTimeout(executeSave, 700);
+    }
+  };
+
+  const updateEditForm = (updater, immediate = false) => {
+    setEditForm(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      currentEditFormRef.current = next;
+      triggerAutoSave(next, immediate);
+      return next;
+    });
+  };
+
+  const flushAutoSave = async () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+      if (activeEditingQIdRef.current && currentEditFormRef.current) {
+        try {
+          await updateQuestion(activeEditingQIdRef.current, currentEditFormRef.current);
+          setTestData(prev => ({
+            ...prev,
+            questions: prev.questions.map(q => q.id === activeEditingQIdRef.current ? { ...q, ...currentEditFormRef.current } : q)
+          }));
+          if (onSaved) onSaved();
+        } catch (e) {
+          console.error('Flush auto-save error:', e);
+        }
+      }
+    }
+  };
+
+  const handleStartEdit = async (targetQ) => {
+    await flushAutoSave();
+    setEditingQId(targetQ.id);
+    setEditForm({ ...targetQ });
+    setAutoSaveStatus('saved');
+    setAutoSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  };
+
+  const handleCloseEdit = async () => {
+    await flushAutoSave();
+    setEditingQId(null);
+    setEditForm({});
+    setAutoSaveStatus('idle');
+    showToast('✅ પ્રશ્ન આપમેળે સેવ થઈ ગયો છે!', 'success');
+  };
+
+  const handleNavigateEdit = async (targetIndex) => {
+    const targetQ = testData.questions[targetIndex];
+    if (!targetQ) return;
+    await handleStartEdit(targetQ);
+  };
+
+  const handleSaveQuestion = async (qId) => {
+    await flushAutoSave();
+    showToast('✅ પ્રશ્ન આપમેળે સેવ થઈ ગયો છે!', 'success');
+    setEditingQId(null);
+    setEditForm({});
+    setAutoSaveStatus('idle');
   };
 
   const handleDeleteQuestion = async (qId) => {
     if (!confirm('આ પ્રશ્ન ડીલીટ કરવો છે?')) return;
+    if (autoSaveTimerRef.current && activeEditingQIdRef.current === qId) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    if (editingQId === qId) {
+      setEditingQId(null);
+      setEditForm({});
+    }
     try {
       await deleteQuestion(qId);
       showToast('પ્રશ્ન દૂર થયો.', 'success');
@@ -4655,6 +4751,9 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
             <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', fontSize: '0.7rem', fontWeight: 900, padding: '2px 8px', borderRadius: 6 }}>
               ✏️ EDIT TEST
+            </span>
+            <span style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', fontSize: '0.7rem', fontWeight: 900, padding: '2px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              ⚡ પ્રશ્નો ઓટો-સેવ સક્રિય
             </span>
             {(() => {
               const testStr = `${testData.testName || ''} ${testData.subject || ''} ${testData.testCode || ''}`.toUpperCase();
@@ -5175,11 +5274,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                         style={{ height: 30, background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8', padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                         <Eye size={13} /> મોબાઇલ વ્યૂ
                       </button>
-                      <button onClick={() => {
-                        setEditingQId(q.id);
-                        setEditForm({ ...q });
-                      }}
-                        title="પ્રશ્નમાં સુધારો કરો"
+                      <button onClick={() => handleStartEdit(q)}
+                        title="પ્રશ્નમાં સુધારો કરો (આપમેળે સેવ થશે)"
                         style={{ height: 30, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#fbbf24', padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                         <Edit3 size={13} /> Edit (સુધારો)
                       </button>
@@ -5269,27 +5365,71 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   )}
                 </div>
               ) : (
-                /* Question Edit Mode */
-                <div className="animate-fade-in">
-                  <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: '0.85rem', marginBottom: 10 }}>
-                    ✏️ પ્રશ્ન #{idx + 1} સુધારો (Edit Question)
+                /* Question Edit Mode with ⚡ Live Auto-Save */
+                <div className="animate-fade-in" style={{ border: '1.5px solid rgba(34,197,94,0.3)', borderRadius: 12, padding: 14, background: 'rgba(15,23,42,0.65)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      ✏️ પ્રશ્ન #{idx + 1} સુધારો (Edit Question)
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {/* Live Auto-save status badge */}
+                      {autoSaveStatus === 'saving' && (
+                        <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.45)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          💾 સેવ થાય છે...
+                        </span>
+                      )}
+                      {autoSaveStatus === 'saved' && (
+                        <span style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          ✅ ઓટો-સેવ થઈ ગયું ({autoSaveTime})
+                        </span>
+                      )}
+                      {autoSaveStatus === 'error' && (
+                        <span style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          ⚠️ સેવમાં ક્ષતિ
+                        </span>
+                      )}
+                      {autoSaveStatus === 'idle' && (
+                        <span style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          ⚡ ઓટો-સેવ સક્રિય
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleCloseEdit}
+                        style={{
+                          background: 'rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          color: '#e2e8f0',
+                          padding: '3px 10px',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: '0.72rem',
+                          fontWeight: 700
+                        }}
+                        title="સુધારો બંધ કરો (બધા ફેરફારો આપમેળે સેવ થઈ ગયા છે)"
+                      >
+                        ✕ બંધ કરો
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
                     <div>
                       <label style={darkLbl}>Type</label>
-                      <select className="input-dark" value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}>
+                      <select className="input-dark" value={editForm.type} onChange={e => updateEditForm(f => ({ ...f, type: e.target.value }), true)}>
                         <option value="mcq">🔵 MCQ</option>
                         <option value="descriptive">📝 Descriptive</option>
                       </select>
                     </div>
                     <div>
                       <label style={darkLbl}>Marks</label>
-                      <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => setEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
+                      <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => updateEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
                     </div>
                     <div>
                       <label style={darkLbl}>Negative Marking</label>
-                      <select className="input-dark" value={editForm.negativeMarking || 0} onChange={e => setEditForm(f => ({ ...f, negativeMarking: parseFloat(e.target.value) }))}>
+                      <select className="input-dark" value={editForm.negativeMarking || 0} onChange={e => updateEditForm(f => ({ ...f, negativeMarking: parseFloat(e.target.value) }))}>
                         <option value={0}>🚫 0 (No Negative)</option>
                         <option value={0.25}>➖ -0.25 (1/4 Neg)</option>
                         <option value={0.33}>➖ -0.33 (1/3 Neg)</option>
@@ -5302,13 +5442,13 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   {/* Math Toolbar for Edit */}
                   <MathSymbolToolbar
                     value={editForm.text || ''}
-                    onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
-                    onInsert={(sym) => setEditForm(f => ({ ...f, text: (f.text || '') + sym }))}
+                    onChange={(val) => updateEditForm(f => ({ ...f, text: val }))}
+                    onInsert={(sym) => updateEditForm(f => ({ ...f, text: (f.text || '') + sym }))}
                   />
 
                   <div style={{ marginBottom: 10 }}>
                     <label style={darkLbl}>Question Text</label>
-                    <textarea className="input-dark" rows={2} value={editForm.text || ''} onChange={e => setEditForm(f => ({ ...f, text: e.target.value }))} />
+                    <textarea className="input-dark" rows={2} value={editForm.text || ''} onChange={e => updateEditForm(f => ({ ...f, text: e.target.value }))} />
                   </div>
 
                   {/* Question Image in Edit */}
@@ -5318,7 +5458,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                         <ImageIcon size={14} /> પ્રશ્નનો ફોટો / આકૃતિ (Question Image)
                       </label>
                       {(editForm.image || editForm.imageUrl) && (
-                        <button type="button" onClick={() => setEditForm(f => ({ ...f, image: '', imageUrl: '' }))}
+                        <button type="button" onClick={() => updateEditForm(f => ({ ...f, image: '', imageUrl: '' }), true)}
                           style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '3px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Hind Vadodara, sans-serif' }}>
                           <Trash2 size={12} /> 🗑️ ફોટો દૂર કરો (Delete Image)
                         </button>
@@ -5338,7 +5478,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                               const file = e.target.files[0];
                               if (!file) return;
                               const r = new FileReader();
-                              r.onload = ev => setEditForm(f => ({ ...f, image: ev.target.result, imageUrl: ev.target.result }));
+                              r.onload = ev => updateEditForm(f => ({ ...f, image: ev.target.result, imageUrl: ev.target.result }), true);
                               r.readAsDataURL(file);
                               e.target.value = '';
                             }} />
@@ -5346,7 +5486,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                         <input className="input-dark" style={{ flex: 1, minWidth: 160, fontSize: '0.75rem', padding: '8px 10px' }}
                           placeholder="અથવા Image URL / Base64 પેસ્ટ કરો..."
                           value={editForm.image || editForm.imageUrl || ''}
-                          onChange={e => setEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
+                          onChange={e => updateEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
                       </div>
                     )}
                   </div>
@@ -5354,19 +5494,19 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   {/* MCQ Options in Edit */}
                   {editForm.type === 'mcq' && (
                     <>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginBottom: 10 }}>
-                        {['A','B','C','D'].map(opt => (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 10 }}>
+                        {['A','B','C','D', ...(editForm.optionE || editForm.optionE_img ? ['E'] : [])].map(opt => (
                           <div key={opt}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                              <label style={{ ...darkLbl, fontSize: '0.68rem', margin: 0 }}>Option {opt}</label>
+                              <label style={{ ...darkLbl, fontSize: '0.68rem', margin: 0 }}>Option {opt} {opt === 'E' && '(Skip)'}</label>
                               {editForm[`option${opt}_img`] && (
-                                <button type="button" onClick={() => setEditForm(f => ({ ...f, [`option${opt}_img`]: '' }))}
+                                <button type="button" onClick={() => updateEditForm(f => ({ ...f, [`option${opt}_img`]: '' }), true)}
                                   style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0 }} title="Delete Option Image">
                                   <X size={12} />
                                 </button>
                               )}
                             </div>
-                            <input className="input-dark" value={editForm[`option${opt}`] || ''} onChange={e => setEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 4 }} />
+                            <input className="input-dark" value={editForm[`option${opt}`] || ''} onChange={e => updateEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 4 }} />
                             {editForm[`option${opt}_img`] ? (
                               <img src={editForm[`option${opt}_img`]} alt={`Opt ${opt}`} style={{ maxHeight: 50, maxWidth: '100%', borderRadius: 4 }} />
                             ) : (
@@ -5377,7 +5517,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                                     const file = e.target.files[0];
                                     if (!file) return;
                                     const r = new FileReader();
-                                    r.onload = ev => setEditForm(f => ({ ...f, [`option${opt}_img`]: ev.target.result }));
+                                    r.onload = ev => updateEditForm(f => ({ ...f, [`option${opt}_img`]: ev.target.result }), true);
                                     r.readAsDataURL(file);
                                     e.target.value = '';
                                   }} />
@@ -5389,8 +5529,8 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                       <div style={{ marginBottom: 12 }}>
                         <label style={darkLbl}>✅ સાચો જવાબ પસંદ કરો</label>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          {['A','B','C','D'].map(opt => (
-                            <button key={opt} type="button" onClick={() => setEditForm(f => ({ ...f, correctOpt: opt }))}
+                          {['A','B','C','D', ...(editForm.optionE || editForm.optionE_img ? ['E'] : [])].map(opt => (
+                            <button key={opt} type="button" onClick={() => updateEditForm(f => ({ ...f, correctOpt: opt }), true)}
                               style={{ flex: 1, padding: '7px', borderRadius: 8, border: `1.5px solid ${editForm.correctOpt === opt ? '#22c55e' : 'rgba(255,255,255,0.1)'}`, background: editForm.correctOpt === opt ? 'rgba(34,197,94,0.25)' : 'transparent', color: editForm.correctOpt === opt ? '#22c55e' : '#94a3b8', fontWeight: 800, cursor: 'pointer' }}>
                               {opt} {editForm.correctOpt === opt && '✓'}
                             </button>
@@ -5403,15 +5543,81 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   {/* 👁️ Live Math Preview for Edit */}
                   <LiveMathQuestionPreview qData={editForm} existingQuestions={testData.questions} />
 
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button onClick={() => setEditingQId(null)}
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-                      Cancel
-                    </button>
-                    <button onClick={() => handleSaveQuestion(q.id)}
-                      style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-                      ✅ સાચવો (Save Changes)
-                    </button>
+                  {/* Bottom Navigation & Done Actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap', gap: 10 }}>
+                    {/* Left: Quick Jump between Questions */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled={idx <= 0}
+                        onClick={() => handleNavigateEdit(idx - 1)}
+                        style={{
+                          background: idx <= 0 ? 'rgba(255,255,255,0.02)' : 'rgba(59,130,246,0.15)',
+                          border: '1px solid rgba(59,130,246,0.3)',
+                          color: idx <= 0 ? '#475569' : '#93c5fd',
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          cursor: idx <= 0 ? 'not-allowed' : 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                        title="અગાઉના પ્રશ્ન પર જાઓ (આ પ્રશ્ન આપમેળે સેવ થશે)"
+                      >
+                        ◀ પ્રશ્ન #{idx}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx >= testData.questions.length - 1}
+                        onClick={() => handleNavigateEdit(idx + 1)}
+                        style={{
+                          background: idx >= testData.questions.length - 1 ? 'rgba(255,255,255,0.02)' : 'rgba(59,130,246,0.15)',
+                          border: '1px solid rgba(59,130,246,0.3)',
+                          color: idx >= testData.questions.length - 1 ? '#475569' : '#93c5fd',
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          cursor: idx >= testData.questions.length - 1 ? 'not-allowed' : 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                        title="આગળના પ્રશ્ન પર જાઓ (આ પ્રશ્ન આપમેળે સેવ થશે)"
+                      >
+                        પ્રશ્ન #{idx + 2} ▶
+                      </button>
+                    </div>
+
+                    {/* Right: Done button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        💡 ફેરફાર આપમેળે સેવ થઈ રહ્યા છે
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCloseEdit}
+                        style={{
+                          background: 'linear-gradient(135deg,#047857,#10b981)',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 18px',
+                          borderRadius: 8,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          fontSize: '0.84rem',
+                          fontFamily: 'Hind Vadodara, sans-serif',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          boxShadow: '0 4px 14px rgba(5,150,105,0.35)'
+                        }}
+                      >
+                        ✅ પૂર્ણ (Done / બંધ કરો)
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -5501,8 +5707,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
               onEdit={() => {
                 const targetQ = { ...phonePreviewQ };
                 setPhonePreviewQ(null);
-                setEditingQId(targetQ.id);
-                setEditForm(targetQ);
+                handleStartEdit(targetQ);
               }}
             />
 
@@ -5513,8 +5718,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                 onClick={() => {
                   const targetQ = { ...phonePreviewQ };
                   setPhonePreviewQ(null);
-                  setEditingQId(targetQ.id);
-                  setEditForm(targetQ);
+                  handleStartEdit(targetQ);
                 }}
                 style={{
                   flex: 1,
@@ -8753,24 +8957,102 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
     }
   };
 
-  // ── Edit Question inside Preview ──────────────────────
-  const handleSaveQuestionEdit = async (qid) => {
-    try {
-      await updateQuestion(qid, editForm);
-      showToast('✅ પ્રશ્ન સુધારી લેવાયો!', 'success');
-      setEditingQId(null);
-      setEditForm({});
-      await fetchData();
-      setPreviewTest(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          questions: prev.questions.map(q => q.id === qid ? { ...q, ...editForm } : q)
-        };
-      });
-    } catch {
-      showToast('પ્રશ્ન સુધારવામાં ક્ષતિ.', 'error');
+  // ── ⚡ Auto-Save System for Preview / Row Question Edits ──
+  const [previewAutoSaveStatus, setPreviewAutoSaveStatus] = useState('idle');
+  const [previewAutoSaveTime, setPreviewAutoSaveTime]     = useState('');
+  const previewAutoSaveTimerRef                           = useRef(null);
+  const previewEditingQIdRef                              = useRef(null);
+  const previewEditFormRef                                = useRef({});
+
+  previewEditingQIdRef.current = editingQId;
+  previewEditFormRef.current   = editForm;
+
+  const triggerPreviewAutoSave = (updatedForm, immediate = false) => {
+    const qId = previewEditingQIdRef.current;
+    if (!qId) return;
+
+    if (previewAutoSaveTimerRef.current) {
+      clearTimeout(previewAutoSaveTimerRef.current);
+      previewAutoSaveTimerRef.current = null;
     }
+
+    setPreviewAutoSaveStatus('saving');
+
+    const executeSave = async () => {
+      try {
+        await updateQuestion(qId, updatedForm);
+        setPreviewTest(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            questions: prev.questions.map(q => q.id === qId ? { ...q, ...updatedForm } : q)
+          };
+        });
+        setPreviewAutoSaveStatus('saved');
+        const now = new Date();
+        setPreviewAutoSaveTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch (err) {
+        console.error('Preview Auto-save error:', err);
+        setPreviewAutoSaveStatus('error');
+      }
+    };
+
+    if (immediate) {
+      executeSave();
+    } else {
+      previewAutoSaveTimerRef.current = setTimeout(executeSave, 700);
+    }
+  };
+
+  const updatePreviewEditForm = (updater, immediate = false) => {
+    setEditForm(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      previewEditFormRef.current = next;
+      triggerPreviewAutoSave(next, immediate);
+      return next;
+    });
+  };
+
+  const flushPreviewAutoSave = async () => {
+    if (previewAutoSaveTimerRef.current) {
+      clearTimeout(previewAutoSaveTimerRef.current);
+      previewAutoSaveTimerRef.current = null;
+      if (previewEditingQIdRef.current && previewEditFormRef.current) {
+        try {
+          await updateQuestion(previewEditingQIdRef.current, previewEditFormRef.current);
+          setPreviewTest(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              questions: prev.questions.map(q => q.id === previewEditingQIdRef.current ? { ...q, ...previewEditFormRef.current } : q)
+            };
+          });
+        } catch (e) {
+          console.error('Flush preview auto-save error:', e);
+        }
+      }
+    }
+  };
+
+  const handleStartQuestionEdit = async (targetQ) => {
+    await flushPreviewAutoSave();
+    setEditingQId(targetQ.id);
+    setEditForm({ ...targetQ });
+    setPreviewAutoSaveStatus('saved');
+    setPreviewAutoSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  };
+
+  const handleCloseQuestionEdit = async () => {
+    await flushPreviewAutoSave();
+    setEditingQId(null);
+    setEditForm({});
+    setPreviewAutoSaveStatus('idle');
+    await fetchData();
+  };
+
+  const handleSaveQuestionEdit = async (qid) => {
+    await handleCloseQuestionEdit();
+    showToast('✅ પ્રશ્ન આપમેળે સેવ થઈ ગયો છે!', 'success');
   };
 
   // ── Delete Question inside Preview ────────────────────
@@ -9518,10 +9800,9 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                       </div>
 
                                       <div style={{ display: 'flex', gap: 5 }}>
-                                        <button onClick={() => {
-                                          setEditingQId(q.id);
-                                          setEditForm({ ...q });
-                                        }} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '4px 9px', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                                        <button onClick={() => handleStartQuestionEdit(q)}
+                                          title="પ્રશ્નમાં સુધારો કરો (આપમેળે સેવ થશે)"
+                                          style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '4px 9px', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'Hind Vadodara, sans-serif' }}>
                                           <Edit3 size={12} /> Edit
                                         </button>
                                         <button onClick={() => handleDeleteInPreview(q.id)}
@@ -9601,23 +9882,43 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                     )}
                                   </div>
                                 ) : (
-                                  /* Inline Question Edit Form with Full Image & Options Support */
-                                  <div className="animate-fade-in" style={{ background: 'rgba(59,130,246,0.06)', padding: 12, borderRadius: 10, border: '1.5px solid rgba(59,130,246,0.35)' }}>
-                                    <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.86rem', marginBottom: 8 }}>
-                                      ✏️ પ્રશ્ન #{i+1} સુધારો (Edit Question)
-                                    </div>
+                                  /* Inline Question Edit Form with Full Image & Options Support & ⚡ Live Auto-Save */
+                                    <div className="animate-fade-in" style={{ background: 'rgba(59,130,246,0.06)', padding: 12, borderRadius: 10, border: '1.5px solid rgba(59,130,246,0.35)' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                                        <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.86rem' }}>
+                                          ✏️ પ્રશ્ન #{i+1} સુધારો (Edit Question)
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                          {previewAutoSaveStatus === 'saving' && (
+                                            <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800 }}>
+                                              💾 સેવ થાય છે...
+                                            </span>
+                                          )}
+                                          {previewAutoSaveStatus === 'saved' && (
+                                            <span style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800 }}>
+                                              ✅ ઓટો-સેવ ({previewAutoSaveTime})
+                                            </span>
+                                          )}
+                                          {previewAutoSaveStatus === 'idle' && (
+                                            <span style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
+                                              ⚡ ઓટો-સેવ સક્રિય
+                                            </span>
+                                          )}
+                                          <button type="button" onClick={handleCloseQuestionEdit} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                                        </div>
+                                      </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 6 }}>
-                                      <select className="input-dark" value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}>
+                                      <select className="input-dark" value={editForm.type} onChange={e => updatePreviewEditForm(f => ({ ...f, type: e.target.value }), true)}>
                                         <option value="mcq">🔵 MCQ</option>
                                         <option value="descriptive">📝 Descriptive</option>
                                       </select>
-                                      <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => setEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
+                                      <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => updatePreviewEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
                                     </div>
                                     <MathSymbolToolbar
                                       value={editForm.text || ''}
-                                      onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
+                                      onChange={(val) => updatePreviewEditForm(f => ({ ...f, text: val }))} onInsert={(sym) => updatePreviewEditForm(f => ({ ...f, text: (f.text || '') + sym }))}
                                     />
-                                    <textarea className="input-dark" rows={2} placeholder="પ્રશ્ન લખાણ..." value={editForm.text || ''} onChange={e => setEditForm(f => ({ ...f, text: e.target.value }))} style={{ marginBottom: 8 }} />
+                                    <textarea className="input-dark" rows={2} placeholder="પ્રશ્ન લખાણ..." value={editForm.text || ''} onChange={e => updatePreviewEditForm(f => ({ ...f, text: e.target.value }))} style={{ marginBottom: 8 }} />
 
                                     {/* ── QUESTION IMAGE UPLOAD IN EDIT ── */}
                                     <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', marginBottom: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -9626,7 +9927,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                           <ImageIcon size={13} /> 🖼️ પ્રશ્નનો ફોટો (Question Image)
                                         </label>
                                         {(editForm.image || editForm.imageUrl) && (
-                                          <button type="button" onClick={() => setEditForm(f => ({ ...f, image: '', imageUrl: '' }))}
+                                          <button type="button" onClick={() => updatePreviewEditForm(f => ({ ...f, image: '', imageUrl: '' }), true)}
                                             style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '3px 8px', borderRadius: 6, cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>
                                             🗑️ ફોટો દૂર કરો
                                           </button>
@@ -9649,7 +9950,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                                   e.target.value = '';
                                                 }} />
                                             </label>
-                                            <button type="button" onClick={() => setEditForm(f => ({ ...f, image: '', imageUrl: '' }))}
+                                            <button type="button" onClick={() => updatePreviewEditForm(f => ({ ...f, image: '', imageUrl: '' }), true)}
                                               style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                               <Trash2 size={12} /> 🗑️ ફોટો હટાવો
                                             </button>
@@ -9672,7 +9973,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                           <input className="input-dark" style={{ flex: 1, minWidth: 130, fontSize: '0.75rem', padding: '6px 8px' }}
                                             placeholder="અથવા Image URL / Base64..."
                                             value={editForm.image || editForm.imageUrl || ''}
-                                            onChange={e => setEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
+                                            onChange={e => updatePreviewEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
                                         </div>
                                       )}
                                     </div>
@@ -9692,7 +9993,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                                   </button>
                                                 )}
                                               </div>
-                                              <input className="input-dark" placeholder={`Option ${opt}`} value={editForm[`option${opt}`] || ''} onChange={e => setEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 4 }} />
+                                              <input className="input-dark" placeholder={`Option ${opt}`} value={editForm[`option${opt}`] || ''} onChange={e => updatePreviewEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 4 }} />
                                               
                                               {editForm[`option${opt}_img`] ? (
                                                 <div style={{ marginTop: 2, textAlign: 'center', background: '#000', padding: 2, borderRadius: 4 }}>
@@ -9721,7 +10022,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                           <label style={{ ...darkLbl, fontSize: '0.74rem', marginBottom: 4 }}>🎯 સાચો જવાબ (Correct Option):</label>
                                           <div style={{ display: 'flex', gap: 6 }}>
                                             {['A','B','C','D'].map(opt => (
-                                              <button key={opt} type="button" onClick={() => setEditForm(f => ({ ...f, correctOpt: opt }))}
+                                              <button key={opt} type="button" onClick={() => updatePreviewEditForm(f => ({ ...f, correctOpt: opt }), true)}
                                                 style={{ flex: 1, padding: '6px', borderRadius: 8, border: `1.5px solid ${editForm.correctOpt === opt ? '#22c55e' : 'rgba(255,255,255,0.1)'}`, background: editForm.correctOpt === opt ? 'rgba(34,197,94,0.25)' : 'transparent', color: editForm.correctOpt === opt ? '#22c55e' : '#94a3b8', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>
                                                 {opt} {editForm.correctOpt === opt && '✓'}
                                               </button>
@@ -9732,12 +10033,14 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                     )}
 
                                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
-                                      <button onClick={() => setEditingQId(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem' }}>
-                                        Cancel
-                                      </button>
-                                      <button onClick={() => handleSaveQuestionEdit(q.id)} style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '7px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(5,150,105,0.35)' }}>
-                                        ✅ સાચવો (Save)
-                                      </button>
+                                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                          💡 સુધારા આપમેળે (Auto-save) સેવ થઈ રહ્યા છે
+                                        </span>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                          <button onClick={handleCloseQuestionEdit} style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '7px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(5,150,105,0.35)' }}>
+                                            ✅ પૂર્ણ (Done / બંધ કરો)
+                                          </button>
+                                        </div>
                                     </div>
                                   </div>
                                 )}
@@ -10333,10 +10636,9 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                           </div>
 
                           <div style={{ display: 'flex', gap: 5 }}>
-                            <button onClick={() => {
-                              setEditingQId(q.id);
-                              setEditForm({ ...q });
-                            }} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '4px 9px', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'Hind Vadodara, sans-serif' }}>
+                            <button onClick={() => handleStartQuestionEdit(q)}
+                              title="પ્રશ્નમાં સુધારો કરો (આપમેળે સેવ થશે)"
+                              style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '4px 9px', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'Hind Vadodara, sans-serif' }}>
                               <Edit3 size={12} /> Edit
                             </button>
                             <button onClick={() => handleDeleteInPreview(q.id)}
@@ -10423,34 +10725,54 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                         )}
                       </div>
                     ) : (
-                      /* Question Edit Mode (Mobile Responsive) */
-                      <div className="animate-fade-in">
-                        <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.85rem', marginBottom: 8 }}>
-                          ✏️ પ્રશ્ન #{i+1} સુધારો (Edit Question)
+                      /* Question Edit Mode (Mobile Responsive & ⚡ Live Auto-Save) */
+                      <div className="animate-fade-in" style={{ border: '1.5px solid rgba(34,197,94,0.3)', borderRadius: 10, padding: 12, background: 'rgba(15,23,42,0.65)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                          <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.85rem' }}>
+                            ✏️ પ્રશ્ન #{i+1} સુધારો (Edit Question)
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {previewAutoSaveStatus === 'saving' && (
+                              <span style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800 }}>
+                                💾 સેવ થાય છે...
+                              </span>
+                            )}
+                            {previewAutoSaveStatus === 'saved' && (
+                              <span style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800 }}>
+                                ✅ ઓટો-સેવ ({previewAutoSaveTime})
+                              </span>
+                            )}
+                            {previewAutoSaveStatus === 'idle' && (
+                              <span style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>
+                                ⚡ ઓટો-સેવ સક્રિય
+                              </span>
+                            )}
+                            <button type="button" onClick={handleCloseQuestionEdit} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                          </div>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                           <div>
                             <label style={darkLbl}>Type</label>
-                            <select className="input-dark" value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}>
+                            <select className="input-dark" value={editForm.type} onChange={e => updatePreviewEditForm(f => ({ ...f, type: e.target.value }), true)}>
                               <option value="mcq">🔵 MCQ</option>
                               <option value="descriptive">📝 Descriptive</option>
                             </select>
                           </div>
                           <div>
                             <label style={darkLbl}>Marks</label>
-                            <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => setEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
+                            <input className="input-dark" type="number" min={1} max={50} value={editForm.marks || 1} onChange={e => updatePreviewEditForm(f => ({ ...f, marks: Number(e.target.value) }))} />
                           </div>
                         </div>
 
                         <MathSymbolToolbar
                           value={editForm.text || ''}
-                          onChange={(val) => setEditForm(f => ({ ...f, text: val }))}
+                          onChange={(val) => updatePreviewEditForm(f => ({ ...f, text: val }))} onInsert={(sym) => updatePreviewEditForm(f => ({ ...f, text: (f.text || '') + sym }))}
                         />
 
                         <div style={{ marginBottom: 8 }}>
                           <label style={darkLbl}>Question Text</label>
-                          <textarea className="input-dark" rows={2} value={editForm.text || ''} onChange={e => setEditForm(f => ({ ...f, text: e.target.value }))} />
+                          <textarea className="input-dark" rows={2} value={editForm.text || ''} onChange={e => updatePreviewEditForm(f => ({ ...f, text: e.target.value }))} />
                         </div>
 
                         {/* Question Image in Edit */}
@@ -10460,7 +10782,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                               <ImageIcon size={13} /> પ્રશ્નનો ફોટો (Question Image)
                             </label>
                             {(editForm.image || editForm.imageUrl) && (
-                              <button type="button" onClick={() => setEditForm(f => ({ ...f, image: '', imageUrl: '' }))}
+                              <button type="button" onClick={() => updatePreviewEditForm(f => ({ ...f, image: '', imageUrl: '' }), true)}
                                 style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '3px 8px', borderRadius: 6, cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}>
                                 <Trash2 size={11} /> 🗑️ ફોટો દૂર કરો
                               </button>
@@ -10488,7 +10810,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                               <input className="input-dark" style={{ flex: 1, minWidth: 130, fontSize: '0.75rem', padding: '6px 8px' }}
                                 placeholder="Image URL / Base64..."
                                 value={editForm.image || editForm.imageUrl || ''}
-                                onChange={e => setEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
+                                onChange={e => updatePreviewEditForm(f => ({ ...f, image: e.target.value, imageUrl: e.target.value }))} />
                             </div>
                           )}
                         </div>
@@ -10508,7 +10830,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                       </button>
                                     )}
                                   </div>
-                                  <input className="input-dark" value={editForm[`option${opt}`] || ''} onChange={e => setEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 3 }} />
+                                  <input className="input-dark" value={editForm[`option${opt}`] || ''} onChange={e => updatePreviewEditForm(f => ({ ...f, [`option${opt}`]: e.target.value }))} style={{ marginBottom: 3 }} />
                                   {editForm[`option${opt}_img`] ? (
                                     <img src={editForm[`option${opt}_img`]} alt={`Opt ${opt}`} style={{ maxHeight: 40, maxWidth: '100%', borderRadius: 4 }} />
                                   ) : (
@@ -10532,7 +10854,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                               <label style={darkLbl}>✅ સાચો જવાબ પસંદ કરો</label>
                               <div style={{ display: 'flex', gap: 6 }}>
                                 {['A','B','C','D'].map(opt => (
-                                  <button key={opt} type="button" onClick={() => setEditForm(f => ({ ...f, correctOpt: opt }))}
+                                  <button key={opt} type="button" onClick={() => updatePreviewEditForm(f => ({ ...f, correctOpt: opt }), true)}
                                     style={{ flex: 1, padding: '6px', borderRadius: 8, border: `1.5px solid ${editForm.correctOpt === opt ? '#22c55e' : 'rgba(255,255,255,0.1)'}`, background: editForm.correctOpt === opt ? 'rgba(34,197,94,0.25)' : 'transparent', color: editForm.correctOpt === opt ? '#22c55e' : '#94a3b8', fontWeight: 800, cursor: 'pointer' }}>
                                     {opt} {editForm.correctOpt === opt && '✓'}
                                   </button>
@@ -10542,15 +10864,16 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                           </>
                         )}
 
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          <button onClick={() => setEditingQId(null)}
-                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-                            Cancel
-                          </button>
-                          <button onClick={() => handleSaveQuestionEdit(q.id)}
-                            style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '7px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
-                            ✅ સાચવો
-                          </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 8 }}>
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            💡 સુધારા આપમેળે (Auto-save) સેવ થઈ રહ્યા છે
+                          </span>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={handleCloseQuestionEdit}
+                              style={{ background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '7px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
+                              ✅ પૂર્ણ (Done / બંધ કરો)
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
