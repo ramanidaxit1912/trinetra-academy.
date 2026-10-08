@@ -139,12 +139,22 @@ function Avatar({ name, size = 36, colors }) {
 /* ─── 📐 Math Symbol Quick Insert Toolbar ──────────────── */
 export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
   const lastActiveElRef = useRef(null);
+  const [targetLabel, setTargetLabel] = useState('પ્રશ્ન લખાણ');
 
   useEffect(() => {
     const handleFocusCapture = (e) => {
       const tag = e.target?.tagName;
-      if (tag === 'TEXTAREA' || (tag === 'INPUT' && !['file', 'button', 'submit', 'checkbox', 'radio'].includes(e.target?.type))) {
+      if (tag === 'TEXTAREA') {
         lastActiveElRef.current = e.target;
+        setTargetLabel('પ્રશ્ન લખાણ');
+      } else if (tag === 'INPUT' && !['file', 'button', 'submit', 'checkbox', 'radio'].includes(e.target?.type)) {
+        lastActiveElRef.current = e.target;
+        const ph = (e.target.placeholder || e.target.name || e.target.getAttribute('aria-label') || '').toLowerCase();
+        if (ph.includes('a')) setTargetLabel('વિકલ્પ A');
+        else if (ph.includes('b')) setTargetLabel('વિકલ્પ B');
+        else if (ph.includes('c')) setTargetLabel('વિકલ્પ C');
+        else if (ph.includes('d')) setTargetLabel('વિકલ્પ D');
+        else setTargetLabel('ઓપ્શન બોક્સ');
       }
     };
     document.addEventListener('focusin', handleFocusCapture, true);
@@ -268,11 +278,81 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
     }
   };
 
+  const insertMatchTemplate = () => {
+    const tpl = `નીચેના જોડકાં યોગ્ય રીતે જોડો:
+કોલમ I | કોલમ II
+(A) વિગત ૧ | (1) જવાબ ૧
+(B) વિગત ૨ | (2) જવાબ ૨
+(C) વિગત ૩ | (3) જવાબ ૩
+(D) વિગત ૪ | (4) જવાબ ૪`;
+    handleInsert(tpl);
+  };
+
+  const insertStatementTemplate = () => {
+    const tpl = `નીચે આપેલા વિધાનો ચકાસો:
+(૧) પ્રથમ વિધાન અહીં લખો...
+(૨) બીજું વિધાન અહીં લખો...
+(૩) ત્રીજું વિધાન અહીં લખો...`;
+    handleInsert(tpl);
+  };
+
   return (
     <div style={{ background: 'rgba(30,41,59,0.85)', borderRadius: 8, padding: '6px 8px', marginBottom: 8, border: '1px solid rgba(148,163,184,0.2)' }}>
-      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span>⌨️ ગણિત સિમ્બોલ કીબોર્ડ (ક્લિક કરીને ઉમેરો):</span>
+      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>⌨️ ગણિત સિમ્બોલ કીબોર્ડ:</span>
+          <span style={{ fontSize: '0.64rem', color: '#86efac', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+            🎯 {targetLabel}
+          </span>
+        </div>
+
+        {/* Quick Format Templates */}
+        <div style={{ display: 'flex', gap: 5 }}>
+          <button
+            type="button"
+            onMouseDown={e => e.preventDefault()}
+            onClick={insertMatchTemplate}
+            style={{
+              background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
+              color: '#ffffff',
+              border: '1px solid #3b82f6',
+              borderRadius: 5,
+              padding: '2px 8px',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3
+            }}
+            title="જોડકાં (Match Table) નું તૈયાર ટેમ્પલેટ ઉમેરો"
+          >
+            📋 જોડકાં ટેમ્પલેટ
+          </button>
+          <button
+            type="button"
+            onMouseDown={e => e.preventDefault()}
+            onClick={insertStatementTemplate}
+            style={{
+              background: 'linear-gradient(135deg, #78350f, #d97706)',
+              color: '#ffffff',
+              border: '1px solid #f59e0b',
+              borderRadius: 5,
+              padding: '2px 8px',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3
+            }}
+            title="વિધાનવાળા પ્રશ્નો (Statements) નું તૈયાર ટેમ્પલેટ ઉમેરો"
+          >
+            📌 વિધાન ટેમ્પલેટ
+          </button>
+        </div>
       </div>
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 80, overflowY: 'auto' }}>
         {symbols.map((s, idx) => (
           <button
@@ -305,24 +385,53 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
 }
 
 /* ─── 📱 Realistic Student Mobile Screen Live Preview ─────────────────── */
-export function LiveMathQuestionPreview({ qData, onEdit }) {
+export function LiveMathQuestionPreview({ qData, onEdit, existingQuestions }) {
   if (!qData || (!qData.text?.trim() && !qData.optionA?.trim())) return null;
 
   const hasImage = Boolean(qData.image || qData.imageUrl);
   const options = ['A', 'B', 'C', 'D'];
   if (qData.optionE || qData.optionE_img) options.push('E');
 
+  const duplicateMatch = useMemo(() => {
+    if (!qData?.text?.trim() || !existingQuestions || !Array.isArray(existingQuestions) || existingQuestions.length === 0) return null;
+    const cleanCurrent = qData.text.trim().toLowerCase().replace(/[\s\p{P}]/gu, '');
+    if (cleanCurrent.length < 8) return null;
+    const foundIdx = existingQuestions.findIndex((q, i) => {
+      if (!q || q === qData || (qData.id && q.id === qData.id)) return false;
+      const cleanQ = (q.text || '').trim().toLowerCase().replace(/[\s\p{P}]/gu, '');
+      return cleanQ && (cleanQ === cleanCurrent || (cleanQ.length > 25 && cleanCurrent.includes(cleanQ)));
+    });
+    return foundIdx !== -1 ? foundIdx : null;
+  }, [qData?.text, existingQuestions]);
+
   return (
     <div style={{
       maxWidth: 420,
       margin: '14px auto',
       background: '#090d16',
-      border: '2px solid rgba(56,189,248,0.45)',
+      border: duplicateMatch !== null ? '2px solid rgba(239,68,68,0.7)' : '2px solid rgba(56,189,248,0.45)',
       borderRadius: 22,
       overflow: 'hidden',
-      boxShadow: '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08)',
+      boxShadow: duplicateMatch !== null ? '0 12px 36px rgba(239,68,68,0.35)' : '0 12px 36px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08)',
       fontFamily: 'Hind Vadodara, sans-serif'
     }}>
+      {/* ⚠️ Duplicate Question Alert Banner */}
+      {duplicateMatch !== null && (
+        <div style={{
+          background: 'linear-gradient(135deg, #7f1d1d, #991b1b)',
+          color: '#fee2e2',
+          padding: '8px 14px',
+          fontSize: '0.74rem',
+          fontWeight: 800,
+          borderBottom: '1.5px solid #ef4444',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <span>⚠️ સાવચેતી: આ પ્રશ્ન કસોટીમાં પ્રશ્ન #{duplicateMatch + 1} તરીકે પહેલેથી હાજર છે! (Duplicate)</span>
+        </div>
+      )}
+
       {/* 📱 Phone Top Notch & Status Bar */}
       <div style={{
         background: '#040711',
@@ -4317,7 +4426,7 @@ function ManualTestCreator({ showToast, onDone }) {
               )}
 
               {/* 👁️ Live Math Preview Box */}
-              <LiveMathQuestionPreview qData={{ ...curQ, negativeMarking: testInfo.negativeMarking }} />
+              <LiveMathQuestionPreview qData={{ ...curQ, negativeMarking: testInfo.negativeMarking }} existingQuestions={qList} />
 
               {/* Prev / Next Navigation Buttons */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, gap: 10 }}>
@@ -4481,6 +4590,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
       const res = await createQuestion(payload);
       showToast('✅ નવો પ્રશ્ન ઉમેરાયો!', 'success');
       setShowAdd(false);
+      try { localStorage.removeItem('trinetra_draft_new_q'); } catch(e) {}
       setNewQ({
         text: '', type: 'mcq', optionA: '', optionB: '', optionC: '', optionD: '', correctOpt: 'A', marks: 1, image: '', imageUrl: '', optionA_img: '', optionB_img: '', optionC_img: '', optionD_img: ''
       });
@@ -4876,8 +4986,55 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           />
 
           <div style={{ marginBottom: 10 }}>
-            <label style={darkLbl}>Question Text *</label>
-            <textarea className="input-dark" rows={2} placeholder="પ્રશ્ન અહીં લખો... (દા.ત. (3x+2)/3x અથવા \overline{MN})" value={newQ.text} onChange={e => setNewQ(q => ({ ...q, text: e.target.value }))} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ ...darkLbl, margin: 0 }}>Question Text *</label>
+              {typeof window !== 'undefined' && localStorage.getItem('trinetra_draft_new_q') && (!newQ.text || !newQ.text.trim()) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const d = JSON.parse(localStorage.getItem('trinetra_draft_new_q'));
+                      if (d) {
+                        setNewQ(d);
+                        showToast('🔄 અધૂરો ડ્રાફ્ટ સફળતાપૂર્વક પાછો લાવી દેવાયો!', 'info');
+                      }
+                    } catch(e) {}
+                  }}
+                  style={{
+                    background: 'rgba(56,189,248,0.15)',
+                    border: '1px solid rgba(56,189,248,0.3)',
+                    color: '#38bdf8',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                  title="અગાઉ લખેલો અધૂરો પ્રશ્ન પાછો લાવો"
+                >
+                  🔄 અધૂરો ડ્રાફ્ટ પાછો લાવો
+                </button>
+              )}
+            </div>
+            <textarea
+              className="input-dark"
+              rows={2}
+              placeholder="પ્રશ્ન અહીં લખો... (દા.ત. (3x+2)/3x અથવા \overline{MN})"
+              value={newQ.text}
+              onChange={e => {
+                const val = e.target.value;
+                setNewQ(q => {
+                  const updated = { ...q, text: val };
+                  if (val.trim().length > 3) {
+                    try { localStorage.setItem('trinetra_draft_new_q', JSON.stringify(updated)); } catch(err){}
+                  }
+                  return updated;
+                });
+              }}
+            />
           </div>
 
           {/* Question Image */}
@@ -4978,7 +5135,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
           )}
 
           {/* 👁️ Live Math Preview for Question Add */}
-          <LiveMathQuestionPreview qData={newQ} />
+          <LiveMathQuestionPreview qData={newQ} existingQuestions={testData.questions} />
 
           <button onClick={handleAddQuestion}
             style={{ width: '100%', background: 'linear-gradient(135deg,#047857,#10b981)', color: 'white', border: 'none', padding: '11px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', fontFamily: 'Hind Vadodara, sans-serif' }}>
@@ -5244,7 +5401,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
                   )}
 
                   {/* 👁️ Live Math Preview for Edit */}
-                  <LiveMathQuestionPreview qData={editForm} />
+                  <LiveMathQuestionPreview qData={editForm} existingQuestions={testData.questions} />
 
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button onClick={() => setEditingQId(null)}
@@ -5340,6 +5497,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
             {/* Mobile Question Mockup */}
             <LiveMathQuestionPreview
               qData={phonePreviewQ}
+              existingQuestions={testData.questions}
               onEdit={() => {
                 const targetQ = { ...phonePreviewQ };
                 setPhonePreviewQ(null);
