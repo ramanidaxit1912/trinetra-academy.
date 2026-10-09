@@ -9,6 +9,7 @@ const multer = require('multer');
 const pdfUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 const router = express.Router();
+const progressLockMap = new Map();
 
 
 // Helper to parse scheduled time in Indian Standard Time (IST) or UTC
@@ -169,6 +170,17 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'testCode જરૂરી છે.' });
   }
 
+  const lockKey = `${studentId}_${testCode}`;
+  while (progressLockMap.has(lockKey)) {
+    try {
+      await progressLockMap.get(lockKey);
+    } catch (_) {}
+  }
+
+  let resolveLock;
+  const lockPromise = new Promise(r => { resolveLock = r; });
+  progressLockMap.set(lockKey, lockPromise);
+
   try {
     // Check if test is Enrolled Only:
     const enrolledOnlyQ = await prisma.question.findFirst({
@@ -187,31 +199,42 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
       }
     }
 
-    const existing = await prisma.submission.findFirst({
+    // 🌟 Retrieve all active in-progress sessions for this student on this test
+    const existingSessions = await prisma.submission.findMany({
       where: {
         studentId,
         testCode,
         status: 'IN_PROGRESS'
-      }
+      },
+      orderBy: { id: 'desc' }
     });
 
     let record;
-    let storedSavedAnswers = savedAnswers !== undefined ? savedAnswers : (existing?.savedAnswers || {});
+    const targetSession = existingSessions[0] || null;
+    let storedSavedAnswers = savedAnswers !== undefined ? savedAnswers : (targetSession?.savedAnswers || {});
     if (typeof storedSavedAnswers === 'object' && storedSavedAnswers !== null) {
       storedSavedAnswers._lastActiveAt = Date.now();
     }
 
-    if (existing) {
+    if (targetSession) {
       record = await prisma.submission.update({
-        where: { id: existing.id },
+        where: { id: targetSession.id },
         data: {
-          currentIndex: currentIndex != null ? Number(currentIndex) : existing.currentIndex,
+          currentIndex: currentIndex != null ? Number(currentIndex) : targetSession.currentIndex,
           savedAnswers: storedSavedAnswers,
-          answers: answers || existing.answers || [],
-          testName: testName || existing.testName,
-          subject: subject || existing.subject,
+          answers: answers || targetSession.answers || [],
+          testName: testName || targetSession.testName,
+          subject: subject || targetSession.subject,
         }
       });
+
+      // 🧹 Clean up any older duplicate in-progress sessions immediately
+      if (existingSessions.length > 1) {
+        const extraIds = existingSessions.slice(1).map(s => s.id);
+        await prisma.submission.deleteMany({
+          where: { id: { in: extraIds } }
+        }).catch(err => console.warn('Clean duplicate in-progress note:', err.message));
+      }
     } else {
       record = await prisma.submission.create({
         data: {
@@ -232,6 +255,9 @@ router.post('/save-progress', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Save Progress Error:', err);
     res.status(500).json({ error: 'Progress save કરવામાં ભૂલ.' });
+  } finally {
+    progressLockMap.delete(lockKey);
+    if (resolveLock) resolveLock();
   }
 });
 
@@ -1637,12 +1663,36 @@ router.post('/re-access', authMiddleware, teacherOnly, async (req, res) => {
 router.get('/', authMiddleware, teacherOnly, async (req, res) => {
   try {
     await autoFinalizeStaleSessions();
-    const submissions = await prisma.submission.findMany({
+    const rawSubmissions = await prisma.submission.findMany({
       orderBy: { submittedAt: 'desc' },
       include: {
         student: { select: { id: true, name: true, mobile: true } }
       }
     });
+
+    // 🌟 Deduplicate any multiple IN_PROGRESS sessions for the same student on the same test
+    const seenActiveKeys = new Set();
+    const duplicateInProgressIds = [];
+    const submissions = [];
+
+    for (const sub of rawSubmissions) {
+      if (sub.status === 'IN_PROGRESS' && sub.studentId && sub.testCode) {
+        const key = `${sub.studentId}_${sub.testCode}`;
+        if (seenActiveKeys.has(key)) {
+          duplicateInProgressIds.push(sub.id);
+          continue; // Skip duplicate so teacher never sees multiple entries for the same active student
+        }
+        seenActiveKeys.add(key);
+      }
+      submissions.push(sub);
+    }
+
+    if (duplicateInProgressIds.length > 0) {
+      prisma.submission.deleteMany({
+        where: { id: { in: duplicateInProgressIds } }
+      }).catch(err => console.warn('Clean duplicate in-progress on fetch note:', err.message));
+    }
+
     const enhancedSubmissions = submissions.map(sub => {
       const match = sub.remarks ? sub.remarks.match(/\[IP:\s*([^\]]+)\]/) : null;
       return {

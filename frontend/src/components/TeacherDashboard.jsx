@@ -11902,6 +11902,31 @@ function StudentAnswers({ showToast }) {
 
     // Dynamic Sorting inside each test based on sortBy filter
     Object.values(map).forEach(group => {
+      // 🌟 Deduplicate: Each student appears once per test
+      const studentMap = new Map();
+      group.subs.forEach(s => {
+        const studentKey = s.studentId || (s.student?.mobile ? String(s.student.mobile).replace(/\D/g, '').slice(-10) : s.id);
+        if (!studentMap.has(studentKey)) {
+          studentMap.set(studentKey, s);
+        } else {
+          const existing = studentMap.get(studentKey);
+          if (s.status === 'COMPLETED' && existing.status === 'IN_PROGRESS') {
+            studentMap.set(studentKey, s);
+          } else if (s.status === 'IN_PROGRESS' && existing.status === 'IN_PROGRESS') {
+            if ((s.currentIndex || 0) >= (existing.currentIndex || 0)) {
+              studentMap.set(studentKey, s);
+            }
+          } else if (s.status === 'COMPLETED' && existing.status === 'COMPLETED') {
+            const timeS = new Date(s.submittedAt || s.createdAt || 0).getTime();
+            const timeEx = new Date(existing.submittedAt || existing.createdAt || 0).getTime();
+            if (timeS > timeEx) {
+              studentMap.set(studentKey, s);
+            }
+          }
+        }
+      });
+      group.subs = Array.from(studentMap.values());
+
       if (sortBy === 'LEADERBOARD') {
         // 👑 1. Base sort: highest score first; if tie, faster time first; if tie, earlier submission
         group.subs.sort((a, b) => {
