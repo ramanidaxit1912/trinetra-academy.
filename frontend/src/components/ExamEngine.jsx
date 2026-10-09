@@ -95,6 +95,7 @@ export default function ExamEngine({ onFinish }) {
     } catch (_) { return 0; }
   });
   const [isBlackoutShield, setIsBlackoutShield] = useState(false);
+  const [isSplitScreenBlocked, setIsSplitScreenBlocked] = useState(false);
   const screenshotViolationsRef = useRef([]);
   const lastScreenshotAttemptTime = useRef(0);
   const [slideDirection, setSlideDirection] = useState('next'); // 'next' | 'prev'
@@ -614,6 +615,56 @@ export default function ExamEngine({ onFinish }) {
     };
   }, [activeTestCode, user, onFinish, screenshotCount, getFinishPayload]);
 
+  // ─── 📱 Split-Screen & Floating App Detection Engine ───────────
+  useEffect(() => {
+    let lastSplitAlert = 0;
+
+    const checkSplitScreen = () => {
+      if (typeof window === 'undefined') return;
+
+      const screenH = window.screen.height || window.screen.availHeight || 800;
+      const screenW = window.screen.width || window.screen.availWidth || 360;
+      const innerH = window.innerHeight;
+      const innerW = window.innerWidth;
+
+      // Don't flag if virtual keyboard is open while student is typing
+      const activeTag = document.activeElement?.tagName;
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || Boolean(document.activeElement?.isContentEditable);
+      if (isTyping) return;
+
+      const isMobileDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || (screenW <= 768 && screenH <= 1024);
+
+      if (isMobileDevice) {
+        const isPortrait = screenH >= screenW;
+        // In portrait mode, split screen cuts height to < 58% of screen.height or width < 70%
+        const isSplitPortrait = isPortrait && (innerH / screenH < 0.58 || innerW / screenW < 0.70);
+        // In landscape mode, split screen cuts width to < 60% of screen.width
+        const isSplitLandscape = !isPortrait && (innerW / screenW < 0.60);
+
+        if (isSplitPortrait || isSplitLandscape) {
+          setIsSplitScreenBlocked(true);
+          const now = Date.now();
+          if (now - lastSplitAlert > 3000) {
+            lastSplitAlert = now;
+            playAlertBeep(850, 2);
+          }
+        } else {
+          setIsSplitScreenBlocked(false);
+        }
+      }
+    };
+
+    window.addEventListener('resize', checkSplitScreen);
+    window.addEventListener('orientationchange', checkSplitScreen);
+    const splitInterval = setInterval(checkSplitScreen, 1200);
+
+    return () => {
+      window.removeEventListener('resize', checkSplitScreen);
+      window.removeEventListener('orientationchange', checkSplitScreen);
+      clearInterval(splitInterval);
+    };
+  }, []);
+
   // ─── ⏱️ 6-Minute Inactivity Monitoring Engine ────────────────
   useEffect(() => {
     const handleUserActivity = () => {
@@ -894,6 +945,58 @@ export default function ExamEngine({ onFinish }) {
           <p style={{ color: '#cbd5e1', fontSize: '0.95rem', maxWidth: 420, lineHeight: 1.6, margin: 0 }}>
             સુરક્ષા કારણોસર પરીક્ષા દરમિયાન સ્ક્રીનશોટ પાડવાની સખત મનાઈ છે.
           </p>
+        </div>
+      )}
+
+      {/* 📱 Mobile Split-Screen & Floating App Block Overlay */}
+      {isSplitScreenBlocked && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999998,
+          background: '#090d16',
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          textAlign: 'center',
+          userSelect: 'none'
+        }}>
+          <div style={{
+            width: 84,
+            height: 84,
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '2px solid #ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2.6rem',
+            marginBottom: 18,
+            boxShadow: '0 0 30px rgba(239, 68, 68, 0.35)'
+          }}>
+            📱
+          </div>
+          <h2 style={{ fontSize: '1.35rem', color: '#f87171', fontWeight: 900, margin: '0 0 10px 0' }}>
+            ⚠️ સ્પ્લિટ-સ્ક્રીન ડિટેક્ટ થઈ છે! (Split-Screen Blocked)
+          </h2>
+          <p style={{ color: '#cbd5e1', fontSize: '0.94rem', maxWidth: 440, lineHeight: 1.6, margin: '0 0 16px 0' }}>
+            પરીક્ષા દરમિયાન <strong>સ્પ્લિટ-સ્ક્રીન (Split Screen)</strong> અથવા <strong>ફ્લોટિંગ વિન્ડો</strong> વાપરવી સખત પ્રતિબંધિત છે.
+          </p>
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 12,
+            padding: '12px 18px',
+            color: '#fca5a5',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            maxWidth: 400
+          }}>
+            👉 કૃપા કરીને પરીક્ષા આપવા માટે તમારા મોબાઇલમાં આ એપ્લિકેશન <strong>સંપૂર્ણ સ્ક્રીન (Full Screen)</strong> મોડમાં ખોલો.
+          </div>
         </div>
       )}
 
