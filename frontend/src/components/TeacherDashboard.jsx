@@ -8271,7 +8271,7 @@ function TestGenerate({ showToast, setActiveTab, setSelectedLiveTestCode }) {
                       {t.testName}
                     </h4>
                     <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
-                      {t.questions.length} પ્રશ્નો ({t.mcqCount} MCQ + {t.descCount} Desc) • {t.totalMarks} ગુણ • ⏱ {t.timeLimit}m
+                      {t.questions.length} પ્રશ્નો ({t.mcqCount} MCQ + {t.descCount} Desc) • {t.totalMarks} ગુણ • ⏱ {t.timeLimit === 0 ? 'No Limit' : t.timeLimit <= 300 ? `${t.timeLimit}s/Q` : `${Math.round(t.timeLimit / 60)}m`}
                     </div>
                   </div>
 
@@ -10925,7 +10925,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700 }}>⏱️ સમય / ગુણ</div>
                   <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: '0.8rem', marginTop: 2 }}>
-                    {previewTest.timeLimit}m • {previewTest.totalMarks} ગુણ
+                    {previewTest.timeLimit === 0 ? 'No Limit' : previewTest.timeLimit <= 300 ? `${previewTest.timeLimit}s/Q` : `${Math.round(previewTest.timeLimit / 60)} મિનિટ`} • {previewTest.totalMarks} ગુણ
                   </div>
                 </div>
 

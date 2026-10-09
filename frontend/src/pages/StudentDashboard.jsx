@@ -945,7 +945,7 @@ export default function StudentDashboard() {
             testCode:    key,
             testName:    q.testName || q.chapter || 'સામાન્ય કસોટી (Live Test)',
             subject:     q.subject  || 'General',
-            timeLimit:   q.timeLimit || 60,
+            timeLimit:   (q.timeLimit !== undefined && q.timeLimit !== null) ? Number(q.timeLimit) : 60,
             scheduledAt:    q.scheduledAt || null,
             scheduledEndAt: q.scheduledEndAt || null,
             questions:      [],
@@ -3067,8 +3067,13 @@ export default function StudentDashboard() {
                             <div style={{ color: '#92400e', fontSize: '0.64rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
                               સમય મર્યાદા
                             </div>
-                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.05rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                              <span>⏱️</span> {t.timeLimit || 0}m
+                            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.02rem', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <span>⏱️</span>
+                              {t.timeLimit === 0
+                                ? 'No Limit'
+                                : t.timeLimit <= 300
+                                  ? `${t.timeLimit}s/Q`
+                                  : `${Math.round(t.timeLimit / 60)} મિનિટ`}
                             </div>
                           </div>
 
