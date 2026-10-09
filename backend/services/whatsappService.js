@@ -354,7 +354,7 @@ async function initWhatsAppSlot(slotId) {
           jid.includes('status@broadcast')
         );
       },
-      keepAliveIntervalMs: 30000,
+      keepAliveIntervalMs: 45000,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       retryRequestDelayMs: 2000,

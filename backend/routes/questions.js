@@ -125,18 +125,27 @@ async function autoEndScheduledTests() {
   }
 }
 
-// ⏱️ Auto-run scheduling checks every 15 seconds in the background
-setInterval(async () => {
-  try {
+// ⏱️ Auto-run scheduling checks every 60 seconds (1 Min) in background — saves ~400 MB/month in Supabase queries!
+let lastSchedulerCheckTime = 0;
+async function runSchedulerChecksSafely() {
+  const now = Date.now();
+  if (now - lastSchedulerCheckTime >= 50 * 1000) {
+    lastSchedulerCheckTime = now;
     await autoActivateScheduledTests();
     await autoEndScheduledTests();
+  }
+}
+
+setInterval(async () => {
+  try {
+    await runSchedulerChecksSafely();
   } catch (_) {}
-}, 15 * 1000);
+}, 60 * 1000);
 
 // ─── ⚡ Ultra-Fast In-Memory Cache for Live Questions (0% Database Load) ───
 let questionsCache = null;
 let questionsCacheTime = 0;
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache (was 15s) — saves Supabase bandwidth
+const CACHE_TTL_MS = 45 * 1000; // 45 seconds cache (was 30s) — saves Supabase database egress
 
 function invalidateQuestionsCache() {
   questionsCache = null;
@@ -148,13 +157,14 @@ function invalidateQuestionsCache() {
 router.get('/', async (req, res) => {
   try {
     const now = Date.now();
+    res.set('Cache-Control', 'public, max-age=25, stale-while-revalidate=50');
+
     // Return instantly from RAM if cache is fresh
     if (questionsCache && (now - questionsCacheTime < CACHE_TTL_MS)) {
       return res.json(questionsCache);
     }
 
-    await autoActivateScheduledTests();
-    await autoEndScheduledTests();
+    await runSchedulerChecksSafely();
 
     const questions = await prisma.question.findMany({
       where: {

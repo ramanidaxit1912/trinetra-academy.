@@ -83,13 +83,18 @@ if (global.gc) {
   }, 2 * 60 * 1000); // Check every 2 minutes
 }
 
-// ─── Root Check ───────────────────────────────────────────────
+// ─── Root & Ping Checks ───────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     app: 'Trinetra Online Academy Backend API',
     health: '/api/health'
   });
+});
+
+// ─── Ultra-Lightweight Keep-Alive Ping (Zero Bandwidth: 2 bytes) ──
+app.all('/ping', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // ─── Routes ──────────────────────────────────────────────────
@@ -274,14 +279,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-// ─── Background Job: Auto-activate Scheduled Tests Every 300 Seconds (5 Min) ──
-setInterval(async () => {
-  try {
-    if (questionsRoutes && typeof questionsRoutes.autoActivateScheduledTests === 'function') {
-      await questionsRoutes.autoActivateScheduledTests();
-    }
-  } catch (e) {}
-}, 300 * 1000);
+// Note: Scheduled tests auto-activation/auto-end is handled by routes/questions.js (every 60s)
 
 // ─── Daily 9:30 PM IST WhatsApp Summary Report ───────────────
 const { sendWhatsAppDailyReport } = require('./services/whatsappService');
@@ -330,11 +328,12 @@ setInterval(async () => {
       nightResumedToday = todayKey;
       console.log('☀️ [Night Mode] 7:00 AM IST reached! Sending Wakeup Ping & starting WhatsApp...');
 
-      // 🔔 7:00 AM Wakeup Ping to keep Render warm
+      // 🔔 7:00 AM Wakeup Ping to keep Render warm (Zero-bandwidth /ping)
       const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-class.onrender.com`;
       try {
         const https = require('https');
-        https.get(`${SELF_URL}/api/health`, (res) => {
+        https.get(`${SELF_URL}/ping`, (res) => {
+          res.resume();
           console.log(`⏰ [7 AM Wakeup Ping] Self-ping status: ${res.statusCode} — Server is fully awake!`);
         }).on('error', (e) => {
           console.warn(`⚠️ [7 AM Wakeup Ping] note: ${e.message}`);
@@ -415,15 +414,16 @@ app.listen(PORT, '0.0.0.0', () => {
   // Pre-warm Chromium in background so 1st student click is instant
   setTimeout(prewarmPdfEngine, 5000);
 
-  // ── Bulletproof Self-ping every 9 minutes 24/7 (Keeps Render instance ALWAYS awake) ──
-  // 9-minute interval ensures Render's 15-minute inactivity timer NEVER triggers!
-  // Ultra-lightweight (1 KB HTTP ping), while heavy tasks (WhatsApp & DB backup) pause at night.
+  // ── Bulletproof Self-ping every 13 minutes 24/7 (Keeps Render instance ALWAYS awake) ──
+  // 13-minute interval ensures Render's 15-minute inactivity timer NEVER triggers!
+  // Ultra-lightweight /ping returns 2 bytes ('OK'), saving hundreds of MBs per month.
   const SELF_URL = process.env.RENDER_EXTERNAL_URL || `https://trinetra-class.onrender.com`;
   setInterval(async () => {
     try {
       const http = require('https');
-      const req = http.get(`${SELF_URL}/api/health`, { timeout: 10000 }, (res) => {
-        console.log(`💓 [Keep-Alive] 9-min Self-ping OK (${res.statusCode}) - Server is wide awake!`);
+      const req = http.get(`${SELF_URL}/ping`, { timeout: 10000 }, (res) => {
+        res.resume(); // consume response stream to free memory
+        console.log(`💓 [Keep-Alive] 13-min Ping OK (${res.statusCode}) - Server is wide awake!`);
       });
       req.on('error', (e) => {
         console.warn(`⚠️ [Keep-Alive] Self-ping note: ${e.message}`);
@@ -432,6 +432,6 @@ app.listen(PORT, '0.0.0.0', () => {
         req.destroy();
       });
     } catch (e) {}
-  }, 9 * 60 * 1000); // Bulletproof 9 minutes (Render sleeps after 15 min)
-  console.log(`💓 [Keep-Alive] 9-minute 24/7 Self-ping active → ${SELF_URL}/api/health`);
+  }, 13 * 60 * 1000); // 13 minutes (Render sleeps after 15 min)
+  console.log(`💓 [Keep-Alive] 13-minute 24/7 Self-ping active → ${SELF_URL}/ping`);
 });
