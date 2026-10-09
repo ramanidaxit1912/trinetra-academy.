@@ -162,48 +162,144 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
     return () => document.removeEventListener('focusin', handleFocusCapture, true);
   }, []);
 
+  const [activeCat, setActiveCat] = useState('ALL');
+
+  const CATEGORIES = [
+    { id: 'ALL', label: '🌐 બધા' },
+    { id: 'BASIC', label: '➕ પાયાના / અપૂર્ણાંક' },
+    { id: 'GEOM', label: '📐 ભૂમિતિ' },
+    { id: 'ALG', label: '🔣 બીજગણિત & ગણ' },
+    { id: 'CALC', label: '∫ કલનશાસ્ત્ર (૧૧-૧૨)' },
+    { id: 'SCI', label: '🧪 વિજ્ઞાન & કેમેસ્ટ્રી' }
+  ];
+
   const symbols = [
-    { label: '½', val: '½', title: 'Fraction 1/2' },
-    { label: '¾', val: '¾', title: 'Fraction 3/4' },
-    { label: 'a/b', val: '\\frac{a}{b}', title: 'LaTeX Fraction (અપૂર્ણાંક)' },
-    { label: 'x²', val: 'x²', title: 'વર્ગ (Square / Power 2)' },
-    { label: 'x³', val: 'x³', title: 'ઘન (Cube / Power 3)' },
-    { label: 'xⁿ', val: 'xⁿ', title: 'n-ઘાત (Power n)' },
-    { label: 'x₁', val: 'x₁', title: 'સબસ્ક્રીપ્ટ (Subscript 1)' },
-    { label: '√', val: '√', title: 'વર્ગમૂળ (Square root)' },
-    { label: '∛', val: '∛', title: 'ઘનમૂળ (Cube root)' },
-    { label: '→MN', val: '→ MN', title: 'Ray (કિરણ)' },
-    { label: '↔MN', val: '↔ MN', title: 'Line (રેખા)' },
-    { label: '¯MN', val: '\u0304 MN', title: 'Segment (રેખાખંડ)' },
-    { label: '∠', val: '∠ ', title: 'Angle (ખૂણો)' },
-    { label: '△', val: '△ ', title: 'Triangle (ત્રિકોણ)' },
-    { label: '°', val: '°', title: 'Degree (અંશ)' },
-    { label: 'π', val: 'π', title: 'Pi' },
-    { label: 'θ', val: 'θ', title: 'Theta' },
-    { label: 'α', val: 'α', title: 'Alpha' },
-    { label: 'β', val: 'β', title: 'Beta' },
-    { label: '±', val: '±', title: 'Plus-Minus' },
-    { label: '≠', val: '≠', title: 'Not Equal' },
-    { label: '≤', val: '≤', title: 'Less or Equal' },
-    { label: '≥', val: '≥', title: 'Greater or Equal' },
-    { label: '×', val: '×', title: 'Multiply' },
-    { label: '÷', val: '÷', title: 'Divide' },
-    { label: '∞', val: '∞', title: 'Infinity' },
-    { label: '∴', val: '∴', title: 'Therefore' },
-    { label: '∵', val: '∵', title: 'Because' },
-    { label: '⇒', val: '⇒', title: 'Implies' },
-    { label: '∈', val: '∈', title: 'Element of' },
-    { label: '∪', val: '∪', title: 'Union' },
-    { label: '∩', val: '∩', title: 'Intersection' },
-    { label: '⊥', val: '⊥', title: 'Perpendicular' },
-    { label: '∥', val: '∥', title: 'Parallel' },
-    { label: '→ પ્રક્રિયા', val: ' → ', title: 'રાસાયણિક પ્રક્રિયા (Chemical Reaction)' },
-    { label: '⇌ સંતુલન', val: ' ⇌ ', title: 'રાસાયણિક સંતુલન (Equilibrium)' },
-    { label: '°C', val: '°C', title: 'ડિગ્રી સેલ્સિયસ (°C)' },
-    { label: 'Ω', val: 'Ω', title: 'ઓહ્મ (Ohm)' },
-    { label: 'λ', val: 'λ', title: 'તરંગલંબાઈ (Lambda)' },
-    { label: 'μ', val: 'μ', title: 'માઇક્રો (Micro)' },
-    { label: '॥ ૧ ॥', val: '॥ ૧ ॥', title: 'સંસ્કૃત શ્લોક વિરામ (Danda)' },
+    // ─── ➕ પાયાના અને અપૂર્ણાંક (Basic Math & Fractions) ───
+    { cat: 'BASIC', label: '+', val: ' + ', title: 'સરવાળો (Addition)' },
+    { cat: 'BASIC', label: '−', val: ' − ', title: 'બાદબાકી (Subtraction)' },
+    { cat: 'BASIC', label: '×', val: ' × ', title: 'ગુણાકાર (Multiplication)' },
+    { cat: 'BASIC', label: '÷', val: ' ÷ ', title: 'ભાગાકાર (Division)' },
+    { cat: 'BASIC', label: '=', val: ' = ', title: 'બરાબર (Equals)' },
+    { cat: 'BASIC', label: '≠', val: ' ≠ ', title: 'સમાન નથી (Not equal)' },
+    { cat: 'BASIC', label: '>', val: ' > ', title: 'થી મોટું (Greater than)' },
+    { cat: 'BASIC', label: '<', val: ' < ', title: 'થી નાનું (Less than)' },
+    { cat: 'BASIC', label: '≤', val: ' ≤ ', title: 'નાનું અથવા સમાન (Less or equal)' },
+    { cat: 'BASIC', label: '≥', val: ' ≥ ', title: 'મોટું અથવા સમાન (Greater or equal)' },
+    { cat: 'BASIC', label: '±', val: ' ± ', title: 'પ્લસ-માઈનસ (Plus-Minus)' },
+    { cat: 'BASIC', label: '≈', val: ' ≈ ', title: 'આશરે / લગભગ (Approximately)' },
+    { cat: 'BASIC', label: '%', val: '%', title: 'ટકા (Percentage)' },
+    { cat: 'BASIC', label: ':', val: ' : ', title: 'જેમ (ગુણોત્તર - Ratio)' },
+    { cat: 'BASIC', label: '::', val: ' :: ', title: 'પ્રમાણ (Proportion)' },
+    { cat: 'BASIC', label: '₹', val: '₹', title: 'ભારતીય રૂપિયો (Rupee)' },
+    { cat: 'BASIC', label: '( )', val: '( )', title: 'સાદો કૌંસ (Parentheses)' },
+    { cat: 'BASIC', label: '[ ]', val: '[ ]', title: 'મોટો કૌંસ (Square brackets)' },
+    { cat: 'BASIC', label: '{ }', val: '{ }', title: 'છગડીયો કૌંસ (Curly braces)' },
+    { cat: 'BASIC', label: '½', val: '½', title: 'અપૂર્ણાંક ૧/૨' },
+    { cat: 'BASIC', label: '¾', val: '¾', title: 'અપૂર્ણાંક ૩/૪' },
+    { cat: 'BASIC', label: 'a/b', val: '\\frac{a}{b}', title: 'LaTeX અપૂર્ણાંક (Fraction a/b)' },
+    { cat: 'BASIC', label: 'x²', val: 'x²', title: 'વર્ગ (Square / Power 2)' },
+    { cat: 'BASIC', label: 'x³', val: 'x³', title: 'ઘન (Cube / Power 3)' },
+    { cat: 'BASIC', label: 'xⁿ', val: 'xⁿ', title: 'n-ઘાત (Power n)' },
+    { cat: 'BASIC', label: 'x₁', val: 'x₁', title: 'સબસ્ક્રીપ્ટ (Subscript 1)' },
+    { cat: 'BASIC', label: '√', val: '√', title: 'વર્ગમૂળ (Square root)' },
+    { cat: 'BASIC', label: '∛', val: '∛', title: 'ઘનમૂળ (Cube root)' },
+
+    // ─── 📐 ભૂમિતિ (Geometry) ───
+    { cat: 'GEOM', label: '•', val: ' • ', title: 'બિંદુ / અદિશ ગુણાકાર (Point / Dot)' },
+    { cat: 'GEOM', label: '¯AB', val: '¯AB', title: 'રેખાખંડ (Segment AB)' },
+    { cat: 'GEOM', label: '→AB', val: '→ AB', title: 'કિરણ (Ray AB)' },
+    { cat: 'GEOM', label: '↔AB', val: '↔ AB', title: 'રેખા (Line AB)' },
+    { cat: 'GEOM', label: '∠', val: '∠ ', title: 'ખૂણો (Angle)' },
+    { cat: 'GEOM', label: '△', val: '△ ', title: 'ત્રિકોણ (Triangle)' },
+    { cat: 'GEOM', label: '⊥', val: ' ⊥ ', title: 'લંબ (Perpendicular)' },
+    { cat: 'GEOM', label: '∥', val: ' ∥ ', title: 'સમાંતર (Parallel)' },
+    { cat: 'GEOM', label: '°', val: '°', title: 'અંશ / ડિગ્રી (Degree)' },
+    { cat: 'GEOM', label: 'π', val: 'π', title: 'પાઈ (Pi)' },
+    { cat: 'GEOM', label: '≅', val: ' ≅ ', title: 'એકરૂપ (Congruence)' },
+    { cat: 'GEOM', label: '∼', val: ' ∼ ', title: 'સમરૂપ (Similarity)' },
+    { cat: 'GEOM', label: '⌒', val: '⌒', title: 'ચાપ (Arc)' },
+    { cat: 'GEOM', label: 'θ', val: 'θ', title: 'થેટા (Theta)' },
+
+    // ─── 🔣 બીજગણિત, ગણ અને તર્ક (Algebra, Sets & Logic) ───
+    { cat: 'ALG', label: 'α', val: 'α', title: 'આલ્ફા (Alpha)' },
+    { cat: 'ALG', label: 'β', val: 'β', title: 'બીટા (Beta)' },
+    { cat: 'ALG', label: 'γ', val: 'γ', title: 'ગામા (Gamma)' },
+    { cat: 'ALG', label: 'δ', val: 'δ', title: 'ડેલ્ટા (Delta small)' },
+    { cat: 'ALG', label: 'Δ', val: 'Δ', title: 'ડેલ્ટા / ફેરફાર (Capital Delta)' },
+    { cat: 'ALG', label: '∑', val: '∑', title: 'સિગ્મા / સરવાળો (Summation)' },
+    { cat: 'ALG', label: 'x̄', val: 'x̄', title: 'સરેરાશ / મધ્યક (x-bar)' },
+    { cat: 'ALG', label: '∞', val: '∞', title: 'અનંત (Infinity)' },
+    { cat: 'ALG', label: '∴', val: ' ∴ ', title: 'તેથી (Therefore)' },
+    { cat: 'ALG', label: '∵', val: ' ∵ ', title: 'કારણ કે (Because)' },
+    { cat: 'ALG', label: '⇒', val: ' ⇒ ', title: 'પ્રેરણ (Implies)' },
+    { cat: 'ALG', label: '⇔', val: ' ⇔ ', title: 'દ્વિ-પ્રેરણ (If and only if)' },
+    { cat: 'ALG', label: '∀', val: ' ∀ ', title: 'પ્રત્યેક માટે (For all)' },
+    { cat: 'ALG', label: '∃', val: ' ∃ ', title: 'અસ્તિત્વ ધરાવે છે (There exists)' },
+    { cat: 'ALG', label: '!', val: '!', title: 'ફેક્ટોરિયલ (Factorial)' },
+    { cat: 'ALG', label: '∏', val: '∏', title: 'ગુણાકાર શ્રેણી (Product notation)' },
+    { cat: 'ALG', label: '∈', val: ' ∈ ', title: 'સભ્ય છે (Belongs to)' },
+    { cat: 'ALG', label: '∉', val: ' ∉ ', title: 'સભ્ય નથી (Does not belong to)' },
+    { cat: 'ALG', label: '⊂', val: ' ⊂ ', title: 'ઉપગણ (Subset)' },
+    { cat: 'ALG', label: '⊆', val: ' ⊆ ', title: 'ઉપગણ અથવા સમાન (Subset or equal)' },
+    { cat: 'ALG', label: '⊄', val: ' ⊄ ', title: 'ઉપગણ નથી (Not a subset)' },
+    { cat: 'ALG', label: '∪', val: ' ∪ ', title: 'યોગગણ (Union)' },
+    { cat: 'ALG', label: '∩', val: ' ∩ ', title: 'છેદગણ (Intersection)' },
+    { cat: 'ALG', label: '∅', val: '∅', title: 'ખાલી ગણ (Empty / Null set)' },
+    { cat: 'ALG', label: 'U', val: 'U', title: 'સાર્વત્રિક ગણ (Universal set)' },
+    { cat: 'ALG', label: 'ℕ', val: 'ℕ', title: 'પ્રાકૃતિક સંખ્યા ગણ (Natural Numbers)' },
+    { cat: 'ALG', label: 'ℤ', val: 'ℤ', title: 'પૂર્ણાંક સંખ્યા ગણ (Integers)' },
+    { cat: 'ALG', label: 'ℚ', val: 'ℚ', title: 'સંમેય સંખ્યા ગણ (Rationals)' },
+    { cat: 'ALG', label: 'ℝ', val: 'ℝ', title: 'વાસ્તવિક સંખ્યા ગણ (Real Numbers)' },
+    { cat: 'ALG', label: 'ℂ', val: 'ℂ', title: 'સંકર સંખ્યા ગણ (Complex Numbers)' },
+
+    // ─── ∫ કલનશાસ્ત્ર અને સદિશ (Calculus & Vectors - 11/12) ───
+    { cat: 'CALC', label: 'lim', val: 'lim ', title: 'લક્ષ (Limit)' },
+    { cat: 'CALC', label: '∫', val: '∫ ', title: 'સંકલન (Integration)' },
+    { cat: 'CALC', label: '∬', val: '∬ ', title: 'બેવડું સંકલન (Double integral)' },
+    { cat: 'CALC', label: '∮', val: '∮ ', title: 'બંધ સંકલન (Closed integral)' },
+    { cat: 'CALC', label: 'dx', val: ' dx', title: 'વિકલન dx' },
+    { cat: 'CALC', label: 'dy/dx', val: '\\frac{dy}{dx}', title: 'વિકલન dy/dx' },
+    { cat: 'CALC', label: '∂', val: '∂', title: 'આંશિક વિકલન (Partial derivative)' },
+    { cat: 'CALC', label: '|x|', val: '|x|', title: 'માનાંક / નિશ્ચાયક (Modulus / Determinant)' },
+    { cat: 'CALC', label: 'î', val: 'î', title: 'એકમ સદિશ î (Unit vector i)' },
+    { cat: 'CALC', label: 'ĵ', val: 'ĵ', title: 'એકમ સદિશ ĵ (Unit vector j)' },
+    { cat: 'CALC', label: 'k̂', val: 'k̂', title: 'એકમ સદિશ k̂ (Unit vector k)' },
+
+    // ─── 🧪 વિજ્ઞાન, કેમેસ્ટ્રી અને ફિઝિક્સ (Science, Chem & Physics) ───
+    { cat: 'SCI', label: '°C', val: '°C', title: 'સેલ્સિયસ (°C)' },
+    { cat: 'SCI', label: '°F', val: '°F', title: 'ફેરનહીટ (°F)' },
+    { cat: 'SCI', label: 'K', val: ' K', title: 'કેલ્વિન (Kelvin)' },
+    { cat: 'SCI', label: '→ પ્રક્રિયા', val: ' → ', title: 'પ્રક્રિયા તીર (Chemical Reaction)' },
+    { cat: 'SCI', label: '⇌ સંતુલન', val: ' ⇌ ', title: 'સંતુલન / પ્રતિવર્તી પ્રક્રિયા (Equilibrium)' },
+    { cat: 'SCI', label: '↑ વાયુ', val: '↑', title: 'વાયુ મુક્ત થવો (Gas released)' },
+    { cat: 'SCI', label: '↓ અવક્ષેપ', val: '↓', title: 'અવક્ષેપ મળવો (Precipitate formed)' },
+    { cat: 'SCI', label: '→(Δ) ઉષ્મા', val: ' →(Δ) ', title: 'ગરમી / ઉષ્મા આપવી (Heating reaction)' },
+    { cat: 'SCI', label: '₀', val: '₀', title: 'સબસ્ક્રિપ્ટ 0' },
+    { cat: 'SCI', label: '₁', val: '₁', title: 'સબસ્ક્રિપ્ટ 1' },
+    { cat: 'SCI', label: '₂', val: '₂', title: 'સબસ્ક્રિપ્ટ 2 (H₂O)' },
+    { cat: 'SCI', label: '₃', val: '₃', title: 'સબસ્ક્રિપ્ટ 3' },
+    { cat: 'SCI', label: '₄', val: '₄', title: 'સબસ્ક્રિપ્ટ 4 (SO₄)' },
+    { cat: 'SCI', label: '⁺', val: '⁺', title: 'ધન વીજભાર +' },
+    { cat: 'SCI', label: '⁻', val: '⁻', title: 'ઋણ વીજભાર -' },
+    { cat: 'SCI', label: '²⁺', val: '²⁺', title: 'ધન વીજભાર 2+' },
+    { cat: 'SCI', label: '²⁻', val: '²⁻', title: 'ઋણ વીજભાર 2-' },
+    { cat: 'SCI', label: 'Ω', val: 'Ω', title: 'ઓહ્મ (Ohm)' },
+    { cat: 'SCI', label: 'λ', val: 'λ', title: 'તરંગલંબાઈ (Lambda)' },
+    { cat: 'SCI', label: 'μ', val: 'μ', title: 'માઇક્રો (Micro)' },
+    { cat: 'SCI', label: 'ρ', val: 'ρ', title: 'રો (ઘનતા / વિશિષ્ટ અવરોધ)' },
+    { cat: 'SCI', label: 'ω', val: 'ω', title: 'ઓમેગા (કોણીય વેગ)' },
+    { cat: 'SCI', label: 'τ', val: 'τ', title: 'ટાઉ (ટોર્ક - Torque)' },
+    { cat: 'SCI', label: 'η', val: 'η', title: 'ઈટા (સ્નિગ્ધતા ગુણાંક)' },
+    { cat: 'SCI', label: 'φ', val: 'φ', title: 'ફાઈ (Phi)' },
+    { cat: 'SCI', label: 'Φ', val: 'Φ', title: 'કેપિટલ ફાઈ (ચુંબકીય ફ્લક્સ)' },
+    { cat: 'SCI', label: 'ε', val: 'ε', title: 'એપ્સિલોન (Epsilon)' },
+    { cat: 'SCI', label: 'ε₀', val: 'ε₀', title: 'શૂન્યાવકાશની પરમિટિવિટી' },
+    { cat: 'SCI', label: 'μ₀', val: 'μ₀', title: 'શૂન્યાવકાશની પરમીએબિલિટી' },
+    { cat: 'SCI', label: 'ν', val: 'ν', title: 'ન્યુ (આવૃત્તિ - Frequency)' },
+    { cat: 'SCI', label: 'σ', val: 'σ', title: 'સિગ્મા (પૃષ્ઠ ઘનતા)' },
+    { cat: 'SCI', label: 'ℏ', val: 'ℏ', title: 'એચ-બાર (પ્લાન્ક અચળાંક h/2π)' },
+    { cat: 'SCI', label: 'Å', val: 'Å', title: 'એન્ગ્સ્ટ્રોમ (Angstrom)' },
+    { cat: 'SCI', label: '॥ ૧ ॥', val: '॥ ૧ ॥', title: 'સંસ્કૃત શ્લોક વિરામ (Danda)' },
   ];
 
   const handleInsert = (rawVal) => {
@@ -260,10 +356,18 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
         onInsert(symToInsert, newVal);
       }
 
+      // Cursor offset handling for brackets & pairs
+      let cursorOffset = symToInsert.length;
+      if (rawVal === '( )' || rawVal === '[ ]' || rawVal === '{ }') {
+        cursorOffset = 1;
+      } else if (rawVal === '|x|') {
+        cursorOffset = 2;
+      }
+
       requestAnimationFrame(() => {
         try {
           el.focus();
-          const nextPos = start + symToInsert.length;
+          const nextPos = start + cursorOffset;
           el.setSelectionRange(nextPos, nextPos);
         } catch (err) {}
       });
@@ -297,11 +401,16 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
     handleInsert(tpl);
   };
 
+  const filteredSymbols = activeCat === 'ALL'
+    ? symbols
+    : symbols.filter(s => s.cat === activeCat);
+
   return (
-    <div style={{ background: 'rgba(30,41,59,0.85)', borderRadius: 8, padding: '6px 8px', marginBottom: 8, border: '1px solid rgba(148,163,184,0.2)' }}>
+    <div style={{ background: 'rgba(30,41,59,0.92)', borderRadius: 10, padding: '7px 9px', marginBottom: 8, border: '1px solid rgba(148,163,184,0.22)', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+      {/* Top Header Row */}
       <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>⌨️ ગણિત સિમ્બોલ કીબોર્ડ:</span>
+          <span>⌨️ ગણિત & વિજ્ઞાન સિમ્બોલ કીબોર્ડ:</span>
           <span style={{ fontSize: '0.64rem', color: '#86efac', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
             🎯 {targetLabel}
           </span>
@@ -354,8 +463,35 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 80, overflowY: 'auto' }}>
-        {symbols.map((s, idx) => (
+      {/* Category Pills Row */}
+      <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 5, marginBottom: 5, scrollbarWidth: 'none' }}>
+        {CATEGORIES.map(c => (
+          <button
+            key={c.id}
+            type="button"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setActiveCat(c.id)}
+            style={{
+              background: activeCat === c.id ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'rgba(255,255,255,0.06)',
+              color: activeCat === c.id ? '#ffffff' : '#94a3b8',
+              border: `1px solid ${activeCat === c.id ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: 5,
+              padding: '2px 8px',
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {c.label} {c.id !== 'ALL' ? `(${symbols.filter(s => s.cat === c.id).length})` : `(${symbols.length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Symbols Buttons Grid */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 110, overflowY: 'auto', paddingRight: 2 }}>
+        {filteredSymbols.map((s, idx) => (
           <button
             key={idx}
             type="button"
@@ -363,7 +499,7 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
             onMouseDown={e => e.preventDefault()}
             onClick={() => handleInsert(s.val)}
             style={{
-              background: 'rgba(51,65,85,0.9)',
+              background: 'rgba(51,65,85,0.92)',
               color: '#f8fafc',
               border: '1px solid rgba(100,116,139,0.5)',
               borderRadius: 5,
@@ -375,7 +511,7 @@ export function MathSymbolToolbar({ onInsert, targetRef, value, onChange }) {
               fontFamily: 'monospace, sans-serif'
             }}
             onMouseOver={e => e.currentTarget.style.background = '#2563eb'}
-            onMouseOut={e => e.currentTarget.style.background = 'rgba(51,65,85,0.9)'}
+            onMouseOut={e => e.currentTarget.style.background = 'rgba(51,65,85,0.92)'}
           >
             {s.label}
           </button>
