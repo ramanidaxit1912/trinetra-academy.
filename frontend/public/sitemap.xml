@@ -3,7 +3,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://www.trinetraonline.in/</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -11,7 +11,7 @@
   <!-- Online Mock Exam Portal -->
   <url>
     <loc>https://www.trinetraonline.in/exam</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -19,7 +19,7 @@
   <!-- Student Dashboard & Test Results -->
   <url>
     <loc>https://www.trinetraonline.in/student</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
@@ -27,7 +27,7 @@
   <!-- Pragati Progress Card -->
   <url>
     <loc>https://www.trinetraonline.in/pragati</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -35,7 +35,7 @@
   <!-- Results Page -->
   <url>
     <loc>https://www.trinetraonline.in/result</loc>
-    <lastmod>2026-09-28</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
