@@ -137,6 +137,8 @@ export const cleanTestData          = (data) => api.post('/teacher/clean-test-da
 export const sendDailyReport        = (data) => api.post('/teacher/send-daily-report', data);
 export const getOtpMode             = ()   => api.get('/teacher/settings/otp-mode');
 export const setOtpMode             = (data) => api.post('/teacher/settings/otp-mode', data);
+export const getLiveMonitor         = (testCode = 'ALL') => api.get(`/teacher/live-monitor?testCode=${encodeURIComponent(testCode)}`);
+export const forceSubmitSession     = (data) => api.post('/teacher/force-submit-session', data);
 
 // ─── Materials ────────────────────────────────────────────────
 export const getMaterials    = (params) => api.get('/materials', { params });

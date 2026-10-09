@@ -18,7 +18,8 @@ import {
   getAllSubmissions as getSubmissions, getStudents, resetStudentSession, resetStudentOtp, resetOtpByMobile, deleteStudent, grantMasterAccess, grantMasterByMobile, getLiveOTPs, getWhatsAppBridgeStatus, disconnectWhatsAppBridge, toggleWhatsAppBridge, getOtpMode, setOtpMode, gradeSubmission, getSubmissionReview, reEvaluateSubmissions, grantReAccess, broadcastWhatsApp, cleanTestData, sendDailyReport,
   getMaterials, createMaterial, updateMaterial, deleteMaterial,
   getMarketingItems, createMarketingItem, updateMarketingItem, deleteMarketingItem, getImageSrc,
-  overrideLeaderboard, getLeaderboardOverrides, updateStudentName, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary
+  overrideLeaderboard, getLeaderboardOverrides, updateStudentName, getSubmissionScorecardHtml, bulkSaveScorecardsToCloudinary, uploadScorecardPdfToCloudinary, saveScorecardToCloudinary,
+  getLiveMonitor, forceSubmitSession
 } from '../services/api';
 import {
   Trophy, Award, Crown, Medal, Search, Flame,
@@ -8707,6 +8708,39 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
     text: '', type: 'mcq', optionA: '', optionB: '', optionC: '', optionD: '', correctOpt: 'A', marks: 1, image: '', imageUrl: '', optionA_img: '', optionB_img: '', optionC_img: '', optionD_img: '', answerHint: ''
   });
 
+  // ─── 🔴 Real-Time Live Exam Hall Monitor State ───
+  const [liveMonitorData, setLiveMonitorData] = useState({ activeCount: 0, completedRecentCount: 0, students: [] });
+  const [loadingLiveMonitor, setLoadingLiveMonitor] = useState(false);
+  const [monitorFilterTestCode, setMonitorFilterTestCode] = useState('ALL');
+
+  const fetchLiveMonitor = async (tCode = monitorFilterTestCode) => {
+    try {
+      const res = await getLiveMonitor(tCode);
+      if (res.data?.success) {
+        setLiveMonitorData(res.data);
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    fetchLiveMonitor(monitorFilterTestCode);
+    const mItv = setInterval(() => {
+      fetchLiveMonitor(monitorFilterTestCode);
+    }, 6000);
+    return () => clearInterval(mItv);
+  }, [monitorFilterTestCode]);
+
+  const handleForceSubmit = async (subId, studentName) => {
+    if (!window.confirm(`⚠️ શું તમે ખરેખર વિદ્યાર્થી (${studentName}) ની કસોટી Force-Submit કરવા માંગો છો? આનાથી વિદ્યાર્થીનું પેપર અત્યારે જ જમા થઈ જશે.`)) return;
+    try {
+      const res = await forceSubmitSession({ submissionId: subId, reason: 'શિક્ષક દ્વારા Live Monitor પરથી Force-Submit' });
+      showToast(res.data?.message || 'કસોટી સબમિટ થઈ ગઈ.', 'success');
+      fetchLiveMonitor();
+    } catch (e) {
+      showToast(e.response?.data?.error || 'Force submit માં ક્ષતિ આવી.', 'error');
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 8000);
@@ -9196,6 +9230,281 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
           </div>
         </div>
       )}
+
+      {/* ── 🔴 REAL-TIME LIVE EXAM HALL MONITOR (Live Student Activity Center) ── */}
+      <div className="glass-card animate-fade-in" style={{
+        padding: '16px 18px',
+        marginBottom: 16,
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
+        border: '1.5px solid rgba(239, 68, 68, 0.35)',
+        borderRadius: 16,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)'
+      }}>
+        {/* Header Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              width: 12, height: 12, borderRadius: '50%',
+              background: '#ef4444',
+              boxShadow: '0 0 14px #ef4444',
+              display: 'inline-block'
+            }} />
+            <div>
+              <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.05rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+                🔴 લાઈવ પરીક્ષા હોલ મોનિટર <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>(Live Exam Hall Monitor)</span>
+              </h3>
+              <p style={{ margin: '2px 0 0 0', color: '#94a3b8', fontSize: '0.74rem' }}>
+                કસોટી આપી રહેલા વિદ્યાર્થીઓની ક્ષણે-ક્ષણની લાઈવ પ્રગતિ • દર ૬ સેકન્ડે આપમેળે રિયલ-ટાઇમ અપડેટ
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Filter & Refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <select
+              value={monitorFilterTestCode}
+              onChange={(e) => setMonitorFilterTestCode(e.target.value)}
+              style={{
+                background: '#0f172a',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 8,
+                padding: '5px 10px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">🌐 તમામ લાઈવ કસોટીઓ (All Tests)</option>
+              {activeTestCodes.map(code => (
+                <option key={code} value={code}>🏷️ {code}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => fetchLiveMonitor()}
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: 8,
+                padding: '5px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              <RefreshCw size={12} /> Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Real-time Metric Strips */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: 10,
+          marginBottom: 16
+        }}>
+          <div style={{
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <div style={{ fontSize: '1.8rem', lineHeight: 1 }}>✍️</div>
+            <div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4ade80' }}>
+                {liveMonitorData.activeCount}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 700 }}>
+                હાલ લાઈવ પેપર આપે છે
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(56, 189, 248, 0.1)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <div style={{ fontSize: '1.8rem', lineHeight: 1 }}>✅</div>
+            <div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8' }}>
+                {liveMonitorData.completedRecentCount}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#7dd3fc', fontWeight: 700 }}>
+                હમણાં સબમિટ કર્યું (૨ કલાક)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Student Cards Grid / Empty State */}
+        {liveMonitorData.students.length === 0 ? (
+          <div style={{
+            padding: '24px 16px',
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.25)',
+            borderRadius: 12,
+            border: '1px dashed rgba(255, 255, 255, 0.1)'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: 6 }}>🛋️</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.88rem', fontWeight: 700 }}>
+              હાલમાં કોઈ વિદ્યાર્થી લાઈવ કસોટી આપી રહ્યો નથી.
+            </div>
+            <div style={{ color: '#64748b', fontSize: '0.74rem', marginTop: 4 }}>
+              જ્યારે કોઈ વિદ્યાર્થી કસોટી શરૂ કરશે, ત્યારે તેની લાઈવ પ્રગતિ અને સ્થિતિ અહીં તરત દેખાશે.
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 12
+          }}>
+            {liveMonitorData.students.map((student) => (
+              <div
+                key={student.id}
+                style={{
+                  background: student.isIdle ? 'rgba(245, 158, 11, 0.08)' : 'rgba(15, 23, 42, 0.75)',
+                  border: `1.5px solid ${student.isIdle ? 'rgba(245, 158, 11, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  position: 'relative'
+                }}
+              >
+                {/* Student Name & Status Dot */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
+                  <div>
+                    <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.92rem' }}>
+                      {student.studentName}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.74rem', fontFamily: 'monospace' }}>
+                      📱 +91 {student.mobile}
+                    </div>
+                  </div>
+
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: 20,
+                    background: student.isIdle ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                    color: student.isIdle ? '#fbbf24' : '#4ade80',
+                    border: `1px solid ${student.isIdle ? 'rgba(245, 158, 11, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: student.isIdle ? '#f59e0b' : '#22c55e',
+                      boxShadow: `0 0 6px ${student.isIdle ? '#f59e0b' : '#22c55e'}`
+                    }} />
+                    {student.isIdle ? 'Idle > 90s' : 'Active Now'}
+                  </span>
+                </div>
+
+                {/* Test & Progress Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    color: '#38bdf8',
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    fontWeight: 700
+                  }}>
+                    🏷️ {student.testCode || 'Test'}
+                  </span>
+
+                  <span style={{
+                    background: 'rgba(168, 85, 247, 0.12)',
+                    color: '#c084fc',
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(168, 85, 247, 0.25)',
+                    fontWeight: 800
+                  }}>
+                    📍 પ્રશ્ન #{student.currentIndex}
+                  </span>
+
+                  <span style={{
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: '#4ade80',
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    fontWeight: 800
+                  }}>
+                    💾 {student.answeredCount} સેવ થયા
+                  </span>
+                </div>
+
+                {/* Remarks / Violations alert if any */}
+                {student.remarks && (
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 8,
+                    padding: '4px 8px',
+                    color: '#fca5a5',
+                    fontSize: '0.7rem',
+                    fontWeight: 700
+                  }}>
+                    ⚠️ {student.remarks}
+                  </div>
+                )}
+
+                {/* Bottom Row: Started time + Force Submit Button */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 6, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.68rem' }}>
+                    શરૂ: {new Date(student.startedAt).toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+
+                  <button
+                    onClick={() => handleForceSubmit(student.id, student.studentName)}
+                    style={{
+                      background: 'rgba(220, 38, 38, 0.18)',
+                      color: '#f87171',
+                      border: '1px solid rgba(220, 38, 38, 0.4)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    title="વિદ્યાર્થીની કસોટી અત્યારે જ જમા (Submit) કરી દો"
+                  >
+                    🛑 Force Submit
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── BATCH SELECTION ACTION BAR (Compact Design) ── */}
       {testList.length > 0 && (

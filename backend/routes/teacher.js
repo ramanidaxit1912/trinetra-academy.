@@ -53,6 +53,107 @@ router.post('/send-test-summary', authMiddleware, teacherOnly, async (req, res) 
   }
 });
 
+// ─── GET /api/teacher/live-monitor ───────────────────────────
+// Real-Time Live Exam Hall Monitor for active (IN_PROGRESS) tests
+router.get('/live-monitor', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { testCode } = req.query;
+    const where = { status: 'IN_PROGRESS' };
+    if (testCode && testCode !== 'ALL') {
+      where.testCode = testCode;
+    }
+
+    const liveSessions = await prisma.submission.findMany({
+      where,
+      orderBy: { startedAt: 'desc' },
+      include: {
+        student: {
+          select: { id: true, name: true, mobile: true, lastLoginAt: true }
+        }
+      }
+    });
+
+    // Also get recently completed (last 2 hours) submissions count
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const completedWhere = {
+      status: { not: 'IN_PROGRESS' },
+      submittedAt: { gte: twoHoursAgo }
+    };
+    if (testCode && testCode !== 'ALL') completedWhere.testCode = testCode;
+
+    const completedRecentCount = await prisma.submission.count({
+      where: completedWhere
+    });
+
+    const formattedSessions = liveSessions.map(sub => {
+      let savedAnswersObj = {};
+      let lastActiveTimestamp = sub.startedAt ? new Date(sub.startedAt).getTime() : Date.now();
+      if (typeof sub.savedAnswers === 'object' && sub.savedAnswers !== null) {
+        savedAnswersObj = sub.savedAnswers;
+        if (savedAnswersObj._lastActiveAt) {
+          lastActiveTimestamp = Number(savedAnswersObj._lastActiveAt);
+        }
+      }
+      const answeredCount = Object.keys(savedAnswersObj).filter(k => !k.startsWith('_')).length;
+
+      return {
+        id: sub.id,
+        studentId: sub.student?.id,
+        studentName: sub.student?.name || 'વિદ્યાર્થી',
+        mobile: sub.student?.mobile || '',
+        testCode: sub.testCode,
+        testName: sub.testName,
+        subject: sub.subject,
+        currentIndex: (sub.currentIndex || 0) + 1, // 1-indexed for display
+        answeredCount,
+        startedAt: sub.startedAt,
+        lastActiveAt: new Date(lastActiveTimestamp).toISOString(),
+        isIdle: (Date.now() - lastActiveTimestamp) > 90 * 1000, // Idle if no update for 90s
+        remarks: sub.remarks || null
+      };
+    });
+
+    res.json({
+      success: true,
+      activeCount: formattedSessions.length,
+      completedRecentCount,
+      students: formattedSessions
+    });
+  } catch (err) {
+    console.error('Live Monitor Error:', err);
+    res.status(500).json({ error: 'Live monitor fetch ભૂલ.' });
+  }
+});
+
+// ─── POST /api/teacher/force-submit-session ───────────────────
+// Force-submit or disqualify an active test session
+router.post('/force-submit-session', authMiddleware, teacherOnly, async (req, res) => {
+  try {
+    const { submissionId, reason } = req.body;
+    if (!submissionId) return res.status(400).json({ error: 'submissionId જરૂરી છે.' });
+
+    const submission = await prisma.submission.findUnique({
+      where: { id: Number(submissionId) },
+      include: { student: true }
+    });
+
+    if (!submission) return res.status(404).json({ error: 'કસોટી સત્ર મળ્યું નથી.' });
+
+    const updated = await prisma.submission.update({
+      where: { id: Number(submissionId) },
+      data: {
+        status: 'COMPLETED',
+        remarks: `🛑 શિક્ષક દ્વારા Force-Submit / Disqualify: ${reason || 'નિયમભંગ / સમય સમાપ્ત'}`,
+        submittedAt: new Date()
+      }
+    });
+
+    res.json({ success: true, message: `વિદ્યાર્થી (${submission.student?.name}) નું સત્ર સબમિટ કરી દીધું છે.`, submission: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Force-submit માં ક્ષતિ: ' + err.message });
+  }
+});
+
 // ─── GET /api/teacher/students ───────────────────────────────
 // All students list
 router.get('/students', authMiddleware, teacherOnly, async (req, res) => {
