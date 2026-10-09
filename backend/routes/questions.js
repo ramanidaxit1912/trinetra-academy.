@@ -241,7 +241,23 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
       select: { orderIndex: true }
     });
 
-    const finalImage = (image || imageUrl || '').trim() || null;
+    const trimmedTestCode = testCode?.trim() || null;
+    let finalIsActive = isActive !== undefined ? Boolean(isActive) : false;
+    let finalScheduledEndAt = null;
+
+    // 🌟 If test is already LIVE, newly added questions must automatically be LIVE!
+    if (trimmedTestCode) {
+      const activeSibling = await prisma.question.findFirst({
+        where: { testCode: trimmedTestCode, isActive: true },
+        select: { id: true, scheduledEndAt: true }
+      });
+      if (activeSibling) {
+        finalIsActive = true;
+        if (activeSibling.scheduledEndAt) {
+          finalScheduledEndAt = activeSibling.scheduledEndAt;
+        }
+      }
+    }
 
     const question = await prisma.question.create({
       data: {
@@ -256,10 +272,11 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
         subject: subject?.trim() || null,
         chapter: chapter?.trim() || null,
         marks: marks ? parseInt(marks) : 1,
-        testCode: testCode?.trim() || null,
+        testCode: trimmedTestCode,
         testName: testName?.trim() || null,
         timeLimit: timeLimit ? parseInt(timeLimit) : 0,
         scheduledAt: scheduledAt || null,
+        scheduledEndAt: finalScheduledEndAt,
         imageUrl: finalImage,
         image: finalImage,
         optionA_img: (optionA_img || '').trim() || null,
@@ -269,7 +286,7 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
         optionE_img: (optionE_img || '').trim() || null,
         negativeMarking: negativeMarking !== undefined ? parseFloat(negativeMarking) : 0,
         isEnrolledOnly: isEnrolledOnly !== undefined ? Boolean(isEnrolledOnly) : false,
-        isActive: isActive !== undefined ? isActive : false,
+        isActive: finalIsActive,
         orderIndex: (maxOrder?.orderIndex || 0) + 1
       }
     });
@@ -840,8 +857,14 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
   const finalTestCode = (testCode || 'TEST-' + Math.random().toString(36).substring(2, 8).toUpperCase()).trim();
   const finalTestName = (testName || finalTestCode).trim();
   const finalSubject  = (subject || questions[0]?.subject || 'સામાન્ય').trim();
-  const finalTimeLimit = parseInt(timeLimit) || 60;
-  const finalIsActive  = isActive !== undefined ? isActive : false;
+  let finalIsActive = isActive !== undefined ? Boolean(isActive) : false;
+  if (!finalIsActive && finalTestCode) {
+    const activeSibling = await prisma.question.findFirst({
+      where: { testCode: finalTestCode, isActive: true },
+      select: { id: true }
+    });
+    if (activeSibling) finalIsActive = true;
+  }
   const finalIsEnrolledOnly = isEnrolledOnly !== undefined ? Boolean(isEnrolledOnly) : false;
 
   try {

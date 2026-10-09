@@ -97,6 +97,9 @@ export function getPersistentShuffledQuestions(rawQuestions, studentIdOrMobile, 
         // If there are any questions added or not in saved list, append them
         idMap.forEach(q => ordered.push(q));
         if (ordered.length === rawQuestions.length) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(ordered.map(q => q.id)));
+          } catch (e) {}
           return ordered;
         }
       }

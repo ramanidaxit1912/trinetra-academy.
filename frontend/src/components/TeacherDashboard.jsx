@@ -4818,7 +4818,7 @@ function ExistingTestEditor({ test, showToast, onBack, onSaved, onGoLive }) {
         testCode:  testData.testCode,
         testName:  testData.testName,
         timeLimit: testData.timeLimit,
-        isActive:  false,
+        isActive:  (testData.isActive !== undefined ? Boolean(testData.isActive) : false) || (testData.questions?.some(q => q.isActive) ?? false),
       };
       const res = await createQuestion(payload);
       showToast('✅ નવો પ્રશ્ન ઉમેરાયો!', 'success');
@@ -9275,7 +9275,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
         testCode:  previewTest.testCode,
         testName:  previewTest.testName,
         timeLimit: previewTest.timeLimit,
-        isActive:  false,
+        isActive:  (previewTest.isActive !== undefined ? Boolean(previewTest.isActive) : false) || (previewTest.questions?.some(q => q.isActive) ?? false),
       };
       await createQuestion(toAdd);
       showToast('✅ નવો પ્રશ્ન ઉમેરાયો!', 'success');
@@ -10199,7 +10199,7 @@ function LiveController({ showToast, selectedTestCode, setSelectedTestCode }) {
                                   testCode:  t.testCode,
                                   testName:  t.testName,
                                   timeLimit: t.timeLimit,
-                                  isActive:  false,
+                                  isActive:  true,
                                 };
                                 await createQuestion(toAdd);
                                 showToast('✅ નવો પ્રશ્ન ઉમેરાયો!', 'success');

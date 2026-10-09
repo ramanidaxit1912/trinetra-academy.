@@ -893,6 +893,15 @@ export default function StudentDashboard() {
     }
   }, [user]);
 
+  // 🔄 Auto-poll live tests when Student is on 'live' tab so newly added questions or tests show immediately
+  useEffect(() => {
+    if (!user || activeTab !== 'live') return;
+    const interval = setInterval(() => {
+      loadDashboardData(true);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [user, activeTab]);
+
   // Review modal state
   const [reviewSubId, setReviewSubId]     = useState(null);
   const [reviewData, setReviewData]       = useState(null);

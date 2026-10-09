@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { saveTestProgress } from '../services/api';
+import { saveTestProgress, getQuestions } from '../services/api';
 import { formatMathText, formatQuestionText } from '../utils/mathFormatter';
 import {
   getPersistentShuffledQuestions,
@@ -31,7 +31,7 @@ export const extractImgSrc = (val) => {
 };
 
 export default function ExamEngine({ onFinish }) {
-  const { user, questions: rawQuestions, currentIndex, setCurrentIndex, answers, recordAnswer } = useStore();
+  const { user, questions: rawQuestions, currentIndex, setCurrentIndex, answers, recordAnswer, setQuestions, showToast } = useStore();
 
   const activeTestCode = rawQuestions[0]?.testCode || 'GENERAL';
   const activeTestName = rawQuestions[0]?.testName || rawQuestions[0]?.chapter || 'કસોટી';
@@ -41,6 +41,42 @@ export default function ExamEngine({ onFinish }) {
   const questions = useMemo(() => {
     return getPersistentShuffledQuestions(rawQuestions, user?.mobile, activeTestCode, true);
   }, [rawQuestions, user?.mobile, activeTestCode]);
+
+  // ─── 🔄 Live Question Auto-Sync ─────────────────────────────
+  // If teacher adds questions to this live test while exam is actively ongoing,
+  // dynamically detect and append them so student sees all newly added questions!
+  useEffect(() => {
+    if (!activeTestCode || activeTestCode === 'GENERAL') return;
+
+    let isMounted = true;
+    const syncLiveQuestions = async () => {
+      try {
+        const res = await getQuestions();
+        const activeQs = Array.isArray(res.data) ? res.data : [];
+        const currentTestLiveQs = activeQs.filter(q => q.testCode === activeTestCode);
+
+        if (isMounted && currentTestLiveQs.length > rawQuestions.length) {
+          const existingIds = new Set(rawQuestions.map(q => q.id));
+          const newlyAdded = currentTestLiveQs.filter(q => !existingIds.has(q.id));
+
+          if (newlyAdded.length > 0) {
+            console.log(`🔔 [ExamEngine Live Sync] Teacher added ${newlyAdded.length} new question(s)!`);
+            const merged = [...rawQuestions, ...newlyAdded];
+            setQuestions(merged);
+            showToast?.(`📢 શિક્ષકે કસોટીમાં ${newlyAdded.length} નવો પ્રશ્ન ઉમેર્યો છે! (કુલ: ${merged.length})`, 'info');
+          }
+        }
+      } catch (err) {
+        // Silently continue exam without disruption
+      }
+    };
+
+    const interval = setInterval(syncLiveQuestions, 10000); // Poll every 10s
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeTestCode, rawQuestions, setQuestions, showToast]);
 
   const currentQ = questions[currentIndex] || rawQuestions[currentIndex] || {};
   const totalQ = questions.length;
