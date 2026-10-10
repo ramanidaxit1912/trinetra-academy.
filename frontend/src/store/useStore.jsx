@@ -123,6 +123,14 @@ export function StoreProvider({ children }) {
     setAnswers(prev => ({ ...prev, [questionId]: data }));
   }, []);
 
+  const clearAnswer = useCallback((questionId) => {
+    setAnswers(prev => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  }, []);
+
   const resumeExam = useCallback((qs, savedIdx = 0, savedAns = {}) => {
     setQuestions(qs);
     setCurrentIndex(savedIdx || 0);
@@ -163,7 +171,7 @@ export function StoreProvider({ children }) {
       // Exam
       questions, setQuestions,
       currentIndex, setCurrentIndex,
-      answers, recordAnswer, setAnswers,
+      answers, recordAnswer, clearAnswer, setAnswers,
       examStarted, examFinished, lastResult,
       startExam, resumeExam, finishExam, resetExam,
       // Toast

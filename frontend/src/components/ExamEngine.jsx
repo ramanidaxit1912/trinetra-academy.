@@ -31,7 +31,7 @@ export const extractImgSrc = (val) => {
 };
 
 export default function ExamEngine({ onFinish }) {
-  const { user, questions: rawQuestions, currentIndex, setCurrentIndex, answers, recordAnswer, setQuestions, showToast } = useStore();
+  const { user, questions: rawQuestions, currentIndex, setCurrentIndex, answers, recordAnswer, clearAnswer, setQuestions, showToast } = useStore();
 
   const activeTestCode = rawQuestions[0]?.testCode || 'GENERAL';
   const activeTestName = rawQuestions[0]?.testName || rawQuestions[0]?.chapter || 'કસોટી';
@@ -115,6 +115,35 @@ export default function ExamEngine({ onFinish }) {
   const [totalTestTimeLeft, setTotalTestTimeLeft] = useState(totalTestInitialSecs);
 
   const [showPalette, setShowPalette] = useState(false);
+  const [reviewedQuestions, setReviewedQuestions] = useState(() => {
+    try {
+      const storageKey = `trinetra_exam_reviewed_${user?.mobile || 'guest'}_${activeTestCode}`;
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleReview = useCallback((qId) => {
+    if (!qId) return;
+    setReviewedQuestions(prev => {
+      const next = { ...prev };
+      if (next[qId]) delete next[qId];
+      else next[qId] = true;
+      try {
+        const storageKey = `trinetra_exam_reviewed_${user?.mobile || 'guest'}_${activeTestCode}`;
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, [user?.mobile, activeTestCode]);
+
+  const handleClearResponse = useCallback((qId) => {
+    if (!qId) return;
+    clearAnswer(qId);
+    showToast?.('જવાબ દૂર કર્યો (Response Cleared)', 'info');
+  }, [clearAnswer, showToast]);
   const [lockedToast, setLockedToast] = useState('');
   const [securityWarning, setSecurityWarning] = useState('');
   const [securityModal, setSecurityModal] = useState(null); // { strike, title, message, color, autoSubmit, type, questionNumber }
@@ -1512,6 +1541,33 @@ export default function ExamEngine({ onFinish }) {
               </div>
             </div>
           )}
+
+          {/* Mobile Quick Palette Toggle Icon Button (only on mobile screens <= 768px) */}
+          <button
+            type="button"
+            className="mobile-palette-toggle-btn"
+            onClick={() => setShowPalette(p => !p)}
+            style={{
+              background: showPalette ? '#2563eb' : '#eff6ff',
+              border: `1.5px solid ${showPalette ? '#1d4ed8' : '#bfdbfe'}`,
+              color: showPalette ? '#ffffff' : '#1e40af',
+              borderRadius: 12,
+              padding: '7px 11px',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              flexShrink: 0,
+              boxShadow: showPalette ? '0 3px 10px rgba(37,99,235,0.35)' : 'none',
+              transition: 'all 0.18s ease'
+            }}
+            title="પ્રશ્ન પેલેટ ખોલો / બંધ કરો"
+          >
+            <span>📋</span>
+            <span>{showPalette ? 'બંધ' : `${answeredCount}/${totalQ}`}</span>
+          </button>
         </div>
 
         {/* Question Card with 3D Origami Exam Paper Flip Transition */}
@@ -1575,11 +1631,64 @@ export default function ExamEngine({ onFinish }) {
               )}
             </div>
 
-            {currentQ?.marks && (
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
-                ગુણ: {currentQ.marks}
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Mark for Review Toggle Button */}
+              <button
+                type="button"
+                onClick={() => toggleReview(currentQ?.id)}
+                style={{
+                  background: reviewedQuestions[currentQ?.id] ? '#f5f3ff' : '#ffffff',
+                  border: `1.5px solid ${reviewedQuestions[currentQ?.id] ? '#8b5cf6' : '#cbd5e1'}`,
+                  color: reviewedQuestions[currentQ?.id] ? '#6d28d9' : '#475569',
+                  borderRadius: 10,
+                  padding: '5px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  boxShadow: reviewedQuestions[currentQ?.id] ? '0 2px 8px rgba(139,92,246,0.2)' : '0 1px 3px rgba(0,0,0,0.04)',
+                  transition: 'all 0.18s ease'
+                }}
+                title="આ પ્રશ્નને ફરી વિચારવા માટે રિવ્યૂ લિસ્ટમાં ચિહ્નિત કરો"
+              >
+                <span>{reviewedQuestions[currentQ?.id] ? '🟣' : '⚪'}</span>
+                <span>{reviewedQuestions[currentQ?.id] ? 'Marked for Review ✓' : 'Mark for Review'}</span>
+              </button>
+
+              {/* Clear Response Button (active if answer chosen) */}
+              {(currentAns?.selectedOpt || currentAns?.answerText) && (
+                <button
+                  type="button"
+                  onClick={() => handleClearResponse(currentQ?.id)}
+                  style={{
+                    background: '#fef2f2',
+                    border: '1.5px solid #fecaca',
+                    color: '#b91c1c',
+                    borderRadius: 10,
+                    padding: '5px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'all 0.18s ease'
+                  }}
+                  title="પસંદ કરેલ જવાબ સાફ કરો"
+                >
+                  <span>🗑️</span>
+                  <span>Clear Response</span>
+                </button>
+              )}
+
+              {currentQ?.marks && (
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
+                  ગુણ: {currentQ.marks}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Question Text with Math & Science LaTeX Engine */}
@@ -1806,54 +1915,123 @@ export default function ExamEngine({ onFinish }) {
           currentIndex={currentIndex}
           answers={answers}
           questions={questions}
+          reviewedQuestions={reviewedQuestions}
           isPerQuestionTimer={isPerQuestionTimer}
           qTimeLeftMap={qTimeLeftMap}
           onJump={jumpTo}
         />
       </div>
 
-      {/* ── Mobile Bottom Palette ── */}
-      <div className="mobile-palette">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPalette ? 10 : 0 }}>
-          <button
-            onClick={() => setShowPalette(!showPalette)}
-            style={{
-              background: '#eff6ff', border: '1px solid #bfdbfe',
-              borderRadius: 8, padding: '7px 14px',
-              fontWeight: 700, fontSize: '0.82rem', color: '#1e40af', cursor: 'pointer'
-            }}
-          >
-            {showPalette ? '▼ Palette બંધ' : '▲ Palette (' + answeredCount + '/' + totalQ + ')'}
-          </button>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
-            Q {currentIndex + 1} / {totalQ}
-          </span>
+      {/* ── Mobile Bottom Slide-Up Palette Drawer ── */}
+      <div className="mobile-palette" style={{
+        maxHeight: showPalette ? '75vh' : 'auto',
+        overflowY: showPalette ? 'auto' : 'visible'
+      }}>
+        {/* Drawer Header & Handle */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            width: 38,
+            height: 4,
+            background: '#cbd5e1',
+            borderRadius: 99,
+            margin: '0 auto',
+            cursor: 'pointer'
+          }} onClick={() => setShowPalette(!showPalette)} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button
+              onClick={() => setShowPalette(!showPalette)}
+              type="button"
+              style={{
+                background: showPalette ? '#2563eb' : '#eff6ff',
+                border: `1.5px solid ${showPalette ? '#1d4ed8' : '#bfdbfe'}`,
+                borderRadius: 10,
+                padding: '6px 14px',
+                fontWeight: 800,
+                fontSize: '0.84rem',
+                color: showPalette ? '#ffffff' : '#1e40af',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: showPalette ? '0 2px 8px rgba(37,99,235,0.3)' : 'none'
+              }}
+            >
+              <span>{showPalette ? '▼ ડ્રોઅર બંધ કરો' : '▲ પ્રશ્ન પેલેટ (Question Palette)'}</span>
+              <span style={{
+                background: showPalette ? 'rgba(255,255,255,0.25)' : '#dbeafe',
+                padding: '1px 6px',
+                borderRadius: 12,
+                fontSize: '0.72rem'
+              }}>
+                {answeredCount}/{totalQ}
+              </span>
+            </button>
+
+            <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 800 }}>
+              પ્રશ્ન <strong style={{ color: '#2563eb' }}>{currentIndex + 1}</strong> / {totalQ}
+            </span>
+          </div>
         </div>
 
-        {/* Palette grid - expandable */}
+        {/* Palette grid - expandable drawer */}
         {showPalette && (
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 6,
-            maxHeight: 150, overflowY: 'auto', paddingTop: 4
-          }}>
-            {Array.from({ length: totalQ }, (_, i) => {
-              const q = questions[i];
-              const ans = answers[q?.id];
-              const hasAns = ans && (ans.selectedOpt || ans.answerText);
-              const isCurrent = i === currentIndex;
-              const isLocked = isPerQuestionTimer && qTimeLeftMap[i] !== undefined && qTimeLeftMap[i] <= 0;
+          <div className="animate-fade-in" style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Status Legend Pills */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', background: '#f8fafc', padding: '8px 10px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} /> ચાલુ (Current)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#059669', display: 'inline-block' }} /> જવાબ આપેલ ({answeredCount})
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#8b5cf6', display: 'inline-block' }} /> રિવ્યૂ ({Object.keys(reviewedQuestions).length})
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffffff', border: '1.5px solid #cbd5e1', display: 'inline-block' }} /> બાકી ({totalQ - answeredCount})
+              </span>
+            </div>
 
-              return (
-                <button
-                  key={i}
-                  className={`palette-btn ${isCurrent ? 'current' : isLocked ? 'locked' : hasAns ? 'answered' : 'unanswered'}`}
-                  onClick={() => jumpTo(i)}
-                  title={isLocked ? `પ્રશ્ન ${i + 1} નો સમય સમાપ્ત (Locked)` : `પ્રશ્ન ${i + 1}`}
-                >
-                  {isLocked ? '🔒' : i + 1}
-                </button>
-              );
-            })}
+            {/* Questions Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(36px, 1fr))',
+              gap: 8,
+              maxHeight: '40vh',
+              overflowY: 'auto',
+              padding: '6px 2px',
+              WebkitOverflowScrolling: 'touch'
+            }}>
+              {Array.from({ length: totalQ }, (_, i) => {
+                const q = questions[i];
+                const ans = answers[q?.id];
+                const hasAns = ans && (ans.selectedOpt || ans.answerText);
+                const isCurrent = i === currentIndex;
+                const isReviewed = reviewedQuestions[q?.id] === true;
+                const isLocked = isPerQuestionTimer && qTimeLeftMap[i] !== undefined && qTimeLeftMap[i] <= 0;
+
+                let btnClass = 'palette-btn';
+                if (isCurrent) btnClass += ' current';
+                else if (isLocked) btnClass += ' locked';
+                else if (hasAns && isReviewed) btnClass += ' answered-reviewed';
+                else if (isReviewed) btnClass += ' reviewed';
+                else if (hasAns) btnClass += ' answered';
+                else btnClass += ' unanswered';
+
+                return (
+                  <button
+                    key={i}
+                    className={btnClass}
+                    onClick={() => jumpTo(i)}
+                    title={isLocked ? `પ્રશ્ન ${i + 1} નો સમય સમાપ્ત (Locked)` : `પ્રશ્ન ${i + 1}${isReviewed ? ' (Marked for Review)' : ''}`}
+                  >
+                    {isLocked ? '🔒' : i + 1}
+                    {isReviewed && !isLocked && <span className="review-dot" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -1861,66 +2039,150 @@ export default function ExamEngine({ onFinish }) {
   );
 }
 
-function DesktopPalette({ total, currentIndex, answers, questions, isPerQuestionTimer, qTimeLeftMap = {}, onJump }) {
+function DesktopPalette({ total, currentIndex, answers, questions, reviewedQuestions = {}, isPerQuestionTimer, qTimeLeftMap = {}, onJump }) {
+  const [filterMode, setFilterMode] = useState('ALL'); // 'ALL' | 'UNANSWERED' | 'REVIEWED' | 'ANSWERED'
+
   const answeredCount = questions.filter(q => {
     const a = answers[q?.id];
     return a && (a.selectedOpt || a.answerText);
   }).length;
 
+  const reviewedCount = Object.keys(reviewedQuestions).length;
   const lockedCount = isPerQuestionTimer
     ? Array.from({ length: total }, (_, i) => i).filter(i => qTimeLeftMap[i] !== undefined && qTimeLeftMap[i] <= 0).length
     : 0;
+  const pendingCount = total - answeredCount;
 
   return (
-    <div className="card" style={{ padding: 16, position: 'sticky', top: 80 }}>
-      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>
-        📋 Question Palette
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', marginBottom: 12 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} /> Current
+    <div className="card" style={{ padding: '16px 14px', position: 'sticky', top: 80, borderRadius: 16, border: '1.5px solid #e2e8f0', boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
+      {/* Header with Title and Overall Stats */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>📋</span>
+          <span>Question Palette</span>
+        </div>
+        <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: 12 }}>
+          {answeredCount} / {total}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#059669', display: 'inline-block' }} /> Answered
+      </div>
+
+      {/* Filter Tabs for Quick Navigation */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
+        {[
+          { key: 'ALL', label: `બધા (${total})` },
+          { key: 'UNANSWERED', label: `બાકી (${pendingCount})` },
+          { key: 'REVIEWED', label: `રિવ્યૂ (${reviewedCount})` },
+          { key: 'ANSWERED', label: `જવાબ (${answeredCount})` }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setFilterMode(tab.key)}
+            style={{
+              flex: 1,
+              whiteSpace: 'nowrap',
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              padding: '4px 6px',
+              borderRadius: 8,
+              border: filterMode === tab.key ? '1px solid #2563eb' : '1px solid #e2e8f0',
+              background: filterMode === tab.key ? '#eff6ff' : '#ffffff',
+              color: filterMode === tab.key ? '#1e40af' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Status Legend Badges */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, fontSize: '0.68rem', background: '#f8fafc', padding: '8px 10px', borderRadius: 10, marginBottom: 12, border: '1px solid #f1f5f9' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#2563eb', flexShrink: 0 }} /> ચાલુ (Current)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#059669', flexShrink: 0 }} /> જવાબ આપેલ
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#8b5cf6', flexShrink: 0 }} /> રિવ્યૂ (Review)
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ffffff', border: '1.5px solid #cbd5e1', flexShrink: 0 }} /> બાકી (Pending)
         </span>
         {isPerQuestionTimer && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} /> 🔒 Locked
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, gridColumn: 'span 2' }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#94a3b8', flexShrink: 0 }} /> 🔒 લૉક થયેલ (Time Over)
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+
+      {/* Number Grid with Dynamic Highlighting */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: 6,
+        marginBottom: 12,
+        maxHeight: 240,
+        overflowY: 'auto',
+        padding: '2px'
+      }}>
         {Array.from({ length: total }, (_, i) => {
           const q = questions[i];
           const ans = answers[q?.id];
           const hasAns = ans && (ans.selectedOpt || ans.answerText);
           const isCurrent = i === currentIndex;
+          const isReviewed = reviewedQuestions[q?.id] === true;
           const isLocked = isPerQuestionTimer && qTimeLeftMap[i] !== undefined && qTimeLeftMap[i] <= 0;
+
+          // Apply Filter
+          if (filterMode === 'UNANSWERED' && hasAns) return null;
+          if (filterMode === 'ANSWERED' && !hasAns) return null;
+          if (filterMode === 'REVIEWED' && !isReviewed) return null;
+
+          let btnClass = 'palette-btn';
+          if (isCurrent) btnClass += ' current';
+          else if (isLocked) btnClass += ' locked';
+          else if (hasAns && isReviewed) btnClass += ' answered-reviewed';
+          else if (isReviewed) btnClass += ' reviewed';
+          else if (hasAns) btnClass += ' answered';
+          else btnClass += ' unanswered';
 
           return (
             <button
               key={i}
-              className={`palette-btn ${isCurrent ? 'current' : isLocked ? 'locked' : hasAns ? 'answered' : 'unanswered'}`}
+              className={btnClass}
               onClick={() => onJump(i)}
-              title={isLocked ? `પ્રશ્ન ${i + 1} નો સમય સમાપ્ત (Locked)` : `પ્રશ્ન ${i + 1}`}
+              title={isLocked ? `પ્રશ્ન ${i + 1} નો સમય સમાપ્ત (Locked)` : `પ્રશ્ન ${i + 1}${isReviewed ? ' (Marked for Review)' : ''}`}
             >
               {isLocked ? '🔒' : i + 1}
+              {isReviewed && !isLocked && <span className="review-dot" />}
             </button>
           );
         })}
       </div>
-      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b', marginBottom: 3 }}>
-          <span>✅ Answered</span><strong style={{ color: '#059669' }}>{answeredCount}</strong>
+
+      {/* Bottom Summary Breakdown */}
+      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+          <span>✅ ઉત્તર આપેલ (Answered)</span>
+          <strong style={{ color: '#059669' }}>{answeredCount}</strong>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+          <span>🟣 પુનર્વિચાર (Marked Review)</span>
+          <strong style={{ color: '#7c3aed' }}>{reviewedCount}</strong>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+          <span>⬜ બાકી (Pending)</span>
+          <strong style={{ color: '#ef4444' }}>{pendingCount}</strong>
         </div>
         {isPerQuestionTimer && lockedCount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b', marginBottom: 3 }}>
-            <span>🔒 Locked (Time Over)</span><strong style={{ color: '#94a3b8' }}>{lockedCount}</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+            <span>🔒 લૉક (Time Over)</span>
+            <strong style={{ color: '#94a3b8' }}>{lockedCount}</strong>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b' }}>
-          <span>⬜ Pending</span><strong style={{ color: '#ef4444' }}>{total - answeredCount}</strong>
-        </div>
       </div>
     </div>
   );
