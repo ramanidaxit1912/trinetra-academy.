@@ -56,6 +56,174 @@ function getRankStyle(rank) {
   };
 }
 
+function getRankTierMeta(rank) {
+  if (rank === 1) return {
+    badgeBg: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    badgeText: '#ffffff',
+    borderLeft: '#f59e0b',
+    border: '#fde68a',
+    bg: 'linear-gradient(135deg, #fffdf5 0%, #fef9c3 100%)',
+    avatarBg: 'linear-gradient(135deg, #fbbf24, #d97706)',
+    avatarColor: '#ffffff',
+    tierLabel: '🥇 ગોલ્ડ ટોપર',
+    tierPillBg: '#fef3c7',
+    tierPillText: '#92400e',
+    tierPillBorder: '#fde68a',
+    shadow: '0 4px 16px rgba(245, 158, 11, 0.22)',
+    icon: '👑'
+  };
+  if (rank === 2) return {
+    badgeBg: 'linear-gradient(135deg, #94a3b8, #64748b)',
+    badgeText: '#ffffff',
+    borderLeft: '#94a3b8',
+    border: '#e2e8f0',
+    bg: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+    avatarBg: 'linear-gradient(135deg, #94a3b8, #64748b)',
+    avatarColor: '#ffffff',
+    tierLabel: '🥈 સિલ્વર રનર',
+    tierPillBg: '#f1f5f9',
+    tierPillText: '#334155',
+    tierPillBorder: '#e2e8f0',
+    shadow: '0 4px 14px rgba(100, 116, 139, 0.16)',
+    icon: '🥈'
+  };
+  if (rank === 3) return {
+    badgeBg: 'linear-gradient(135deg, #ea580c, #c2410c)',
+    badgeText: '#ffffff',
+    borderLeft: '#ea580c',
+    border: '#fed7aa',
+    bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+    avatarBg: 'linear-gradient(135deg, #fb923c, #ea580c)',
+    avatarColor: '#ffffff',
+    tierLabel: '🥉 બ્રોન્ઝ એચીવર',
+    tierPillBg: '#ffedd5',
+    tierPillText: '#9a3412',
+    tierPillBorder: '#fed7aa',
+    shadow: '0 4px 14px rgba(234, 88, 12, 0.16)',
+    icon: '🥉'
+  };
+  if (rank === 4) return {
+    badgeBg: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+    badgeText: '#ffffff',
+    borderLeft: '#6366f1',
+    border: '#c7d2fe',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #f5f7ff 100%)',
+    avatarBg: 'linear-gradient(135deg, #818cf8, #6366f1)',
+    avatarColor: '#ffffff',
+    tierLabel: '💎 Top 5 Elite',
+    tierPillBg: '#eef2ff',
+    tierPillText: '#4338ca',
+    tierPillBorder: '#c7d2fe',
+    shadow: '0 3px 12px rgba(99, 102, 241, 0.12)',
+    icon: '💎'
+  };
+  if (rank === 5) return {
+    badgeBg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    badgeText: '#ffffff',
+    borderLeft: '#8b5cf6',
+    border: '#ddd6fe',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #faf8ff 100%)',
+    avatarBg: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+    avatarColor: '#ffffff',
+    tierLabel: '💎 Top 5 Elite',
+    tierPillBg: '#f5f3ff',
+    tierPillText: '#6d28d9',
+    tierPillBorder: '#ddd6fe',
+    shadow: '0 3px 12px rgba(139, 92, 246, 0.12)',
+    icon: '💎'
+  };
+  if (rank === 6) return {
+    badgeBg: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+    badgeText: '#ffffff',
+    borderLeft: '#06b6d4',
+    border: '#a5f3fc',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)',
+    avatarBg: 'linear-gradient(135deg, #22d3ee, #0891b2)',
+    avatarColor: '#ffffff',
+    tierLabel: '⭐ Top 10 Star',
+    tierPillBg: '#ecfeff',
+    tierPillText: '#0e7490',
+    tierPillBorder: '#a5f3fc',
+    shadow: '0 3px 10px rgba(6, 182, 212, 0.1)',
+    icon: '⭐'
+  };
+  if (rank === 7) return {
+    badgeBg: 'linear-gradient(135deg, #0284c7, #0369a1)',
+    badgeText: '#ffffff',
+    borderLeft: '#0284c7',
+    border: '#bae6fd',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
+    avatarBg: 'linear-gradient(135deg, #38bdf8, #0284c7)',
+    avatarColor: '#ffffff',
+    tierLabel: '⭐ Top 10 Star',
+    tierPillBg: '#f0f9ff',
+    tierPillText: '#0369a1',
+    tierPillBorder: '#bae6fd',
+    shadow: '0 3px 10px rgba(2, 132, 199, 0.1)',
+    icon: '⭐'
+  };
+  if (rank === 8) return {
+    badgeBg: 'linear-gradient(135deg, #10b981, #059669)',
+    badgeText: '#ffffff',
+    borderLeft: '#10b981',
+    border: '#a7f3d0',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+    avatarBg: 'linear-gradient(135deg, #34d399, #059669)',
+    avatarColor: '#ffffff',
+    tierLabel: '⭐ Top 10 Star',
+    tierPillBg: '#ecfdf5',
+    tierPillText: '#047857',
+    tierPillBorder: '#a7f3d0',
+    shadow: '0 3px 10px rgba(16, 185, 129, 0.1)',
+    icon: '⭐'
+  };
+  if (rank === 9) return {
+    badgeBg: 'linear-gradient(135deg, #f97316, #ea580c)',
+    badgeText: '#ffffff',
+    borderLeft: '#f97316',
+    border: '#fed7aa',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #fffbf5 100%)',
+    avatarBg: 'linear-gradient(135deg, #fb923c, #ea580c)',
+    avatarColor: '#ffffff',
+    tierLabel: '⭐ Top 10 Star',
+    tierPillBg: '#fff7ed',
+    tierPillText: '#c2410c',
+    tierPillBorder: '#fed7aa',
+    shadow: '0 3px 10px rgba(249, 115, 22, 0.1)',
+    icon: '⭐'
+  };
+  if (rank === 10) return {
+    badgeBg: 'linear-gradient(135deg, #ec4899, #db2777)',
+    badgeText: '#ffffff',
+    borderLeft: '#ec4899',
+    border: '#fbcfe8',
+    bg: 'linear-gradient(135deg, #ffffff 0%, #fff7fb 100%)',
+    avatarBg: 'linear-gradient(135deg, #f472b6, #db2777)',
+    avatarColor: '#ffffff',
+    tierLabel: '⭐ Top 10 Star',
+    tierPillBg: '#fdf2f8',
+    tierPillText: '#be185d',
+    tierPillBorder: '#fbcfe8',
+    shadow: '0 3px 10px rgba(236, 72, 153, 0.1)',
+    icon: '⭐'
+  };
+  return {
+    badgeBg: 'linear-gradient(135deg, #64748b, #475569)',
+    badgeText: '#ffffff',
+    borderLeft: '#64748b',
+    border: '#e2e8f0',
+    bg: '#ffffff',
+    avatarBg: 'linear-gradient(135deg, #94a3b8, #64748b)',
+    avatarColor: '#ffffff',
+    tierLabel: '🎯 સ્પર્ધક',
+    tierPillBg: '#f1f5f9',
+    tierPillText: '#475569',
+    tierPillBorder: '#e2e8f0',
+    shadow: '0 2px 8px rgba(0,0,0,0.04)',
+    icon: '🎯'
+  };
+}
+
 // ── Shared inner UI (used by both home page and student dashboard) ─────────────
 export function LeaderboardUI({ 
   tests = [], 
@@ -380,6 +548,13 @@ export function LeaderboardUI({
                   }
                   .user-spotlight-pulse {
                     animation: userHighlightPulse 2.4s infinite ease-in-out;
+                  }
+                  .leaderboard-rank-row {
+                    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                  }
+                  .leaderboard-rank-row:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
                   }
                   .crown-bounce-anim {
                     animation: floatCrown 2.2s infinite ease-in-out;
@@ -1089,106 +1264,235 @@ export function LeaderboardUI({
                 </div>
 
                 {/* ── 📋 4. ALL REMAINING RANKERS FULL LIST (TOP 10) ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', paddingLeft: 4 }}>
-                    🏆 Top 10 રેન્કર્સ લિસ્ટ ({Math.min(10, leaders.length)}):
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '2px 4px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: '#64748b'
+                  }}>
+                    <span style={{ textTransform: 'uppercase', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span>🏆</span> Top 10 લીડરબોર્ડ રેન્કર્સ ({Math.min(10, leaders.length)} વિદ્યાર્થીઓ):
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+                      ક્રમ ૪ થી ૧૦ એચીવર્સ ✨
+                    </span>
                   </div>
 
                   {leaders.map((leader) => {
-                    const rs = getRankStyle(leader.rank);
                     const isTop3 = leader.rank <= 3;
                     const isMe = isStudentMatch(leader);
+                    const tier = getRankTierMeta(leader.rank);
+                    const studentInitial = (leader.studentName || 'V').trim().charAt(0).toUpperCase();
+                    const timeInfo = getSubmissionTimeInfo(leader);
 
                     return (
                       <div
                         key={leader.rank}
-                        className={`animate-fade-in ${isMe ? 'user-spotlight-pulse' : ''}`}
+                        className={`animate-fade-in leaderboard-rank-row ${isMe ? 'user-spotlight-pulse' : ''}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: isMe ? '12px 16px' : '10px 14px',
+                          padding: isMe ? '12px 16px' : '11px 15px',
                           border: isMe
-                            ? '2.5px solid #38bdf8'
-                            : isTop3
-                              ? `1.5px solid ${rs.border}`
-                              : '1px solid #e2e8f0',
+                            ? '2px solid #38bdf8'
+                            : `1px solid ${tier.border}`,
+                          borderLeft: isMe
+                            ? '5px solid #0284c7'
+                            : `5px solid ${tier.borderLeft}`,
                           background: isMe
                             ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
-                            : isTop3
-                              ? rs.bg
-                              : '#ffffff',
+                            : tier.bg,
                           borderRadius: 14,
                           boxShadow: isMe
                             ? '0 0 24px rgba(56,189,248,0.4), 0 4px 14px rgba(37,99,235,0.2)'
-                            : '0 2px 6px rgba(0,0,0,0.02)',
+                            : tier.shadow,
                           transform: isMe ? 'scale(1.015)' : 'none',
-                          gap: 10,
-                          transition: 'all 0.2s ease'
+                          gap: 12,
+                          position: 'relative'
                         }}
                       >
-                        {/* Rank Badge + Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                        {/* Rank Badge + Initial Avatar + Student Details */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
+                          {/* Distinct Rank Badge with vibrant gradient & crisp white text */}
                           <div style={{
-                            width: isMe ? 38 : 34, height: isMe ? 38 : 34, borderRadius: 10,
-                            background: isMe ? 'linear-gradient(135deg, #2563eb, #38bdf8)' : isTop3 ? rs.border : '#f1f5f9',
+                            width: isMe ? 40 : 36,
+                            height: isMe ? 40 : 36,
+                            borderRadius: 11,
+                            background: isMe ? 'linear-gradient(135deg, #0284c7, #2563eb)' : tier.badgeBg,
                             color: '#ffffff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: isTop3 ? '1.15rem' : '0.85rem',
-                            fontWeight: 900, flexShrink: 0,
-                            boxShadow: isMe ? '0 4px 12px rgba(37,99,235,0.4)' : 'none'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: isTop3 ? '1.15rem' : '0.88rem',
+                            fontWeight: 900,
+                            flexShrink: 0,
+                            boxShadow: isMe ? '0 4px 12px rgba(2,132,199,0.4)' : '0 2px 8px rgba(0,0,0,0.14)',
+                            letterSpacing: '-0.3px'
                           }}>
                             {isTop3 ? (leader.rank === 1 ? '🥇' : leader.rank === 2 ? '🥈' : '🥉') : `#${leader.rank}`}
                           </div>
 
+                          {/* Dynamic 3D Student Initial Avatar */}
+                          <div style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: isMe ? 'linear-gradient(135deg, #38bdf8, #0284c7)' : tier.avatarBg,
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.88rem',
+                            fontWeight: 900,
+                            flexShrink: 0,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                            border: '2px solid #ffffff'
+                          }}>
+                            {studentInitial}
+                          </div>
+
+                          {/* Name + Tier/You Badge + Mobile + Mini Accuracy Bar */}
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{
-                              fontWeight: 900,
-                              fontSize: isMe ? '0.94rem' : '0.88rem',
-                              color: isMe ? '#1e3a8a' : '#0f172a',
-                              display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 7,
+                              flexWrap: 'wrap'
                             }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                fontWeight: 900,
+                                fontSize: isMe ? '0.95rem' : '0.89rem',
+                                color: isMe ? '#1e3a8a' : '#0f172a',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
                                 {leader.studentName}
                               </span>
-                              {isMe && (
+
+                              {isMe ? (
                                 <span style={{
                                   background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                                   color: 'white',
-                                  fontSize: '0.64rem', fontWeight: 900,
-                                  padding: '2px 8px', borderRadius: 12,
+                                  fontSize: '0.64rem',
+                                  fontWeight: 900,
+                                  padding: '2px 8px',
+                                  borderRadius: 12,
                                   boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
                                   flexShrink: 0
                                 }}>
-                                  🌟 તમે (Your Rank #{leader.rank})
+                                  🌟 તમે (તમારો રેન્ક #{leader.rank})
+                                </span>
+                              ) : (
+                                <span style={{
+                                  background: tier.tierPillBg,
+                                  color: tier.tierPillText,
+                                  border: `1px solid ${tier.tierPillBorder}`,
+                                  fontSize: '0.64rem',
+                                  fontWeight: 800,
+                                  padding: '1.5px 7px',
+                                  borderRadius: 10,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 2,
+                                  flexShrink: 0
+                                }}>
+                                  {tier.tierLabel}
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.7rem', color: isMe ? '#2563eb' : '#64748b', marginTop: 1, fontWeight: isMe ? 700 : 500 }}>
-                              📱 {leader.mobile?.slice(0, 6)}****
+
+                            {/* Masked mobile + mini accuracy progress bar */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 3 }}>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                color: isMe ? '#2563eb' : '#64748b',
+                                fontWeight: isMe ? 700 : 500,
+                                flexShrink: 0
+                              }}>
+                                📱 {leader.mobile?.slice(0, 6)}****
+                              </span>
+
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                flex: 1,
+                                maxWidth: 140
+                              }}>
+                                <div style={{
+                                  height: 5,
+                                  background: '#e2e8f0',
+                                  borderRadius: 99,
+                                  flex: 1,
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    height: '100%',
+                                    width: `${Math.min(100, Math.max(0, leader.percentage || 0))}%`,
+                                    background: (leader.percentage || 0) >= 80
+                                      ? 'linear-gradient(90deg, #10b981, #059669)'
+                                      : (leader.percentage || 0) >= 50
+                                        ? 'linear-gradient(90deg, #3b82f6, #1d4ed8)'
+                                        : 'linear-gradient(90deg, #f87171, #dc2626)',
+                                    borderRadius: 99
+                                  }} />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Score + Percentage + Duration */}
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontWeight: 900, fontSize: isMe ? '1.05rem' : '0.95rem', color: isMe ? '#1d4ed8' : '#1e3a8a' }}>
-                            {leader.mcqScore} / {leader.totalMCQ}
-                          </div>
+                        {/* Right: Score + Percentage + Duration */}
+                        <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                           <div style={{
-                            display: 'inline-block',
+                            fontWeight: 900,
+                            fontSize: isMe ? '1.05rem' : '0.96rem',
+                            color: isMe ? '#1d4ed8' : '#0f172a',
+                            letterSpacing: '-0.2px'
+                          }}>
+                            {leader.mcqScore} <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>/ {leader.totalMCQ}</span>
+                          </div>
+
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
                             background: leader.percentage >= 80 ? '#dcfce7' : leader.percentage >= 50 ? '#eff6ff' : '#fee2e2',
                             color: leader.percentage >= 80 ? '#15803d' : leader.percentage >= 50 ? '#1e40af' : '#b91c1c',
-                            fontSize: '0.68rem', fontWeight: 900,
-                            padding: '2px 8px', borderRadius: 10, marginTop: 1
+                            border: leader.percentage >= 80 ? '1px solid #bbf7d0' : leader.percentage >= 50 ? '1px solid #bfdbfe' : '1px solid #fecaca',
+                            fontSize: '0.68rem',
+                            fontWeight: 900,
+                            padding: '1.5px 7px',
+                            borderRadius: 8
                           }}>
-                            {leader.percentage}%
+                            <span>{leader.percentage}%</span>
                           </div>
-                          {getSubmissionTimeInfo(leader).duration && (
-                            <div style={{ fontSize: '0.64rem', color: isMe ? '#1d4ed8' : '#64748b', marginTop: 3, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+
+                          {timeInfo.duration && (
+                            <div style={{
+                              fontSize: '0.64rem',
+                              color: isMe ? '#1d4ed8' : '#64748b',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              marginTop: 1,
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '1px 5px',
+                              borderRadius: 6
+                            }}>
                               <span>⏱️</span>
-                              <span>{getSubmissionTimeInfo(leader).duration}</span>
+                              <span>{timeInfo.duration}</span>
                             </div>
                           )}
                         </div>
@@ -1215,24 +1519,24 @@ export function LeaderboardUI({
                       </div>
 
                       <div
-                        className="animate-fade-in user-spotlight-pulse"
+                        className="animate-fade-in leaderboard-rank-row user-spotlight-pulse"
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '12px 16px',
-                          border: '2.5px solid #0284c7',
+                          border: '2px solid #0284c7',
+                          borderLeft: '5px solid #0284c7',
                           background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
                           borderRadius: 14,
                           boxShadow: '0 0 24px rgba(2,132,199,0.3), 0 4px 14px rgba(37,99,235,0.15)',
-                          gap: 10,
-                          transition: 'all 0.2s ease'
+                          gap: 12
                         }}
                       >
-                        {/* Rank Badge + Name */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                        {/* Rank Badge + Initial Avatar + Name */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
                           <div style={{
-                            width: 38, height: 38, borderRadius: 10,
+                            width: 40, height: 40, borderRadius: 11,
                             background: 'linear-gradient(135deg, #0284c7, #0369a1)',
                             color: '#ffffff',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1241,6 +1545,18 @@ export function LeaderboardUI({
                             boxShadow: '0 4px 12px rgba(2,132,199,0.4)'
                           }}>
                             #{myRank || '?'}
+                          </div>
+
+                          <div style={{
+                            width: 36, height: 36, borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #38bdf8, #0284c7)',
+                            color: '#ffffff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.88rem', fontWeight: 900, flexShrink: 0,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                            border: '2px solid #ffffff'
+                          }}>
+                            {(currentUserName || 'Y').trim().charAt(0).toUpperCase()}
                           </div>
 
                           <div style={{ minWidth: 0, flex: 1 }}>
@@ -1270,21 +1586,34 @@ export function LeaderboardUI({
                         </div>
 
                         {/* Score + Percentage + Duration */}
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                           <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0369a1' }}>
-                            {myScore !== null ? myScore : 0} / {myTotal}
+                            {myScore !== null ? myScore : 0} <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>/ {myTotal}</span>
                           </div>
                           <div style={{
                             display: 'inline-block',
                             background: (myPct || 0) >= 80 ? '#dcfce7' : (myPct || 0) >= 50 ? '#eff6ff' : '#fee2e2',
                             color: (myPct || 0) >= 80 ? '#15803d' : (myPct || 0) >= 50 ? '#1e40af' : '#b91c1c',
+                            border: (myPct || 0) >= 80 ? '1px solid #bbf7d0' : (myPct || 0) >= 50 ? '1px solid #bfdbfe' : '1px solid #fecaca',
                             fontSize: '0.68rem', fontWeight: 900,
-                            padding: '2px 8px', borderRadius: 10, marginTop: 1
+                            padding: '1.5px 7px', borderRadius: 8
                           }}>
                             {myPct !== null ? `${myPct}%` : '0%'}
                           </div>
                           {studentTimeInfo.duration && (
-                            <div style={{ fontSize: '0.64rem', color: '#0369a1', marginTop: 3, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+                            <div style={{
+                              fontSize: '0.64rem',
+                              color: '#0369a1',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              marginTop: 1,
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '1px 5px',
+                              borderRadius: 6
+                            }}>
                               <span>⏱️</span>
                               <span>{studentTimeInfo.duration}</span>
                             </div>
