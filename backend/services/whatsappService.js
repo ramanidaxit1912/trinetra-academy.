@@ -178,12 +178,33 @@ async function restoreSessionFromDb(slotId) {
   return false;
 }
 
+// ─── Prune Stale Pre-Keys from Disk & DB ───────────────────────
+function pruneOldPreKeys(slotDir) {
+  try {
+    if (!fs.existsSync(slotDir)) return;
+    const preKeyFiles = fs.readdirSync(slotDir).filter(f => f.startsWith('pre-key-') && f.endsWith('.json'));
+    if (preKeyFiles.length > 80) {
+      const sorted = preKeyFiles.map(f => {
+        const num = parseInt(f.replace('pre-key-', '').replace('.json', ''), 10);
+        return { file: f, num: isNaN(num) ? 0 : num };
+      }).sort((a, b) => a.num - b.num);
+
+      // Keep only newest 50 pre-keys to keep folder & DB lightweight
+      const toDelete = sorted.slice(0, sorted.length - 50);
+      for (const item of toDelete) {
+        try { fs.unlinkSync(path.join(slotDir, item.file)); } catch (_) {}
+      }
+    }
+  } catch (e) {}
+}
+
 // ─── Delta Sync Session Files to Supabase DB ──────────────────
 async function saveSessionToDb(slotId, forceAll = false) {
   const sid = Number(slotId);
   const slotDir = getSlotDir(sid);
   try {
     if (!fs.existsSync(slotDir)) return;
+    pruneOldPreKeys(slotDir);
     const files = fs.readdirSync(slotDir).filter(f => f.endsWith('.json'));
     if (files.length === 0) return;
 
@@ -341,10 +362,14 @@ async function initWhatsAppSlot(slotId) {
       printQRInTerminal: false,
       browser: Browsers.ubuntu(`Chrome Slot ${sid}`),
       syncFullHistory: false,
+      shouldSyncHistoryMessage: () => false, // 🛑 Reject heavy chat/history sync packets (saves ~30 MB/day)
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
+      linkPreviewImageThumbnailWidth: 0,
       fireInitQueries: false,
       emitOwnEvents: false,
+      getMessage: async () => undefined, // 🛑 No message download retries
+      cachedGroupMetadata: async () => undefined, // 🛑 Never fetch WhatsApp group data
       shouldIgnoreJid: (jid) => {
         if (!jid) return true;
         return (
@@ -430,8 +455,8 @@ async function initWhatsAppSlot(slotId) {
         slot.reconnectAttempts = 0;
         console.log(`✅ [WhatsApp Slot ${sid}] Connected successfully as: +91 ${slot.connectedPhone}`);
 
-        // Immediately backup session keys to Supabase
-        await saveSessionToDb(sid, true);
+        // Delta sync only changed session keys to Supabase (saves ~30 MB bandwidth every morning)
+        await saveSessionToDb(sid, false);
 
         // Periodic session backup every 2 hours (skips Night Mode 12 AM - 7 AM IST)
         if (slot.sessionSaveInterval) clearInterval(slot.sessionSaveInterval);
