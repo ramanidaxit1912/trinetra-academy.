@@ -179,7 +179,7 @@ async function restoreSessionFromDb(slotId) {
 }
 
 // ─── Prune Stale Pre-Keys from Disk & DB ───────────────────────
-function pruneOldPreKeys(slotDir) {
+async function pruneOldPreKeys(slotDir, sid) {
   try {
     if (!fs.existsSync(slotDir)) return;
     const preKeyFiles = fs.readdirSync(slotDir).filter(f => f.startsWith('pre-key-') && f.endsWith('.json'));
@@ -191,8 +191,18 @@ function pruneOldPreKeys(slotDir) {
 
       // Keep only newest 50 pre-keys to keep folder & DB lightweight
       const toDelete = sorted.slice(0, sorted.length - 50);
+      const prefix = `slot_${sid}__`;
+      const dbIdsToDelete = [];
       for (const item of toDelete) {
         try { fs.unlinkSync(path.join(slotDir, item.file)); } catch (_) {}
+        const dbKey = `${prefix}${item.file}`;
+        savedSessionCache.delete(dbKey);
+        dbIdsToDelete.push(dbKey);
+      }
+      if (dbIdsToDelete.length > 0) {
+        await prisma.whatsAppSession.deleteMany({
+          where: { id: { in: dbIdsToDelete } }
+        }).catch(() => {});
       }
     }
   } catch (e) {}
@@ -204,7 +214,7 @@ async function saveSessionToDb(slotId, forceAll = false) {
   const slotDir = getSlotDir(sid);
   try {
     if (!fs.existsSync(slotDir)) return;
-    pruneOldPreKeys(slotDir);
+    await pruneOldPreKeys(slotDir, sid);
     const files = fs.readdirSync(slotDir).filter(f => f.endsWith('.json'));
     if (files.length === 0) return;
 
