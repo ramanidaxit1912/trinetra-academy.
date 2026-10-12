@@ -3993,7 +3993,14 @@ textarea.input-dark {
 
 
 /* ─── Global Strict Mobile Viewport Safety (With Sticky Support) ─── */
-html, body {
+html {
+  max-width: 100vw;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+}
+body {
   max-width: 100vw;
   overflow-x: hidden;
   width: 100%;
