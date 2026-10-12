@@ -908,6 +908,16 @@ export default function StudentDashboard() {
     return () => clearInterval(interval);
   }, [user, activeTab]);
 
+  // 📱 Auto-scroll active tab to center in mobile horizontal scroller
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const activeEl = document.getElementById(`mobile-tab-${activeTab}`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeTab]);
+
   // Review modal state
   const [reviewSubId, setReviewSubId]     = useState(null);
   const [reviewData, setReviewData]       = useState(null);
@@ -6254,6 +6264,7 @@ export default function StudentDashboard() {
             const isActive = activeTab === tab.id;
             return (
               <button key={tab.id}
+                id={`mobile-tab-${tab.id}`}
                 className={`student-mobile-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab(tab.id);
