@@ -945,17 +945,8 @@ body {
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  white-space: nowrap !important;
-  -webkit-overflow-scrolling: touch !important;
-  scrollbar-width: none !important;
-  gap: 8px !important;
-  justify-content: flex-start !important;
-}
-
-.student-mobile-nav::-webkit-scrollbar {
-  display: none !important;
+  justify-content: space-around !important;
+  align-items: center !important;
 }
 
 @media (min-width: 769px) {
@@ -965,8 +956,8 @@ body {
 }
 
 .student-mobile-nav-item {
-  flex: 0 0 auto !important;
-  min-width: 74px !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
   cursor: pointer;
