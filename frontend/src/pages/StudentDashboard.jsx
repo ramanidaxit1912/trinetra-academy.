@@ -82,7 +82,8 @@ import {
   BookOpen, BarChart2, ArrowRight, RefreshCw, FileText, Image as ImageIcon,
   Check, X, AlertCircle, LogOut, ChevronRight, Download, Sparkles,
   Phone, MessageSquare, HelpCircle, FileCheck, Send, ExternalLink, Bookmark,
-  Search, SlidersHorizontal, TrendingUp, CheckCircle2, Smartphone
+  Search, SlidersHorizontal, TrendingUp, CheckCircle2, Smartphone,
+  Trophy, Zap
 } from 'lucide-react';
 
 
@@ -6222,30 +6223,68 @@ export default function StudentDashboard() {
         document.body
       )}
 
-      {/* ── Fixed Phone Bottom Nav — Portaled to document.body to escape CSS transform ── */}
+      {/* ── Modern Floating Glassmorphism Phone Bottom Nav — Portaled to document.body ── */}
       {typeof document !== 'undefined' && createPortal(
-        <div className="student-mobile-nav">
+        <div className="student-mobile-nav" role="navigation" aria-label="વિદ્યાર્થી મેનુ">
           {[
-            { id: 'live',            label: 'લાઈવ',      icon: '🔴' },
-            { id: 'results',         label: 'રિઝલ્ટ',    icon: '📜', hasBadge: true },
-            { id: 'analytics',       label: 'પ્રગતિ',    icon: '📊' },
-            { id: 'leaderboard',     label: 'લીડરબોર્ડ', icon: '🏆' },
-            { id: 'materials',       label: 'મટીરીયલ',   icon: '📁' },
-            { id: 'teacher_support', label: 'સહાય',      icon: '💭' },
+            {
+              id: 'live',
+              label: 'લાઈવ',
+              icon: <Zap size={18} strokeWidth={2.4} />,
+              isLiveBeacon: liveTests.length > 0,
+              liveBadge: liveTests.length > 0 ? liveTests.length : null
+            },
+            {
+              id: 'results',
+              label: 'રિઝલ્ટ',
+              icon: <Award size={18} strokeWidth={2.4} />,
+              badge: submissions.length > 0 ? submissions.length : null
+            },
+            {
+              id: 'analytics',
+              label: 'પ્રગતિ',
+              icon: <TrendingUp size={18} strokeWidth={2.4} />
+            },
+            {
+              id: 'leaderboard',
+              label: 'લીડરબોર્ડ',
+              icon: <Trophy size={18} strokeWidth={2.4} />
+            },
+            {
+              id: 'materials',
+              label: 'મટીરીયલ',
+              icon: <BookOpen size={18} strokeWidth={2.4} />,
+              badge: (materials && materials.length > 0) ? materials.length : null
+            },
+            {
+              id: 'teacher_support',
+              label: 'સહાય',
+              icon: <MessageSquare size={18} strokeWidth={2.4} />
+            },
           ].map(tab => {
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id}
+              <button
+                key={tab.id}
                 className={`student-mobile-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab(tab.id);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}>
-                <span className="nav-icon">{tab.icon}</span>
+                }}
+                aria-label={tab.label}
+              >
+                <div className="nav-icon-container">
+                  <span className="nav-icon">{tab.icon}</span>
+                  {tab.isLiveBeacon && <span className="nav-live-ping" />}
+                </div>
                 <span className="nav-label">{tab.label}</span>
-                {tab.hasBadge && submissions.length > 0 && (
-                  <span className="nav-badge">{submissions.length}</span>
+                {tab.liveBadge && (
+                  <span className="nav-badge nav-badge-live">{tab.liveBadge}</span>
                 )}
+                {tab.badge && !tab.liveBadge && (
+                  <span className="nav-badge">{tab.badge}</span>
+                )}
+                {isActive && <span className="nav-active-glow-dot" />}
               </button>
             );
           })}
