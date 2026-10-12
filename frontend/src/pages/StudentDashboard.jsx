@@ -82,8 +82,7 @@ import {
   BookOpen, BarChart2, ArrowRight, RefreshCw, FileText, Image as ImageIcon,
   Check, X, AlertCircle, LogOut, ChevronRight, Download, Sparkles,
   Phone, MessageSquare, HelpCircle, FileCheck, Send, ExternalLink, Bookmark,
-  Search, SlidersHorizontal, TrendingUp, CheckCircle2, Smartphone,
-  Trophy, Zap
+  Search, SlidersHorizontal, TrendingUp, CheckCircle2, Smartphone
 } from 'lucide-react';
 
 
@@ -846,13 +845,16 @@ export default function StudentDashboard() {
 
   // Extract unique subjects from student's submissions
   const uniqueSubjects = useMemo(() => {
-    const set = new Set(submissions.map(s => s.subject).filter(Boolean));
+    if (!Array.isArray(submissions)) return [];
+    const set = new Set(submissions.map(s => s?.subject).filter(Boolean));
     return Array.from(set);
   }, [submissions]);
 
   // Filtered & Sorted Submissions for Results Tab
   const filteredSubmissions = useMemo(() => {
+    if (!Array.isArray(submissions)) return [];
     return submissions.filter(sub => {
+      if (!sub) return false;
       const matchSubj = resultSubjectFilter === 'all' || sub.subject === resultSubjectFilter;
       const q = resultSearch.trim().toLowerCase();
       const matchSearch = !q ||
@@ -861,17 +863,20 @@ export default function StudentDashboard() {
         (sub.testCode || '').toLowerCase().includes(q);
       return matchSubj && matchSearch;
     }).sort((a, b) => {
-      const scoreA = (a.mcqScore || 0) + (a.teacherMarks || 0);
-      const totalA = a.totalMarks || (a.totalMCQ || 1);
+      if (!a || !b) return 0;
+      const scoreA = (Number(a.mcqScore) || 0) + (Number(a.teacherMarks) || 0);
+      const totalA = Number(a.totalMarks) || (Number(a.totalMCQ) || 1);
       const pctA = totalA > 0 ? (scoreA / totalA) * 100 : 0;
 
-      const scoreB = (b.mcqScore || 0) + (b.teacherMarks || 0);
-      const totalB = b.totalMarks || (b.totalMCQ || 1);
+      const scoreB = (Number(b.mcqScore) || 0) + (Number(b.teacherMarks) || 0);
+      const totalB = Number(b.totalMarks) || (Number(b.totalMCQ) || 1);
       const pctB = totalB > 0 ? (scoreB / totalB) * 100 : 0;
 
       if (resultSortBy === 'score_high') return pctB - pctA;
       if (resultSortBy === 'score_low') return pctA - pctB;
-      return new Date(b.submittedAt) - new Date(a.submittedAt);
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateB - dateA;
     });
   }, [submissions, resultSubjectFilter, resultSearch, resultSortBy]);
 
@@ -1268,7 +1273,7 @@ export default function StudentDashboard() {
 
   // ─── Student Overall Statistics (Strict 0% to 100% Range) ───────────────────────────
   const stats = useMemo(() => {
-    if (!submissions.length) {
+    if (!Array.isArray(submissions) || !submissions.length) {
       return { totalTests: 0, avgScore: 0, highestScore: 0, totalMarksObtained: 0 };
     }
     const total = submissions.length;
@@ -1277,7 +1282,8 @@ export default function StudentDashboard() {
     let maxPct = 0;
 
     submissions.forEach(s => {
-      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
+      if (!s) return;
+      const score = Number((s.mcqScore || 0) + (Number(s.teacherMarks) || 0)) || 0;
       const totalM = Number(s.totalMarks) > 0 
         ? Number(s.totalMarks) 
         : Number(s.totalMCQ) > 0 
@@ -1303,10 +1309,12 @@ export default function StudentDashboard() {
   // ─── Subject Analytics Breakdown (Strict 0% to 100%) ──────────────────────────
   const subjectAnalytics = useMemo(() => {
     const map = {};
+    if (!Array.isArray(submissions)) return [];
     submissions.forEach(s => {
+      if (!s) return;
       const sub = s.subject || 'સામાન્ય';
       if (!map[sub]) map[sub] = { subject: sub, count: 0, totalScore: 0, totalMax: 0 };
-      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
+      const score = Number((s.mcqScore || 0) + (Number(s.teacherMarks) || 0)) || 0;
       const totalM = Number(s.totalMarks) > 0 ? Number(s.totalMarks) : Number(s.totalMCQ) > 0 ? Number(s.totalMCQ) : 20;
       map[sub].count++;
       map[sub].totalScore += Math.min(totalM, Math.max(0, score));
@@ -1320,14 +1328,20 @@ export default function StudentDashboard() {
 
   // ─── Test-by-Test Score Progression Graph Data ───────────
   const testTrendData = useMemo(() => {
-    if (!submissions.length) return [];
+    if (!Array.isArray(submissions) || !submissions.length) return [];
     // chronological order (oldest to newest)
     const reversed = [...submissions].reverse();
-    return reversed.map((s, idx) => {
-      const score = Number((s.mcqScore || 0) + (s.teacherMarks || 0)) || 0;
+    return reversed.filter(Boolean).map((s, idx) => {
+      const score = Number((s.mcqScore || 0) + (Number(s.teacherMarks) || 0)) || 0;
       const total = Number(s.totalMarks || s.totalMCQ || 20) || 20;
       const rawPct = total > 0 ? Math.round((score / total) * 100) : 0;
       const pct = Math.min(100, Math.max(0, rawPct));
+      let dateStr = '';
+      try {
+        dateStr = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('gu-IN', { day: 'numeric', month: 'short' }) : '';
+      } catch (_) {
+        dateStr = '';
+      }
       return {
         testNum: idx + 1,
         testCode: s.testCode,
@@ -1336,7 +1350,7 @@ export default function StudentDashboard() {
         score,
         total,
         percentage: pct,
-        date: new Date(s.submittedAt).toLocaleDateString('gu-IN', { day: 'numeric', month: 'short' })
+        date: dateStr
       };
     });
   }, [submissions]);
@@ -1345,10 +1359,13 @@ export default function StudentDashboard() {
   const accuracyMetrics = useMemo(() => {
     let totalMCQ = 0;
     let correctMCQ = 0;
-    submissions.forEach(s => {
-      totalMCQ += (s.totalMCQ || 0);
-      correctMCQ += (s.mcqScore || 0);
-    });
+    if (Array.isArray(submissions)) {
+      submissions.forEach(s => {
+        if (!s) return;
+        totalMCQ += (Number(s.totalMCQ) || 0);
+        correctMCQ += (Number(s.mcqScore) || 0);
+      });
+    }
     const wrongMCQ = Math.max(0, totalMCQ - correctMCQ);
     const accuracy = totalMCQ > 0 ? Math.round((correctMCQ / totalMCQ) * 100) : 0;
     return { totalMCQ, correctMCQ, wrongMCQ, accuracy };
@@ -2556,7 +2573,7 @@ export default function StudentDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 54, height: 54, borderRadius: 16, background: 'linear-gradient(135deg,#38bdf8,#2563eb)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 900, boxShadow: '0 8px 24px rgba(37,99,235,0.4)', border: '2px solid rgba(255,255,255,0.2)' }}>
-                {(user?.name || 'S')[0].toUpperCase()}
+                {String(user?.name || 'S').trim()[0]?.toUpperCase() || 'S'}
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -2610,7 +2627,7 @@ export default function StudentDashboard() {
       <div className="student-mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#38bdf8,#2563eb)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 900, boxShadow: '0 4px 12px rgba(37,99,235,0.4)' }}>
-            {(user?.name || 'S')[0].toUpperCase()}
+            {String(user?.name || 'S').trim()[0]?.toUpperCase() || 'S'}
           </div>
           <div>
             <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
@@ -6223,68 +6240,30 @@ export default function StudentDashboard() {
         document.body
       )}
 
-      {/* ── Modern Floating Glassmorphism Phone Bottom Nav — Portaled to document.body ── */}
+      {/* ── Fixed Phone Bottom Nav — Portaled to document.body to escape CSS transform ── */}
       {typeof document !== 'undefined' && createPortal(
-        <div className="student-mobile-nav" role="navigation" aria-label="વિદ્યાર્થી મેનુ">
+        <div className="student-mobile-nav">
           {[
-            {
-              id: 'live',
-              label: 'લાઈવ',
-              icon: <Zap size={18} strokeWidth={2.4} />,
-              isLiveBeacon: liveTests.length > 0,
-              liveBadge: liveTests.length > 0 ? liveTests.length : null
-            },
-            {
-              id: 'results',
-              label: 'રિઝલ્ટ',
-              icon: <Award size={18} strokeWidth={2.4} />,
-              badge: submissions.length > 0 ? submissions.length : null
-            },
-            {
-              id: 'analytics',
-              label: 'પ્રગતિ',
-              icon: <TrendingUp size={18} strokeWidth={2.4} />
-            },
-            {
-              id: 'leaderboard',
-              label: 'લીડરબોર્ડ',
-              icon: <Trophy size={18} strokeWidth={2.4} />
-            },
-            {
-              id: 'materials',
-              label: 'મટીરીયલ',
-              icon: <BookOpen size={18} strokeWidth={2.4} />,
-              badge: (materials && materials.length > 0) ? materials.length : null
-            },
-            {
-              id: 'teacher_support',
-              label: 'સહાય',
-              icon: <MessageSquare size={18} strokeWidth={2.4} />
-            },
+            { id: 'live',            label: 'લાઈવ',      icon: '🔴' },
+            { id: 'results',         label: 'રિઝલ્ટ',    icon: '📜', hasBadge: true },
+            { id: 'analytics',       label: 'પ્રગતિ',    icon: '📊' },
+            { id: 'leaderboard',     label: 'લીડરબોર્ડ', icon: '🏆' },
+            { id: 'materials',       label: 'મટીરીયલ',   icon: '📁' },
+            { id: 'teacher_support', label: 'સહાય',      icon: '💭' },
           ].map(tab => {
             const isActive = activeTab === tab.id;
             return (
-              <button
-                key={tab.id}
+              <button key={tab.id}
                 className={`student-mobile-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => {
                   setActiveTab(tab.id);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                aria-label={tab.label}
-              >
-                <div className="nav-icon-container">
-                  <span className="nav-icon">{tab.icon}</span>
-                  {tab.isLiveBeacon && <span className="nav-live-ping" />}
-                </div>
+                }}>
+                <span className="nav-icon">{tab.icon}</span>
                 <span className="nav-label">{tab.label}</span>
-                {tab.liveBadge && (
-                  <span className="nav-badge nav-badge-live">{tab.liveBadge}</span>
+                {tab.hasBadge && submissions.length > 0 && (
+                  <span className="nav-badge">{submissions.length}</span>
                 )}
-                {tab.badge && !tab.liveBadge && (
-                  <span className="nav-badge">{tab.badge}</span>
-                )}
-                {isActive && <span className="nav-active-glow-dot" />}
               </button>
             );
           })}

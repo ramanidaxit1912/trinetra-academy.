@@ -25,8 +25,23 @@ class ErrorBoundary extends Component {
   }
 
   handleReset = () => {
-    localStorage.removeItem('role');
+    try {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      sessionStorage.clear();
+    } catch (_) {}
     window.location.href = '/';
+  };
+
+  handleStudentLoginReset = () => {
+    try {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      sessionStorage.clear();
+    } catch (_) {}
+    window.location.href = '/student';
   };
 
   render() {
@@ -38,21 +53,32 @@ class ErrorBoundary extends Component {
             <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 8px 0', color: '#fca5a5' }}>
               ત્રિનેત્ર એકેડેમી પોર્ટલ - પેજ લોડ ક્ષતિ
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.86rem', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-              {this.state.error?.message || 'બ્રાઉઝર કેશ અથવા ડેટા લોડિંગ ક્ષતિ. કૃપા કરીને નીચે આપેલા બટન પર ક્લિક કરો.'}
+            <p style={{ color: '#94a3b8', fontSize: '0.86rem', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+              બ્રાઉઝર કેશ અથવા અગાઉના સેશનની ક્ષતિ. નીચે આપેલા બટન પર ક્લિક કરીને ફરી લોગિન કરો.
             </p>
+            {this.state.error?.message && (
+              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: 8, fontSize: '0.75rem', color: '#f87171', fontFamily: 'monospace', marginBottom: 20, wordBreak: 'break-all' }}>
+                Error: {this.state.error.message}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
-                onClick={() => window.location.reload()}
-                style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)', color: 'white', border: 'none', padding: '10px 22px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.88rem' }}
+                onClick={this.handleStudentLoginReset}
+                style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)', color: 'white', border: 'none', padding: '10px 22px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: '0.88rem', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
               >
-                🔄 ફરીથી લોડ કરો (Refresh)
+                🎓 કેશ ક્લિયર કરી Student Login ખોલો
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.15)', padding: '10px 18px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+              >
+                🔄 રીલોડ (Reload)
               </button>
               <button
                 onClick={this.handleReset}
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.15)', padding: '10px 20px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.15)', padding: '10px 18px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
               >
-                🏠 હોમ પેજ પર જાઓ
+                🏠 હોમ પેજ
               </button>
             </div>
           </div>
