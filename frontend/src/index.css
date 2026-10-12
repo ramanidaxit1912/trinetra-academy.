@@ -3995,7 +3995,7 @@ textarea.input-dark {
 /* ─── Global Strict Mobile Viewport Safety (With Sticky Support) ─── */
 html, body {
   max-width: 100vw;
-  overflow-x: clip;
+  overflow-x: hidden;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -4003,9 +4003,10 @@ html, body {
 }
 #root {
   max-width: 100vw;
-  overflow-x: clip;
+  overflow-x: hidden;
   width: 100%;
 }
+
 .dash-bg {
   max-width: 100vw;
   width: 100%;
