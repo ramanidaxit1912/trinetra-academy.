@@ -861,16 +861,19 @@ router.post('/bulk-save', authMiddleware, teacherOnly, async (req, res) => {
   const finalTestName = (testName || finalTestCode).trim();
   const finalSubject  = (subject || questions[0]?.subject || 'સામાન્ય').trim();
   let finalIsActive = isActive !== undefined ? Boolean(isActive) : false;
-  if (!finalIsActive && finalTestCode) {
-    const activeSibling = await prisma.question.findFirst({
-      where: { testCode: finalTestCode, isActive: true },
-      select: { id: true }
-    });
-    if (activeSibling) finalIsActive = true;
-  }
   const finalIsEnrolledOnly = isEnrolledOnly !== undefined ? Boolean(isEnrolledOnly) : false;
+  const finalTimeLimit = timeLimit ? parseInt(timeLimit) : 0;
 
   try {
+    // If test already live, auto-activate new questions
+    if (!finalIsActive && finalTestCode) {
+      const activeSibling = await prisma.question.findFirst({
+        where: { testCode: finalTestCode, isActive: true },
+        select: { id: true }
+      });
+      if (activeSibling) finalIsActive = true;
+    }
+
     const maxOrder = await prisma.question.findFirst({
       orderBy: { orderIndex: 'desc' },
       select: { orderIndex: true }
