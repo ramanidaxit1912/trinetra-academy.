@@ -221,8 +221,11 @@ router.post('/', authMiddleware, teacherOnly, async (req, res) => {
     text, type, optionA, optionB, optionC, optionD, optionE, correctOpt,
     subject, chapter, marks, testCode, testName, timeLimit, isActive,
     image, imageUrl, optionA_img, optionB_img, optionC_img, optionD_img, optionE_img,
-    scheduledAt, negativeMarking, isEnrolledOnly
+    scheduledAt, scheduledEndAt, negativeMarking, isEnrolledOnly
   } = req.body;
+
+  // Resolve image URL — accept either field name
+  const finalImage = (imageUrl || image || '').trim() || null;
 
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'પ્રશ્નનો ટેક્સ્ટ જરૂરી છે.' });
