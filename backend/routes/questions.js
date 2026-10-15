@@ -698,7 +698,7 @@ REQUIREMENTS:
     try {
       const ai = new GoogleGenAI({ apiKey: effectiveKey });
       let response;
-      const models = ['gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+      const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash'];
       for (const m of models) {
         try {
           response = await ai.models.generateContent({
@@ -784,7 +784,7 @@ router.post('/ocr-extract', authMiddleware, teacherOnly, uploadOcr.single('photo
 
     const ai = new GoogleGenAI({ apiKey: effectiveKey });
     let response;
-    const models = ['gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+    const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash'];
     for (const m of models) {
       try {
         response = await ai.models.generateContent({
