@@ -12334,31 +12334,87 @@ function StudentAnswers({ showToast }) {
         </div>
       </div>
 
-      {/* ── Dedicated Ultra-Modern Sort Toolbar (Segmented Capsule) ── */}
+      {/* ── Dedicated Ultra-Modern Sort Toolbar (Dropdown Selector) ── */}
       <div className="sa-sort-toolbar-wrap" style={{ marginBottom: 14 }}>
-        <span className="sa-sort-label">⚡ ક્રમ ફિલ્ટર:</span>
-        <div className="sa-sort-pills-bar">
-          {[
-            { id: 'LEADERBOARD', label: '👑 લીડરબોર્ડ', title: 'સત્તાવાર લીડરબોર્ડ રેન્ક (શિક્ષકના ફેરફારો સહિત)' },
-            { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
-            { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
-            { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },
-            { id: 'TIME_FAST', label: '⚡ ઝડપી પૂર્ણ', title: 'સૌથી ઓછા સમયમાં ટેસ્ટ પૂર્ણ કરનાર' },
-            { id: 'AUTO_SUBMIT_6MIN', label: '⚠️ ૬-મિનિટ ઓટો-સબમિટ', title: '૬ મિનિટ નિષ્ક્રિય રહેવાથી આપમેળે સબમિટ થયેલા વિદ્યાર્થીઓ' }
-          ].map(s => {
-            const isAct = sortBy === s.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSortBy(s.id)}
-                title={s.title}
-                className={`sa-sort-pill-btn ${isAct ? 'active' : ''} ${s.id === 'LEADERBOARD' ? 'leaderboard-pill' : ''}`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.98) 100%)',
+          border: '1.5px solid rgba(255, 255, 255, 0.14)',
+          borderRadius: 14,
+          padding: '6px 14px',
+          boxShadow: '0 4px 18px rgba(0, 0, 0, 0.35)',
+          maxWidth: '100%',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{
+            color: '#fbbf24',
+            fontWeight: 800,
+            fontSize: '0.84rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            whiteSpace: 'nowrap'
+          }}>
+            ⚡ ક્રમ ફિલ્ટર:
+          </span>
+
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                background: 'rgba(255, 255, 255, 0.08)',
+                color: '#ffffff',
+                border: '1.5px solid rgba(56, 189, 248, 0.45)',
+                borderRadius: 10,
+                padding: '8px 36px 8px 14px',
+                fontSize: '0.86rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                outline: 'none',
+                fontFamily: "'Hind Vadodara', -apple-system, BlinkMacSystemFont, sans-serif",
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <option value="LEADERBOARD" style={{ background: '#0f172a', color: '#fbbf24' }}>
+                👑 લીડરબોર્ડ (Leaderboard Rank)
+              </option>
+              <option value="LATEST_TIME" style={{ background: '#0f172a', color: '#ffffff' }}>
+                🕒 છેલ્લે આપેલ (Latest)
+              </option>
+              <option value="EARLIEST_TIME" style={{ background: '#0f172a', color: '#ffffff' }}>
+                🌅 પહેલાં આપેલ (Oldest)
+              </option>
+              <option value="TIME_LONG" style={{ background: '#0f172a', color: '#ffffff' }}>
+                ⏱️ વધુ સમય લીધેલ
+              </option>
+              <option value="TIME_FAST" style={{ background: '#0f172a', color: '#ffffff' }}>
+                ⚡ ઝડપી પૂર્ણ
+              </option>
+              <option value="AUTO_SUBMIT_6MIN" style={{ background: '#0f172a', color: '#f87171' }}>
+                ⚠️ ૬-મિનિટ ઓટો-સબમિટ
+              </option>
+            </select>
+            {/* Custom dropdown arrow */}
+            <span style={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+              color: '#38bdf8',
+              fontSize: '0.75rem',
+              fontWeight: 900
+            }}>
+              ▼
+            </span>
+          </div>
         </div>
       </div>
 
