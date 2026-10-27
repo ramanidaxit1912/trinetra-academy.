@@ -11386,7 +11386,7 @@ function StudentAnswers({ showToast }) {
   const [testTypeFilter, setTestTypeFilter] = useState('ALL'); // 'ALL' | 'DESCRIPTIVE' | 'MCQ'
   const [filterStatus, setFilterStatus]     = useState('ALL'); // 'ALL' | 'PENDING' | 'GRADED'
   const [searchQuery, setSearchQuery]       = useState('');
-  const [sortBy, setSortBy]                 = useState('TOPPER'); // 'TOPPER' | 'LATEST_TIME' | 'EARLIEST_TIME' | 'TIME_LONG' | 'TIME_FAST'
+  const [sortBy, setSortBy]                 = useState('LEADERBOARD'); // 'LEADERBOARD' | 'LATEST_TIME' | 'EARLIEST_TIME' | 'TIME_LONG' | 'TIME_FAST' | 'AUTO_SUBMIT_6MIN'
   const [viewMode, setViewMode]             = useState('GRID'); // 'GRID' | 'LIST'
 
   const getSubDurationSec = (s) => {
@@ -12340,7 +12340,6 @@ function StudentAnswers({ showToast }) {
         <div className="sa-sort-pills-bar">
           {[
             { id: 'LEADERBOARD', label: '👑 લીડરબોર્ડ', title: 'સત્તાવાર લીડરબોર્ડ રેન્ક (શિક્ષકના ફેરફારો સહિત)' },
-            { id: 'TOPPER', label: '🏆 ટૉપર્સ', title: 'સૌથી વધુ ગુણ મેળવનાર વિદ્યાર્થીઓ પહેલાં' },
             { id: 'LATEST_TIME', label: '🕒 છેલ્લે આપેલ (Latest)', title: 'છેલ્લે ટેસ્ટ આપેલ વિદ્યાર્થીઓ પહેલાં' },
             { id: 'EARLIEST_TIME', label: '🌅 પહેલાં આપેલ (Oldest)', title: 'સૌથી પહેલાં ટેસ્ટ આપેલ વિદ્યાર્થીઓ' },
             { id: 'TIME_LONG', label: '⏱️ વધુ સમય લીધેલ', title: 'ટેસ્ટમાં સૌથી વધુ સમય લીધેલ વિદ્યાર્થીઓ' },

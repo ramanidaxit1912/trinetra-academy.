@@ -3400,8 +3400,8 @@ textarea.input-dark {
 /* 1. Sort & Filter Pills Bar */
 .sa-sort-toolbar-wrap {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
   flex-wrap: wrap;
   width: 100%;
 }
@@ -3413,17 +3413,19 @@ textarea.input-dark {
   color: #fbbf24;
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  padding: 6px 12px;
+  padding: 7px 13px;
   border-radius: 9px;
   font-size: 0.82rem;
   font-weight: 800;
   white-space: nowrap;
   letter-spacing: 0.2px;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+  flex-shrink: 0;
+  height: 36px;
 }
 
 .sa-sort-pills-bar {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
@@ -3434,25 +3436,28 @@ textarea.input-dark {
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .sa-sort-pill-btn {
   background: rgba(255, 255, 255, 0.05);
   color: #cbd5e1;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 7px 14px;
+  padding: 7px 13px;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
   font-family: 'Hind Vadodara', -apple-system, BlinkMacSystemFont, sans-serif;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .sa-sort-pill-btn:hover {
@@ -3477,6 +3482,34 @@ textarea.input-dark {
   border-color: #fbbf24 !important;
   box-shadow: 0 4px 14px -2px rgba(245, 158, 11, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
   transform: translateY(-1px);
+}
+
+/* Mobile: scroll horizontally on small screens */
+@media (max-width: 768px) {
+  .sa-sort-toolbar-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .sa-sort-pills-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 5px 6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sa-sort-pills-bar::-webkit-scrollbar { display: none; }
+  .sa-sort-pill-btn {
+    font-size: 0.78rem;
+    padding: 6px 11px;
+    height: 34px;
+  }
+  .sa-sort-label {
+    font-size: 0.78rem;
+    padding: 6px 10px;
+    height: 32px;
+  }
 }
 
 /* 2. Modern Student Card Layout */
