@@ -796,7 +796,7 @@ async function sendWhatsAppScorecardSummary(mobile, studentName, testName, score
 
   let messageText = '';
   if (isScheduled) {
-    messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા મેળવેલ ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n🔒 *ચોરી અટકાવવા સુરક્ષા:* વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ નિયત સમયે (*${publishTimeStr}*) જાહેર કરવામાં આવશે.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
+    messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા મેળવેલ ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સ્કોરકાર્ડ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n\n🔒 *નોંધ:* વિગતવાર સોલ્યુશન, આન્સર કી અને લીડરબોર્ડ *${publishTimeStr}* ના સમયે ખુલશે.\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
   } else {
     messageText = `🏛️ *ત્રિનેત્ર ઓનલાઇન એકેડેમી (TRINETRA ACADEMY)*\n━━━━━━━━━━━━━━━━━━━━━━\nનમસ્તે *${studentName}*,\n\n📝 કસોટી: *${testName}*\n🎯 તમારા મેળવેલ ગુણ: *${score} / ${totalMarks}* (${pct}%)\n🏅 પરિણામ: *${resultStatus}*\n\n📄 *તમારું સત્તાવાર સ્કોરકાર્ડ જોવા અને PDF ડાઉનલોડ કરવા નીચે ક્લિક કરો:*\n👉 ${scorecardUrl}\n━━━━━━━━━━━━━━━━━━━━━━\n🌐 https://trinetraonline.in  📞 8200405300`;
   }
